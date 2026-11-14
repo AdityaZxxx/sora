@@ -40,8 +40,6 @@ export function endOfDay(value: string) {
   return date;
 }
 
-// The defaults read the caller's local calendar components and build a UTC
-// date from them, so "this month" means their month, not UTC's.
 export function resolveDateRange(from?: string, to?: string) {
   const now = new Date();
 

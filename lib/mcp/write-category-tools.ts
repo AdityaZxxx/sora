@@ -17,8 +17,6 @@ import { DeleteIdSchema } from "@/schemas/delete";
 
 import { toolError, toolErrorMessage, toolResult } from "./tools";
 
-// MCP writes follow the dashboard's authorization rule: token scope and
-// Member role.
 export function registerCategoryWriteTools(
   server: McpServer,
   context: McpContext,

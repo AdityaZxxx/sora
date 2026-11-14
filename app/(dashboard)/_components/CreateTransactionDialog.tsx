@@ -60,8 +60,6 @@ import CategoryPicker from "./CategoryPicker";
 interface Props {
   trigger: ReactNode;
   type: TransactionType;
-  // Prefills the form for posting a due recurring item; the member adjusts
-  // the real date, description, and amount before confirming.
   initialValues?: {
     description?: string;
     category?: string;
@@ -130,8 +128,6 @@ const CreateTransactionDialog = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const dialogType = initialValues?.type ?? type;
-  // The default transaction date is today. It is read once per component
-  // instance so rendering stays pure and the value cannot drift mid-edit.
   const [initialDate] = useState(() => new Date());
 
   const household = useQuery<Household>({

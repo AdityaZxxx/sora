@@ -18,8 +18,6 @@ import {
   toolResult,
 } from "./tools";
 
-// Every read but the transaction list is a household aggregate over shared
-// Transactions only.
 export function registerReadTools(server: McpServer, context: McpContext) {
   server.registerTool(
     "get_overview",

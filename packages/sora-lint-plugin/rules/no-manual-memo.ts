@@ -1,8 +1,6 @@
 import { defineRule, type ESTree } from "@oxlint/plugins";
 
 const MANUAL_MEMO_HOOKS = new Set(["useCallback", "useMemo"]);
-// "use no memo" and "use no forget" skip a component the compiler would bail on,
-// which hides the bailout from the coverage checks as much as "use memo" does.
 const MEMO_DIRECTIVES = new Set(["use memo", "use no memo", "use no forget"]);
 
 const readAllowMemoHooks = (options: ReadonlyArray<unknown>): boolean => {
@@ -57,8 +55,6 @@ export default defineRule({
   create(context) {
     const allowMemoHooks = readAllowMemoHooks(context.options);
     return {
-      // A "use memo" helper only exists to force a cache scope the compiler withheld,
-      // which hides the ordering or structure problem that withheld it.
       ExpressionStatement(node) {
         if (typeof node.directive !== "string" || !MEMO_DIRECTIVES.has(node.directive)) return;
         context.report({

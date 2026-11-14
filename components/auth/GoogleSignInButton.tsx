@@ -46,8 +46,6 @@ export default function GoogleSignInButton({
     setIsLoading(true);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      // New users without settings are redirected to /wizard by the
-      // dashboard page, so "/" works for both sign-in and sign-up.
       callbackURL,
     });
     if (error) {

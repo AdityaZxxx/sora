@@ -72,10 +72,6 @@ function firstMonthlyOnOrAfter(first: Date, dayOfMonth: number) {
   );
 }
 
-// The occurrence on or before `day` (a UTC start of day), or null when the
-// item has none yet or is finished. An explicit startDate bounds which
-// occurrences exist; without one, the most recent past occurrence is what a
-// member owes.
 export function occurrenceOnOrBefore(
   item: {
     frequency: string;

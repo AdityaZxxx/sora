@@ -25,8 +25,6 @@ import { noWidenThenAssertRule } from "./rules/no-widen-then-assert.ts";
 import requireSeamParse from "./rules/require-seam-parse.ts";
 import requireSuppressionReason from "./rules/require-suppression-reason.ts";
 
-// The anti-slop rules come from an ESLint-style plugin, so they are converted
-// before they join the oxlint-native rules.
 const antiSlopRules = eslintCompatPlugin({
   meta: { name: "anti-slop" },
   rules: {

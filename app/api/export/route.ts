@@ -59,7 +59,6 @@ export async function GET() {
       where: { householdId: household.id },
       orderBy: { createdAt: "asc" },
     }),
-    // Tokens are bearer credentials, so only metadata is exported.
     prisma.inviteLink.findMany({
       where: { householdId: household.id },
       select: {
@@ -74,7 +73,6 @@ export async function GET() {
       where: { householdId: household.id },
       orderBy: { createdAt: "asc" },
     }),
-    // Only the caller's own notifications are exported.
     prisma.notification.findMany({
       where: { householdId: household.id, userId: session.user.id },
       orderBy: { createdAt: "desc" },

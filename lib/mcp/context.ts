@@ -3,7 +3,6 @@ import type { TokenScope } from "@/lib/types";
 
 import { parseMemberRole, type MemberRole } from "@/lib/roles";
 
-// The token is the only credential, so no tool depends on a browser session.
 export type McpContext = {
   householdId: string;
   householdName: string | null;

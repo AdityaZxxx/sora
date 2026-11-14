@@ -13,11 +13,8 @@ import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
 export async function UpdateUserCurrency(
   currency: string,
 ): Promise<ActionResult<Household>> {
-  // safeParse throws for this schema (the custom check throws inside it), so
-  // the coarse filter needs its own try/catch to reject with a sentence.
-  try {
-    UpdateUserCurrencySchema.parse({ currency });
-  } catch {
+  const parsed = UpdateUserCurrencySchema.safeParse({ currency });
+  if (!parsed.success) {
     return fail("That currency is not supported. Choose one from the list.");
   }
   const result = await requireHousehold();

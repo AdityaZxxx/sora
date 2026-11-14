@@ -119,8 +119,6 @@ function StatCard({
     trend === "up" ? "text-income-foreground" : "text-expense-foreground";
   const trendBg = trend === "up" ? "bg-income-soft" : "bg-expense-soft";
 
-  // The card footer shows today's date. It is read once per component
-  // instance so rendering stays pure.
   const [today] = useState(() => new Date());
 
   return (

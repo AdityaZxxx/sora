@@ -1,5 +1,5 @@
 import {
-  monthRangeFor,
+  utcMonthRangeFor,
   previousMonthRange,
   sharedSpendingFilter,
 } from "@/lib/budgets";
@@ -24,7 +24,7 @@ export type GetSharedSpendingResponseType = Awaited<
 
 async function getSharedSpending(householdId: string) {
   const now = new Date();
-  const thisMonth = monthRangeFor(now);
+  const thisMonth = utcMonthRangeFor(now);
   const lastMonth = previousMonthRange(now);
 
   const sumSharedExpenses = (range: { from: Date; to: Date }) =>

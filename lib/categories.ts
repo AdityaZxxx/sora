@@ -20,7 +20,6 @@ export async function getCategories(
   return await prisma.category.findMany({
     where: {
       householdId,
-      // The system Settlement category is hidden from pickers and lists.
       name: {
         not: SETTLEMENT_CATEGORY_NAME,
       },

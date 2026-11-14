@@ -52,7 +52,6 @@ export async function createApiToken(
     );
   }
 
-  // A view-only Member can hold a read-only token, but never one that writes.
   if (
     parsedBody.data.scope === READ_WRITE_SCOPE &&
     membership.role !== FULL_MEMBER_ROLE
@@ -75,7 +74,6 @@ export async function createApiToken(
     },
   });
 
-  // Only the hash is stored, so this is the one time the plaintext exists.
   return ok({ id: created.id, token });
 }
 
@@ -156,7 +154,6 @@ export async function revokeApiToken(
     );
   }
 
-  // A view-only Member can only revoke their own tokens.
   if (
     membership.role !== FULL_MEMBER_ROLE &&
     token.userId !== session.user.id

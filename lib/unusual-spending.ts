@@ -23,8 +23,6 @@ export type SpendingCandidate = {
 
 type Window = { start: Date; end: Date };
 
-// The three complete UTC calendar months before the current one. The
-// current month is partial, so it is never used as a baseline.
 export function trailingWindow(now: Date = new Date()): Window {
   const start = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1),
@@ -53,9 +51,6 @@ async function trailingMonthlyIncome(householdId: string, window: Window) {
   return total / 3;
 }
 
-// max(100 in the household currency, 0.5% of the trailing monthly household
-// income). A category has to be "big" in this household before a spike in it
-// is worth telling anyone about.
 export function floorFor(trailingIncome: number) {
   return Math.max(
     FLOOR_MINIMUM,

@@ -31,7 +31,7 @@ A diff that writes a shared transaction without touching the rollups passes ever
 
 ## Dates are UTC
 
-Transaction dates are stored as UTC (`dateToUtcDate`) and rollup buckets use the UTC getters, so a transaction's month is its UTC month. Budget months follow the same calendar (`monthRangeFor`).
+Transaction dates are stored as UTC (`dateToUtcDate`) and rollup buckets use the UTC getters, so a transaction's month is its UTC month. Budget months follow the same calendar (`utcMonthRangeFor`).
 
 Mixing local-time getters into a bucket key files a transaction under a different month than the one the rollups counted. Use the UTC getters for any date that names a bucket.
 

@@ -13,9 +13,6 @@ import { transactionFields } from "@/schemas/transaction";
 
 import { toolError, toolErrorMessage, toolResult } from "./tools";
 
-// The write tools change the Household's ledger, so they answer to the
-// token's scope and to the Member's role, the same way the dashboard's own
-// actions do.
 export function registerTransactionWriteTools(
   server: McpServer,
   context: McpContext,
@@ -80,14 +77,13 @@ export function registerTransactionWriteTools(
           {
             amount,
             description,
-            date: date ? parseDate(date) : today(),
+            date: date ? parseDate(date) : localTodayAtUtcMidnight(),
             category,
             type,
             shared,
             goalId: goalId || undefined,
             shares,
             recurringItemId,
-            // The ledger keeps one answer to who added the Transaction.
             addedVia: "agent",
           },
           context.role,
@@ -180,9 +176,7 @@ export function registerTransactionWriteTools(
   );
 }
 
-// The calendar day is the caller's own, like the ranges the read tools
-// resolve, and it is stored at UTC midnight so the day's parts match.
-function today() {
+function localTodayAtUtcMidnight() {
   const now = new Date();
   return new Date(
     Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),

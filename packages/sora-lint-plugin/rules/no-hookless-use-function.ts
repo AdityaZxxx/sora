@@ -22,8 +22,6 @@ function isHookCallee(callee: ESTree.Node): boolean {
   return false;
 }
 
-// A hook call inside a nested callback runs when the callback runs, not during render,
-// so it does not make the outer function a hook.
 function callsHook(node: unknown, root: unknown): boolean {
   if (typeof node !== "object" || node === null) return false;
   if (Array.isArray(node)) return node.some((child) => callsHook(child, root));

@@ -25,8 +25,6 @@ function toPrefix(entry: string): string {
   return entry.replace(/\/\*+$/u, "").replace(/\/+$/u, "");
 }
 
-// The allowlist names repository-relative paths, and the linter can run from
-// any directory, so the paths are matched as suffixes of the file path.
 function isAllowlisted(filename: string, allowlist: readonly string[]): boolean {
   const path = filename.split(sep).join("/");
 

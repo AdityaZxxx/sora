@@ -115,9 +115,6 @@ const buildColumns = (formatAmount: (value: number) => string) =>
         <Tooltip>
           <TooltipTrigger
             render={
-              // A button, not a div: the truncated description needs a
-              // keyboard-reachable trigger for its tooltip; the defaults are
-              // neutralised so it reads as plain text.
               <button
                 type="button"
                 aria-label={row.original.description}
@@ -414,7 +411,6 @@ const TransactionTable = ({ from, to }: Props) => {
               )}
             </TableBody>
           </Table>
-          {/* Scroll cue; the table always overflows below xl. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-lg bg-gradient-to-l from-background via-background/60 to-transparent xl:hidden"
@@ -576,9 +572,6 @@ function AddedByCell({ transaction }: { transaction: TransactionHistoryRow }) {
         </Badge>
       )}
       {transaction.addedVia === "agent" && (
-        // The marker says the entry arrived through an assistant, so a Member
-        // can spot the ones to check. The label carries the meaning on its
-        // own and the tooltip only adds the detail.
         <Tooltip>
           <TooltipTrigger render={<span className="inline-flex" />}>
             <Badge variant="outline" className="text-xs">

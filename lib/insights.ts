@@ -1,8 +1,5 @@
 import prisma from "@/lib/prisma";
 
-// Sums MonthHistory into one bucket per month for the trailing six months,
-// oldest first, with zero-filled gaps. MonthHistory only carries shared
-// transactions, which is what the rest of the dashboard reports.
 export async function getMonthlyRollup(householdId: string) {
   const now = new Date();
   const months: { year: number; month: number }[] = [];

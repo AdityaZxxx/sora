@@ -30,7 +30,6 @@ export async function getTransactionsHistory(
         gte: from,
         lte: to,
       },
-      // Members see shared transactions plus their own personal ones.
       OR: [{ shared: true }, { addedById: userId }],
       ...(filters?.category && { category: filters.category }),
       ...(filters?.shared !== undefined && { shared: filters.shared }),
@@ -38,8 +37,6 @@ export async function getTransactionsHistory(
     orderBy: {
       date: "asc",
     },
-    // Only the columns the Transaction History view reads; the route is
-    // polled, so its payload is paid for on every tick.
     select: {
       id: true,
       date: true,
@@ -112,14 +109,10 @@ export type CreateTransactionInput = {
   shared?: boolean;
   goalId?: string;
   shares?: { userId: string; amount: number }[];
-  // null = added through the UI, "agent" = added through an assistant
-  addedVia?: string | null;
+  addedVia?: "agent" | null;
   recurringItemId?: string;
 };
 
-// The Household's Categories are the only labels a Transaction can carry, and
-// each one belongs to a Household and a type, so an income Transaction needs
-// an income Category.
 async function resolveCategory(
   householdId: string,
   type: TransactionType,
@@ -249,7 +242,6 @@ export async function createTransaction(
     );
   }
 
-  // Budgets only apply to shared expenses; personal transactions stay out.
   let thresholdMessage: string | null = null;
   if (type === "expense" && shared) {
     const budget = await prisma.budget.findUnique({
@@ -280,8 +272,6 @@ export async function createTransaction(
         );
       }
 
-      // One notification per transaction: report the highest threshold
-      // crossed (100% covers a jump straight past 80%).
       if (beforePercent < 100 && afterPercent >= 100) {
         thresholdMessage = `${categoryRow.name} budget reached 100% of ${formatAmount(budgetAmount.toNumber())} this month (${formatAmount(spentAfter.toNumber())} spent).`;
       } else if (beforePercent < 80 && afterPercent >= 80) {
@@ -387,8 +377,6 @@ export async function createTransaction(
     return transaction;
   });
 
-  // The actor just made the transaction, so threshold warnings go to the
-  // other members only.
   if (thresholdMessage) {
     const message = thresholdMessage;
     after(() =>
@@ -403,10 +391,6 @@ export async function createTransaction(
     );
   }
 
-  // A Goal's progress is a Household aggregate, so it counts shared
-  // Transactions only, the same figure the dashboard's Goals card shows. A
-  // personal Transaction does not move that figure, so it cannot reach a
-  // Goal either.
   if (goal && shared) {
     after(async () => {
       const contributed = await prisma.transaction.aggregate({

@@ -20,8 +20,6 @@ import { toolError, toolErrorMessage, toolResult } from "./tools";
 
 const DEADLINE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-// MCP writes follow the dashboard's authorization rule: token scope and
-// Member role.
 export function registerGoalBudgetWriteTools(
   server: McpServer,
   context: McpContext,

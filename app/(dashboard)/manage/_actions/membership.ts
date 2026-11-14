@@ -77,8 +77,6 @@ export async function leaveHousehold(): Promise<ActionResult> {
       },
     });
 
-    // The token outlives the membership that backs it, so it is revoked here
-    // rather than left working for a User who is no longer a Member.
     await tx.apiToken.updateMany({
       where: {
         householdId: household.id,
@@ -120,7 +118,6 @@ export async function leaveHousehold(): Promise<ActionResult> {
     await clearActiveHouseholdCookie();
   }
 
-  // If the household was deleted above there is nobody left to notify.
   await notifyHouseholdExcept(
     household.id,
     session.user.id,
@@ -128,8 +125,6 @@ export async function leaveHousehold(): Promise<ActionResult> {
     `${session.user.name} left the household.`,
   );
 
-  // The session stays valid; the next requireHousehold() lazily creates a
-  // fresh personal household, so solo use keeps working after leaving.
   redirect("/");
 }
 
@@ -248,7 +243,6 @@ export async function setEmailDigest(
 
   const { session, household } = result;
 
-  // Members can only toggle their own digest preference.
   return ok(
     await prisma.householdMembership.update({
       where: {

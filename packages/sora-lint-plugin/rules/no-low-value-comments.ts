@@ -6,14 +6,11 @@ const DIRECTIVE_PATTERN =
 const DIVIDER_LINE_PATTERN = /^(?:[-=*#~_/+]{3,}.*|.*[-=*#~_]{3,})$/u;
 const TEST_STEP_PATTERN = /^(?:arrange|act|assert|given|when|then)\s*[:.]?$/iu;
 const TASK_MARKER_PATTERN = /\b(?:TODO|FIXME|XXX|HACK)\b/u;
-// `regression: #123` and `quarantine: #123` test markers exist to carry the number.
 const TEST_MARKER_PATTERN = /^\s*(?:regression|quarantine):/u;
 const TASK_LINK_PATTERN = /#\d+|https?:\/\//u;
-// `owner/repo#123` names an external tracker; a bare `#123` is our own history.
 const BARE_ISSUE_REF_PATTERN = /(?<![\w/&#-])#[1-9]\d{2,4}(?![\w-])/u;
 const CODE_SPAN_PATTERN = /`[^`]*`/gu;
 const PUBLIC_BOILERPLATE_PATTERN = /^@public\s+Service construction is part of the canonical/u;
-// Comments grew back as long why-blocks; past this, the reason needs cutting, not more context.
 const MAX_COMMENT_LINES = 4;
 const LICENSE_PATTERN = /^!|@license|\bcopyright\b|\bSPDX-License-Identifier\b/iu;
 const JSDOC_TYPE_PATTERN = /^@(?:param|returns?|type|typedef)\s+\{/u;
@@ -54,7 +51,6 @@ export default defineRule({
     const { sourceCode } = context;
     const isTypeScript = TS_FILE_PATTERN.test(context.filename);
 
-    // Consecutive `//` lines at one indent read as one comment.
     const groups: Array<{ comments: Array<ESTree.Comment>; lines: Array<string> }> = [];
     for (const comment of sourceCode.getAllComments()) {
       const previous = groups.at(-1)?.comments.at(-1);
