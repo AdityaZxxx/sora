@@ -59,7 +59,7 @@ const DeleteTransactionDialog = ({ open, setOpen, transactionId }: Props) => {
               toast.loading("Deleting transaction…", {
                 id: transactionId,
               });
-              deleteMutation.mutate(transactionId);
+              deleteMutation.mutate({ id: transactionId });
             }}
           >
             Delete transaction

@@ -10,8 +10,8 @@ import {
   setRecurringItemPaused,
   updateRecurringItem,
 } from "@/lib/recurring";
+import { DeleteIdSchema, type DeleteIdSchemaType } from "@/schemas/delete";
 import {
-  DeleteRecurringItemSchema,
   SetRecurringItemPausedSchema,
   type CreateRecurringItemType,
   type UpdateRecurringItemType,
@@ -63,10 +63,10 @@ export async function SetRecurringItemPaused(form: {
   );
 }
 
-export async function DeleteRecurringItem(form: { id: string }) {
-  const parsedBody = DeleteRecurringItemSchema.safeParse(form);
+export async function DeleteRecurringItem(form: DeleteIdSchemaType) {
+  const parsedBody = DeleteIdSchema.safeParse(form);
   if (!parsedBody.success) {
-    throw new Error(parsedBody.error.message);
+    throw new Error(parsedBody.error.issues[0]?.message ?? "Bad request");
   }
 
   const result = await requireHousehold();

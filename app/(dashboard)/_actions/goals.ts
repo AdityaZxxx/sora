@@ -1,8 +1,8 @@
 "use server";
 
+import type { DeleteIdSchemaType } from "@/schemas/delete";
 import type {
   CreateGoalSchemaType,
-  DeleteGoalSchemaType,
   UpdateGoalSchemaType,
 } from "@/schemas/goals";
 
@@ -15,11 +15,8 @@ import {
   updateHouseholdGoal,
 } from "@/lib/goals";
 import { requireHousehold } from "@/lib/household";
-import {
-  CreateGoalSchema,
-  DeleteGoalSchema,
-  UpdateGoalSchema,
-} from "@/schemas/goals";
+import { DeleteIdSchema } from "@/schemas/delete";
+import { CreateGoalSchema, UpdateGoalSchema } from "@/schemas/goals";
 
 export async function listGoals() {
   const result = await requireHousehold();
@@ -64,10 +61,10 @@ export async function updateGoal(form: UpdateGoalSchemaType) {
   );
 }
 
-export async function deleteGoal(form: DeleteGoalSchemaType) {
-  const parsedBody = DeleteGoalSchema.safeParse(form);
+export async function deleteGoal(form: DeleteIdSchemaType) {
+  const parsedBody = DeleteIdSchema.safeParse(form);
   if (!parsedBody.success) {
-    throw new Error("Bad request");
+    throw new Error(parsedBody.error.issues[0]?.message ?? "Bad request");
   }
 
   const result = await requireHousehold();
