@@ -4,8 +4,6 @@ import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
 
-// A tool's payload is the JSON an agent reads, so every value in it is a
-// JSON value.
 export type ToolPayload =
   | string
   | number
@@ -22,8 +20,6 @@ export function toolResult(data: ToolPayload): CallToolResult {
   };
 }
 
-// A tool failure is a result the agent can read and react to, not a
-// transport error.
 export function toolError(message: string): CallToolResult {
   return {
     content: [{ type: "text", text: message }],
@@ -31,9 +27,6 @@ export function toolError(message: string): CallToolResult {
   };
 }
 
-// A domain rejection is the agent's fault, and its message is how to fix the
-// call; any other failure is ours, and the agent gets generic copy instead
-// of the internals.
 export function toolErrorMessage(cause: unknown): string {
   return cause instanceof DomainError
     ? cause.message

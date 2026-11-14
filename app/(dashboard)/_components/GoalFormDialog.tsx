@@ -161,14 +161,10 @@ const GoalFormDialog = ({
         id: copy.toastId,
       });
 
-      // In edit mode the form is the whole record, so a deadline cleared in
-      // the form (or never set) submits null and clears the stored one.
       mutate(value);
     },
   });
 
-  // Every open starts from the current record, so a goal changed outside
-  // this dialog (an MCP tool, another member) never shows stale values.
   const handleOpenChange = (next: boolean) => {
     if (next) {
       form.reset(goal ? fromGoal(goal) : EMPTY_FORM);

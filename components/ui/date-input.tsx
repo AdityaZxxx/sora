@@ -11,7 +11,6 @@ interface DateParts {
   year: number;
 }
 
-/** Splits a date into the editable day/month/year parts shown by the inputs. */
 const toDateParts = (value?: Date): DateParts => {
   const d = value ? new Date(value) : new Date();
   return {
@@ -23,18 +22,17 @@ const toDateParts = (value?: Date): DateParts => {
 
 const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
   const [date, setDate] = useState<DateParts>(() => toDateParts(value));
-  const [previousValue, setPreviousValue] = useState(() => value?.getTime());
+  const [previousValueTime, setPreviousValueTime] = useState(() =>
+    value?.getTime(),
+  );
 
   const monthRef = useRef<HTMLInputElement | null>(null);
   const dayRef = useRef<HTMLInputElement | null>(null);
   const yearRef = useRef<HTMLInputElement | null>(null);
 
-  // Reset the inputs when the selected value changes. Comparing the timestamp
-  // rather than the Date identity means a parent re-render that rebuilds an
-  // equivalent Date does not discard what the user is typing.
   const valueTime = value?.getTime();
-  if (valueTime !== previousValue) {
-    setPreviousValue(valueTime);
+  if (valueTime !== previousValueTime) {
+    setPreviousValueTime(valueTime);
     setDate(toDateParts(value));
   }
 
@@ -47,7 +45,6 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
       return false;
     }
 
-    // Validate the day of the month
     const newDate = { ...date, [field]: partValue };
     const d = new Date(newDate.year, newDate.month - 1, newDate.day);
     return (
@@ -63,11 +60,9 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
       const isValid =
         typeof newValue === "number" && validateDate(field, newValue);
 
-      // If the new value is valid, update the date
       const newDate = { ...date, [field]: newValue };
       setDate(newDate);
 
-      // only call onChange when the entry is valid
       if (isValid) {
         onChange(new Date(newDate.year, newDate.month - 1, newDate.day));
       }
@@ -89,19 +84,16 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
       if (!isValid) {
         setDate(initialDate.current);
       } else {
-        // If the new value is valid, update the initial value
         initialDate.current = { ...date, [field]: newValue };
       }
     };
 
   const handleKeyDown =
     (field: keyof DateParts) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // Allow command (or control) combinations
       if (e.metaKey || e.ctrlKey) {
         return;
       }
 
-      // Prevent non-numeric characters, excluding allowed keys
       if (
         !/^[0-9]$/.test(e.key) &&
         ![

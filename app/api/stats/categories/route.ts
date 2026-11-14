@@ -41,7 +41,6 @@ async function getCategoriesStats(householdId: string, from: Date, to: Date) {
     where: {
       householdId,
       shared: true,
-      // Settlements are not spending.
       category: {
         not: SETTLEMENT_CATEGORY_NAME,
       },

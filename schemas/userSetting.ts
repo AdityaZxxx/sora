@@ -2,11 +2,10 @@ import { z } from "zod";
 
 import { Currencies } from "@/lib/currencies";
 export const UpdateUserCurrencySchema = z.object({
-  currency: z.custom<string>((value) => {
-    const found = Currencies.some((c) => c.value === value);
-    if (!found) {
-      throw new Error(`Invalid currency: ${value}`);
-    }
-    return value;
-  }),
+  currency: z
+    .string()
+    .refine(
+      (value) => Currencies.some((c) => c.value === value),
+      "That currency is not supported. Choose one from the list.",
+    ),
 });

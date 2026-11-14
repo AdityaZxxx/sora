@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// One free-text policy: trim, then min, then max. Both surfaces compose it.
 export function freeText({
   min,
   max,

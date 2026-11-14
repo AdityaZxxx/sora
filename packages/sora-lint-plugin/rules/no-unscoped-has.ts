@@ -1,8 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 
 const COMBINATOR_PATTERN = /[\s>+~]/u;
-// A class, id, attribute, or leading tag narrows a compound. Negated ones don't,
-// so `:not(...)` is removed before this check.
 const NARROWING_PATTERN = /[.#[]|^[a-z]/iu;
 const ROOT_COMPOUND_PATTERN = /^(?:html|body|:root)(?![\w-])/iu;
 
@@ -69,10 +67,6 @@ function hasCompounds(selector: string): string[] {
     let compound = "";
     let depth = 0;
     let subjectEnd = closingParen(selector, index + ":has".length) + 1;
-    // Other branches of a selector list are skipped until the wrapper that holds
-    // them opens. An unbalanced "(" means the :has() sits inside :not()/:is()/
-    // :where(); the compound outside that wrapper applies only when the :has()
-    // is in the wrapper's subject position.
     let skippingBranch = false;
     for (let position = index - 1; position >= 0; position--) {
       const char = selector[position] ?? "";

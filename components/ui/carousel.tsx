@@ -67,10 +67,6 @@ function Carousel({
     plugins,
   );
 
-  // Embla is an external store: it owns the scroll position and reports
-  // whether the ends are reachable through its events. Reading that state
-  // through useSyncExternalStore keeps the buttons in sync without mirroring
-  // it into React state.
   const scrollStateRef = React.useRef<ScrollState>(INITIAL_SCROLL_STATE);
 
   const subscribe = (onStoreChange: () => void) => {

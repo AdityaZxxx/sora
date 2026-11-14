@@ -21,17 +21,11 @@ import {
 } from "./sheet";
 
 export interface DateRangePickerProps {
-  /** Fired immediately whenever the committed range changes. */
   onUpdate?: (values: { range: DateRange }) => void;
-  /** Initial value for start date */
   initialDateFrom?: Date | string;
-  /** Initial value for end date */
   initialDateTo?: Date | string;
-  /** Alignment of popover */
   align?: "start" | "center" | "end";
-  /** Option for locale */
   locale?: string;
-  /** Maximum allowed range length in days; longer selections are rejected */
   maxRangeDays?: number;
 }
 
@@ -45,14 +39,11 @@ const formatDate = (date: Date, locale?: string): string => {
 
 const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
   if (typeof dateInput === "string") {
-    // Split the date string to get year, month, and day parts
     const parts = dateInput.split("-").map((part) => parseInt(part, 10));
-    // Create a new Date object using the local timezone
     // Note: Month is 0-indexed, so subtract 1 from the month part
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     return date;
   } else {
-    // If dateInput is already a Date object, return it directly
     return dateInput;
   }
 };
@@ -67,7 +58,6 @@ interface Preset {
   label: string;
 }
 
-// Define presets (Title Case labels)
 const PRESETS: Preset[] = [
   { name: "today", label: "Today" },
   { name: "yesterday", label: "Yesterday" },
@@ -80,7 +70,6 @@ const PRESETS: Preset[] = [
   { name: "lastMonth", label: "Last Month" },
 ];
 
-/** Finds the preset that matches the current range, if any. */
 const getSelectedPreset = (range: DateRange): string | undefined => {
   for (const preset of PRESETS) {
     const presetRange = getPresetRange(preset.name);
@@ -117,7 +106,6 @@ const isSameDay = (a: Date | undefined, b: Date | undefined): boolean => {
   return a.toDateString() === b.toDateString();
 };
 
-/** Resolves a preset name into the concrete range it stands for. */
 const getPresetRange = (presetName: string): DateRange => {
   const preset = PRESETS.find(({ name }) => name === presetName);
   if (!preset) throw new Error(`Unknown date range preset: ${presetName}`);
@@ -206,7 +194,6 @@ function PresetButton({
   );
 }
 
-/** The DateRangePicker component allows a user to select a range of dates */
 export const DateRangePicker: FC<DateRangePickerProps> & {
   filePath: string;
 } = ({
@@ -228,8 +215,6 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     return { from, to };
   });
 
-  // Selections apply live: every committed change goes straight to onUpdate,
-  // so closing the popover never discards anything.
   const isRangeWithinLimit = (value: DateRange): boolean =>
     !maxRangeDays ||
     !value.from ||
@@ -242,8 +227,6 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     );
   };
 
-  // Applies a candidate range: updates state, notifies onUpdate once the
-  // range is complete, and closes the popover when requested.
   const applyRange = (next: DateRange, close: boolean): void => {
     if (!isRangeWithinLimit(next)) {
       warnRangeTooBig();
@@ -260,8 +243,6 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     applyRange(getPresetRange(preset), true);
   };
 
-  // The highlighted preset is derived from the current range, so it can never
-  // drift out of sync with what the user actually selected.
   const selectedPreset = getSelectedPreset(range);
 
   const sameDay = isSameDay(range.from, range.to);

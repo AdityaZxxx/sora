@@ -4,7 +4,6 @@ const EM_DASH = "\u2014";
 
 const MESSAGE = "No em dashes in product copy. Use a period, comma, colon, or parentheses instead.";
 
-// Comments are not product copy, so only string and JSX text nodes are checked.
 export default defineRule({
   meta: {
     type: "suggestion",

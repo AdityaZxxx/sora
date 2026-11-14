@@ -115,8 +115,6 @@ function sharesOwedForExpense(
   return owed;
 }
 
-// A balance is relative to the caller, so the caller is a parameter rather
-// than something read from a session.
 export async function getMemberBalances(
   householdId: string,
   callerId: string,

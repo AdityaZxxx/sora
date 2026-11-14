@@ -12,8 +12,6 @@ function getMediaQueryList(query: string) {
   return mediaQueryList;
 }
 
-// The server has no viewport to measure, and the first client render has to
-// match it, so the snapshot starts as false and settles after hydration.
 const getServerSnapshot = () => false;
 
 export function useMediaQuery(query: string) {

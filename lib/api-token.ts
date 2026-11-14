@@ -15,9 +15,6 @@ import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { SetAgentAccessSchema } from "@/schemas/api-tokens";
 
-// The token carries 256 bits of entropy, so hashing it is enough to make a
-// leaked database useless. A slow key derivation would only slow down every
-// request the token makes.
 export function hashApiToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -124,8 +121,6 @@ export async function setAgentAccess(
       data: { agentAccessEnabled: enabled },
     });
 
-    // Turning agent access off revokes every token in the household, so the
-    // setting is a kill switch rather than a promise.
     if (!enabled) {
       await tx.apiToken.updateMany({
         where: {

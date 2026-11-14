@@ -3,8 +3,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import prisma from "@/lib/prisma";
 
-// Vercel Cron hits this daily; the only credential is the shared secret, so
-// an unset CRON_SECRET means the route always answers 401.
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authorization = request.headers.get("authorization");
@@ -31,9 +29,6 @@ export async function GET(request: NextRequest) {
 
   const notifications = await prisma.notification.findMany({
     where: {
-      // One query for every opted-in member, matched on the exact
-      // household/member pairs rather than the cross product of the two id
-      // lists, so a notification never crosses between households.
       OR: memberships.map((m) => ({
         householdId: m.householdId,
         userId: m.userId,
@@ -47,8 +42,6 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // One query for every member, grouped by the household and recipient each
-  // notification belongs to, so the loop below sends no extra reads.
   const notificationsByMember = new Map<string, typeof notifications>();
   for (const notification of notifications) {
     const key = `${notification.householdId}:${notification.userId}`;
@@ -68,7 +61,6 @@ export async function GET(request: NextRequest) {
         `${membership.householdId}:${membership.userId}`,
       ) ?? [];
 
-    // The digest emails unread activity but never marks notifications read.
     if (memberNotifications.length === 0) continue;
 
     const items = memberNotifications.map(

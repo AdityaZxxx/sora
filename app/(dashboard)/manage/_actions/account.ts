@@ -15,8 +15,6 @@ export async function deleteAccount(): Promise<ActionResult> {
 
   const userId = session.user.id;
 
-  // Sign out before deleting so Better Auth clears the session cookie while
-  // the session row still exists.
   await auth.api.signOut({
     headers: await headers(),
   });
@@ -45,8 +43,6 @@ export async function deleteAccount(): Promise<ActionResult> {
       where: { identifier: { contains: session.user.email } },
     });
 
-    // Cascades Session, Account, HouseholdMembership, InviteLink.createdBy,
-    // and Transaction.addedBy.
     await tx.user.delete({ where: { id: userId } });
   });
 

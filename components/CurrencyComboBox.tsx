@@ -49,8 +49,7 @@ export function CurrencyComboBox() {
     refetchOnWindowFocus: true,
   });
 
-  // The household query owns the currency; a refetch is what changes it.
-  const selectedCurrency = household.data
+  const householdCurrency = household.data
     ? Currencies.find(
         (currency) => currency.value === household.data.currency,
       ) || null
@@ -71,8 +70,6 @@ export function CurrencyComboBox() {
       if (!saved) {
         return;
       }
-      // Write the saved currency into the cache so the new value shows at
-      // once, and a later refetch still replaces it with the server's copy.
       queryClient.setQueryData<Household>(["household"], (previous) =>
         previous ? { ...previous, currency: saved.currency } : previous,
       );
@@ -106,7 +103,11 @@ export function CurrencyComboBox() {
       className="w-full justify-start text-left"
       disabled={mutation.isPending}
     >
-      {selectedCurrency ? <>{selectedCurrency.label}</> : <>Select currency…</>}
+      {householdCurrency ? (
+        <>{householdCurrency.label}</>
+      ) : (
+        <>Select currency…</>
+      )}
       <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
     </Button>
   );

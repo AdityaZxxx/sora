@@ -11,13 +11,7 @@ export const CreateApiTokenSchema = z.object({
     .optional(),
 });
 
-// The schema uses z.coerce, so its input type differs from the form values;
-// the values are already typed correctly client-side.
-export type CreateApiTokenSchemaType = {
-  name: string;
-  scope: "read-only" | "read-write";
-  expiresAt?: Date;
-};
+export type CreateApiTokenSchemaType = z.output<typeof CreateApiTokenSchema>;
 
 export const RevokeApiTokenSchema = z.object({
   id: z.string().min(1),

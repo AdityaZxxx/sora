@@ -17,8 +17,6 @@ export function createMcpServer(context: McpContext) {
 
   registerReadTools(server, context);
 
-  // A read-only token is not offered the write tools at all, so the tool
-  // list it sees is the list it can actually use.
   if (context.scope === READ_WRITE_SCOPE) {
     registerWriteTools(server, context);
   }

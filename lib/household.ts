@@ -59,9 +59,6 @@ export async function getOrCreatePersonalHousehold(userId: string) {
   return oldest;
 }
 
-// The dashboard page and the member count action both need the caller's
-// household. React caches this per render, so the household is resolved once
-// instead of twice.
 export const requireHousehold = cache(async () => {
   const session = await getSession();
   if (!session) {
@@ -88,7 +85,6 @@ export async function renameHousehold(
       parsed.error.issues[0]?.message ?? "Check the household name",
     );
   }
-  // An empty name clears it, the same shape the UI uses for a fresh space.
   return await prisma.household.update({
     where: { id: householdId },
     data: { name: parsed.data || null },

@@ -1,10 +1,5 @@
 import type * as echarts from "echarts/core";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dots — map the resting/active variants onto ECharts symbols. Shared by every
-// ECharts chart that draws point markers.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export type DotVariant =
   | "none"
   | "default"
@@ -24,8 +19,6 @@ export type DotItemStyleOption = {
 
 export type DotStyle = { size: number; itemStyle: DotItemStyleOption };
 
-// Re-color a solid paint at a given alpha (hex #rgb/#rrggbb or rgb/rgba in, rgba
-// out; named colors pass through). Used for the translucent "ping" halo ring.
 function withAlpha(color: string, alpha: number): string {
   if (color.startsWith("#")) {
     let hex = color.slice(1);
@@ -52,10 +45,8 @@ export function dotItemStyle(
 ): DotItemStyleOption {
   switch (variant) {
     case "border":
-      // Series-colored core with a thick background halo (Recharts r6 / sw5).
       return { color: paint, borderColor: background, borderWidth: 2 };
     case "colored-border":
-      // Background-filled core with a thin colored ring (Recharts r3 / sw1).
       return { color: background, borderColor: paint, borderWidth: 1 };
     case "ping": {
       // Solid core wrapped in a wide, translucent same-color ring — a static
@@ -73,9 +64,6 @@ export function dotItemStyle(
   }
 }
 
-// Sizes mirror the Recharts markers: default r3, border r6 (mostly halo), and
-// colored-border r3+ring. Flattening these to one size makes the hover ring read
-// LARGER than a haloed resting dot — the opposite of the Recharts twin.
 export const DOT_SIZES: Record<DotVariant, number> = {
   none: 0,
   default: 6,

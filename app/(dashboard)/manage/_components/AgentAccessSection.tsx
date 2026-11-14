@@ -69,7 +69,6 @@ const todayDateValue = () => {
   return `${now.getFullYear()}-${month}-${day}`;
 };
 
-// The schema's own message for a past expiry.
 const isFutureDate = (value: string) => !value || value >= todayDateValue();
 
 const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {

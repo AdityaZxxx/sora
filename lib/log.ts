@@ -3,8 +3,6 @@ import { getRequestId } from "@/lib/request-id";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 export type LogOutcome = "ok" | "rejected" | "failed";
 
-// The allowlist is the product: anything that can end up in a line is named
-// here and typed. Money, names, emails, tokens and free text have no path in.
 export type LogFields = {
   event: string;
   householdId?: string;

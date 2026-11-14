@@ -34,8 +34,6 @@ import {
   revokeInviteLink,
 } from "../_actions/invite";
 
-// The QR code is behind an explicit toggle, so it only downloads when the
-// household turns QR codes on.
 const QRCodeSVG = dynamic(
   () => import("qrcode.react").then((mod) => mod.QRCodeSVG),
   { ssr: false },

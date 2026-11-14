@@ -7,10 +7,7 @@ import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-// Budget months follow the UTC calendar: transaction dates are stored as UTC
-// (dateToUtcDate) and the rollups bucket them with UTC getters, so a
-// transaction's budget month is its UTC month.
-export function monthRangeFor(date: Date): { from: Date; to: Date } {
+export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   return {
@@ -20,7 +17,7 @@ export function monthRangeFor(date: Date): { from: Date; to: Date } {
 }
 
 export function previousMonthRange(date: Date): { from: Date; to: Date } {
-  return monthRangeFor(
+  return utcMonthRangeFor(
     new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)),
   );
 }
@@ -43,13 +40,11 @@ export function sharedSpendingFilter(
   };
 }
 
-// Settlements are excluded: a settlement moves money between Members, it is
-// not spending.
 export async function getMonthSpentByCategory(
   householdId: string,
   date: Date,
 ): Promise<Map<string, Prisma.Decimal>> {
-  const { from, to } = monthRangeFor(date);
+  const { from, to } = utcMonthRangeFor(date);
   const rows = await prisma.transaction.groupBy({
     by: ["category"],
     where: sharedSpendingFilter(householdId, { from, to }),

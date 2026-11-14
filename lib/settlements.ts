@@ -16,12 +16,9 @@ import { RecordSettlementSchema } from "@/schemas/settlement";
 export type RecordSettlementInput = {
   memberId: string;
   amount: number;
-  // null = added through the UI, "agent" = added through an assistant
-  addedVia?: string | null;
+  addedVia?: "agent" | null;
 };
 
-// A Settlement is a personal Transaction the payer records to say they have
-// paid the other Member back. It stays out of spending totals and Budgets.
 export async function recordSettlement(
   householdId: string,
   userId: string,
@@ -130,8 +127,6 @@ async function runSettlement(
     update: {},
   });
 
-  // The payer records the Settlement; shared=false keeps it out of spending
-  // totals and Budgets while balance math still counts it.
   const settlement = await prisma.transaction.create({
     data: {
       householdId,
@@ -160,7 +155,6 @@ async function runSettlement(
   ).format(amount);
   const payerName = payer?.name ?? "A member";
 
-  // The counterparty reads "with you"; other Members see the counterparty's name.
   after(async () => {
     const otherMembers = await prisma.householdMembership.findMany({
       where: {

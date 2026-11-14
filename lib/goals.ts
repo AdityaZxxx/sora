@@ -53,8 +53,6 @@ export type GoalWithProgress = Awaited<
   ReturnType<typeof getGoalsWithProgress>
 >[number];
 
-// Updates only the fields provided. `id` and `householdId` scope the write, so
-// another household's Goal cannot be reached through a guessed id.
 export async function updateHouseholdGoal(
   householdId: string,
   input: UpdateGoalSchemaType,
@@ -99,7 +97,6 @@ export type CreateGoalInput = {
   deadline?: Date;
 };
 
-// A Goal holds no money: contributions are Transactions tagged with it.
 export async function createHouseholdGoal(
   householdId: string,
   input: CreateGoalInput,
@@ -125,8 +122,6 @@ export async function createHouseholdGoal(
   return { ...goal, target: goal.target.toNumber() };
 }
 
-// Contribution transactions survive the goal; onDelete: SetNull clears their
-// goalId so the money stays in the ledger.
 export async function deleteHouseholdGoal(
   householdId: string,
   id: string,

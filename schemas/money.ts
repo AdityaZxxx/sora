@@ -2,9 +2,6 @@ import { z } from "zod";
 
 export const MAX_MONEY_AMOUNT = 1_000_000_000_000;
 
-// Coercion is a transport concern by design: the web coerces because a form
-// hands over strings, the MCP stays strict because JSON carries a number.
-// This is the one place the money rules live; splits are taken on both.
 function numberInput(coerced: boolean) {
   if (!coerced) {
     return z.number({ error: "Amount must be a number" });
