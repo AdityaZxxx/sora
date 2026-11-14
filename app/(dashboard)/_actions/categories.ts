@@ -2,9 +2,9 @@
 
 import type {
   CreateCategorySchemaType,
-  DeleteCategorySchemaType,
   UpdateCategorySchemaType,
 } from "@/schemas/categories";
+import type { DeleteIdSchemaType } from "@/schemas/delete";
 
 import { redirect } from "next/navigation";
 
@@ -16,9 +16,9 @@ import {
 import { requireHousehold } from "@/lib/household";
 import {
   CreateCategorySchema,
-  DeleteCategorySchema,
   UpdateCategorySchema,
 } from "@/schemas/categories";
+import { DeleteIdSchema } from "@/schemas/delete";
 
 export async function CreateCategory(form: CreateCategorySchemaType) {
   const parsedBody = CreateCategorySchema.safeParse(form);
@@ -54,10 +54,10 @@ export async function UpdateCategory(form: UpdateCategorySchemaType) {
   );
 }
 
-export async function DeleteCategory(form: DeleteCategorySchemaType) {
-  const parsedBody = DeleteCategorySchema.safeParse(form);
+export async function DeleteCategory(form: DeleteIdSchemaType) {
+  const parsedBody = DeleteIdSchema.safeParse(form);
   if (!parsedBody.success) {
-    throw new Error("Bad request");
+    throw new Error(parsedBody.error.issues[0]?.message ?? "Bad request");
   }
 
   const result = await requireHousehold();
@@ -66,7 +66,7 @@ export async function DeleteCategory(form: DeleteCategorySchemaType) {
   }
   return await deleteHouseholdCategory(
     result.household.id,
-    parsedBody.data,
+    parsedBody.data.id,
     result.membership.role,
   );
 }

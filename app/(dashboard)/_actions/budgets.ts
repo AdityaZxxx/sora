@@ -2,9 +2,9 @@
 
 import type {
   CreateBudgetSchemaType,
-  DeleteBudgetSchemaType,
   UpdateBudgetSchemaType,
 } from "@/schemas/budgets";
+import type { DeleteIdSchemaType } from "@/schemas/delete";
 
 import { redirect } from "next/navigation";
 
@@ -15,11 +15,8 @@ import {
   updateHouseholdBudget,
 } from "@/lib/budgets";
 import { requireHousehold } from "@/lib/household";
-import {
-  CreateBudgetSchema,
-  DeleteBudgetSchema,
-  UpdateBudgetSchema,
-} from "@/schemas/budgets";
+import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
+import { DeleteIdSchema } from "@/schemas/delete";
 
 export async function listBudgets() {
   const result = await requireHousehold();
@@ -64,10 +61,10 @@ export async function updateBudget(form: UpdateBudgetSchemaType) {
   );
 }
 
-export async function deleteBudget(form: DeleteBudgetSchemaType) {
-  const parsedBody = DeleteBudgetSchema.safeParse(form);
+export async function deleteBudget(form: DeleteIdSchemaType) {
+  const parsedBody = DeleteIdSchema.safeParse(form);
   if (!parsedBody.success) {
-    throw new Error("Bad request");
+    throw new Error(parsedBody.error.issues[0]?.message ?? "Bad request");
   }
 
   const result = await requireHousehold();
