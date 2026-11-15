@@ -9,6 +9,7 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
+import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
@@ -322,57 +323,7 @@ export async function createTransaction(
       return transaction;
     }
 
-    await tx.monthHistory.upsert({
-      where: {
-        day_month_year_householdId: {
-          householdId,
-          day: date.getUTCDate(),
-          month: date.getUTCMonth(),
-          year: date.getUTCFullYear(),
-        },
-      },
-      create: {
-        householdId,
-        day: date.getUTCDate(),
-        month: date.getUTCMonth(),
-        year: date.getUTCFullYear(),
-        expense: type === "expense" ? amount : 0,
-        income: type === "income" ? amount : 0,
-      },
-      update: {
-        expense: {
-          increment: type === "expense" ? amount : 0,
-        },
-        income: {
-          increment: type === "income" ? amount : 0,
-        },
-      },
-    });
-
-    await tx.yearHistory.upsert({
-      where: {
-        month_year_householdId: {
-          householdId,
-          month: date.getUTCMonth(),
-          year: date.getUTCFullYear(),
-        },
-      },
-      create: {
-        householdId,
-        month: date.getUTCMonth(),
-        year: date.getUTCFullYear(),
-        expense: type === "expense" ? amount : 0,
-        income: type === "income" ? amount : 0,
-      },
-      update: {
-        expense: {
-          increment: type === "expense" ? amount : 0,
-        },
-        income: {
-          increment: type === "income" ? amount : 0,
-        },
-      },
-    });
+    await incrementRollups(tx, { householdId, date, type, amount });
 
     return transaction;
   });
@@ -484,49 +435,11 @@ export async function deleteTransaction(
       return;
     }
 
-    await tx.monthHistory.update({
-      where: {
-        day_month_year_householdId: {
-          householdId,
-          day: transaction.date.getUTCDate(),
-          month: transaction.date.getUTCMonth(),
-          year: transaction.date.getUTCFullYear(),
-        },
-      },
-      data: {
-        ...(transaction.type === "expense" && {
-          expense: {
-            decrement: transaction.amount,
-          },
-        }),
-        ...(transaction.type === "income" && {
-          income: {
-            decrement: transaction.amount,
-          },
-        }),
-      },
-    });
-
-    await tx.yearHistory.update({
-      where: {
-        month_year_householdId: {
-          householdId,
-          month: transaction.date.getUTCMonth(),
-          year: transaction.date.getUTCFullYear(),
-        },
-      },
-      data: {
-        ...(transaction.type === "expense" && {
-          expense: {
-            decrement: transaction.amount,
-          },
-        }),
-        ...(transaction.type === "income" && {
-          income: {
-            decrement: transaction.amount,
-          },
-        }),
-      },
+    await decrementRollups(tx, {
+      householdId,
+      date: transaction.date,
+      type: transaction.type,
+      amount: transaction.amount.toNumber(),
     });
   });
 }
