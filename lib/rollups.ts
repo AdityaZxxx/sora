@@ -1,0 +1,139 @@
+import type { Prisma } from "@prisma/client";
+
+type RollupClient = Prisma.TransactionClient;
+
+export type RollupEntry = {
+  householdId: string;
+  date: Date;
+  type: string;
+  amount: number;
+};
+
+function monthBucket(date: Date) {
+  return {
+    day: date.getUTCDate(),
+    month: date.getUTCMonth(),
+    year: date.getUTCFullYear(),
+  };
+}
+
+function yearBucket(date: Date) {
+  return {
+    month: date.getUTCMonth(),
+    year: date.getUTCFullYear(),
+  };
+}
+
+function expensePart({ type, amount }: RollupEntry) {
+  return type === "expense" ? amount : 0;
+}
+
+function incomePart({ type, amount }: RollupEntry) {
+  return type === "income" ? amount : 0;
+}
+
+// seam-parse-exempt: called only by the transaction seam with values it already parsed.
+export async function incrementRollups(
+  tx: RollupClient,
+  entry: RollupEntry,
+): Promise<void> {
+  const { householdId, date } = entry;
+  const expense = expensePart(entry);
+  const income = incomePart(entry);
+
+  await tx.monthHistory.upsert({
+    where: {
+      day_month_year_householdId: {
+        householdId,
+        ...monthBucket(date),
+      },
+    },
+    create: {
+      householdId,
+      ...monthBucket(date),
+      expense,
+      income,
+    },
+    update: {
+      expense: {
+        increment: expense,
+      },
+      income: {
+        increment: income,
+      },
+    },
+  });
+
+  await tx.yearHistory.upsert({
+    where: {
+      month_year_householdId: {
+        householdId,
+        ...yearBucket(date),
+      },
+    },
+    create: {
+      householdId,
+      ...yearBucket(date),
+      expense,
+      income,
+    },
+    update: {
+      expense: {
+        increment: expense,
+      },
+      income: {
+        increment: income,
+      },
+    },
+  });
+}
+
+// seam-parse-exempt: called only by the transaction seam with values it already parsed.
+export async function decrementRollups(
+  tx: RollupClient,
+  entry: RollupEntry,
+): Promise<void> {
+  const { householdId, date, type, amount } = entry;
+
+  await tx.monthHistory.update({
+    where: {
+      day_month_year_householdId: {
+        householdId,
+        ...monthBucket(date),
+      },
+    },
+    data: {
+      ...(type === "expense" && {
+        expense: {
+          decrement: amount,
+        },
+      }),
+      ...(type === "income" && {
+        income: {
+          decrement: amount,
+        },
+      }),
+    },
+  });
+
+  await tx.yearHistory.update({
+    where: {
+      month_year_householdId: {
+        householdId,
+        ...yearBucket(date),
+      },
+    },
+    data: {
+      ...(type === "expense" && {
+        expense: {
+          decrement: amount,
+        },
+      }),
+      ...(type === "income" && {
+        income: {
+          decrement: amount,
+        },
+      }),
+    },
+  });
+}
