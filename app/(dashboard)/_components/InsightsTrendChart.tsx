@@ -99,7 +99,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
         top: 12,
         right: 8,
         bottom: 8,
-        left: isDesktop ? 56 : 8,
+        left: isDesktop ? 68 : 8,
       },
       tooltip: {
         trigger: "axis",
@@ -117,7 +117,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
         data: labels,
         axisLine: { lineStyle: { color: "transparent" } },
         axisTick: { show: false },
-        axisLabel: { color: muted, fontSize: 11 },
+        axisLabel: { color: muted, fontSize: 14 },
       },
       yAxis: {
         type: "value",
@@ -133,7 +133,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
         axisLabel: isDesktop
           ? {
               color: muted,
-              fontSize: 11,
+              fontSize: 14,
               formatter: (value: number) => formatter.format(value),
             }
           : { show: false },
