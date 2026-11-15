@@ -5,7 +5,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { deleteHouseholdBudget, setHouseholdBudget } from "@/lib/budgets";
-import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { parseDate } from "@/lib/dates";
 import {
   createHouseholdGoal,
@@ -39,8 +38,6 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         await deleteHouseholdGoal(context.householdId, id, context.role);
 
@@ -64,8 +61,6 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         await deleteHouseholdBudget(context.householdId, id, context.role);
 
@@ -95,8 +90,6 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ name, target, deadline }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const goal = await createHouseholdGoal(
           context.householdId,
@@ -149,8 +142,6 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id, name, target, deadline }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const update: UpdateGoalSchemaType = { id };
         if (name !== undefined) {
@@ -205,8 +196,6 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ category, amount, mode }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const budget = await setHouseholdBudget(
           context.householdId,

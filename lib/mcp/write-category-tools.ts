@@ -6,7 +6,6 @@ import {
   deleteHouseholdCategory,
   updateHouseholdCategory,
 } from "@/lib/categories";
-import { READ_WRITE_SCOPE } from "@/lib/constants";
 import {
   categoryIconSchema,
   categoryLookupNameSchema,
@@ -40,8 +39,6 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ name, icon, type }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const category = await createHouseholdCategory(
           context.householdId,
@@ -84,8 +81,6 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ originalName, name, icon, type }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const category = await updateHouseholdCategory(
           context.householdId,
@@ -119,8 +114,6 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ id }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const category = await deleteHouseholdCategory(
           context.householdId,
