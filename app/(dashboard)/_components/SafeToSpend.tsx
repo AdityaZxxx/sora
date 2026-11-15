@@ -64,10 +64,10 @@ const SafeToSpend = ({ currency }: Props) => {
           <CardContent>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-emerald-500/10 p-3">
+                <div className="rounded-full bg-income-soft p-3">
                   <Wallet
                     aria-hidden="true"
-                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                    className="h-6 w-6 text-income-foreground"
                   />
                 </div>
                 <div>

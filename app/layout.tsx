@@ -76,8 +76,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E0F10" },
   ],
 };
 
@@ -92,7 +92,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body className="antialiased">
+      <body className="mx-auto max-w-7xl antialiased">
         <Toaster richColors position="bottom-right" />
         <RootProvider>{children}</RootProvider>
       </body>

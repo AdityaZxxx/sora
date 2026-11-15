@@ -112,8 +112,8 @@ const Insights = ({ currency }: Props) => {
     currentRate === undefined || currentRate === 0
       ? "text-muted-foreground"
       : currentRate > 0
-        ? "text-emerald-600 dark:text-emerald-400"
-        : "text-rose-600 dark:text-rose-400";
+        ? "text-income-foreground"
+        : "text-expense-foreground";
 
   return (
     <div className="container mt-6 grid gap-4 lg:grid-cols-3">
@@ -162,8 +162,8 @@ const Insights = ({ currency }: Props) => {
                 className={cn(
                   "tabular-nums",
                   deltaPt >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400",
+                    ? "text-income-foreground"
+                    : "text-expense-foreground",
                 )}
               >
                 {deltaPt >= 0 ? "+" : "-"}
