@@ -3,7 +3,7 @@ import type { TransactionType } from "@/lib/types";
 import { Prisma } from "@prisma/client";
 import { after } from "next/server";
 
-import { getMonthSpentByCategory } from "@/lib/budgets";
+import { assertBudgetAllows } from "@/lib/budgets";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
@@ -243,43 +243,15 @@ export async function createTransaction(
     );
   }
 
-  let thresholdMessage: string | null = null;
-  if (type === "expense" && shared) {
-    const budget = await prisma.budget.findUnique({
-      where: {
-        householdId_category: {
-          householdId,
-          category: categoryRow.name,
-        },
-      },
-    });
-
-    if (budget) {
-      const spentByCategory = await getMonthSpentByCategory(householdId, date);
-      const spentBefore =
-        spentByCategory.get(categoryRow.name) ?? new Prisma.Decimal(0);
-      const spentAfter = spentBefore.plus(amount);
-      const budgetAmount = budget.amount;
-      const beforePercent = budgetAmount.isZero()
-        ? 0
-        : spentBefore.div(budgetAmount).times(100).toNumber();
-      const afterPercent = budgetAmount.isZero()
-        ? 0
-        : spentAfter.div(budgetAmount).times(100).toNumber();
-
-      if (budget.mode === "hard" && spentAfter.gt(budgetAmount)) {
-        throw new DomainError(
-          `Hard budget exceeded for ${categoryRow.name}: the monthly limit is ${formatAmount(budgetAmount.toNumber())} and ${formatAmount(spentBefore.toNumber())} is already spent, so this ${formatAmount(amount)} expense would bring the month to ${formatAmount(spentAfter.toNumber())}.`,
-        );
-      }
-
-      if (beforePercent < 100 && afterPercent >= 100) {
-        thresholdMessage = `${categoryRow.name} budget reached 100% of ${formatAmount(budgetAmount.toNumber())} this month (${formatAmount(spentAfter.toNumber())} spent).`;
-      } else if (beforePercent < 80 && afterPercent >= 80) {
-        thresholdMessage = `${categoryRow.name} budget reached 80% of ${formatAmount(budgetAmount.toNumber())} this month (${formatAmount(spentAfter.toNumber())} spent).`;
-      }
-    }
-  }
+  const thresholdMessage = await assertBudgetAllows({
+    householdId,
+    currency: household?.currency ?? "USD",
+    category: categoryRow.name,
+    type,
+    shared,
+    amount,
+    date,
+  });
 
   const created = await prisma.$transaction(async (tx) => {
     const transaction = await tx.transaction.create({
