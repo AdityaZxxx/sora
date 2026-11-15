@@ -4,31 +4,20 @@ import type { RecordSettlementSchemaType } from "@/schemas/settlement";
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import { withRequestId } from "@/lib/request-id";
 import { recordSettlement } from "@/lib/settlements";
-import { RecordSettlementSchema } from "@/schemas/settlement";
 
 export async function RecordSettlement(form: RecordSettlementSchemaType) {
-  const parsedBody = RecordSettlementSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to record the settlement. Select the member and enter a valid amount, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
   }
   const { session, household } = result;
-  const { memberId, amount } = parsedBody.data;
+  const { memberId, amount } = form;
 
   try {
     await withRequestId(async () => {
@@ -42,7 +31,7 @@ export async function RecordSettlement(form: RecordSettlementSchemaType) {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to record the settlement. Select the member and enter a valid amount, then try again.",
         ),

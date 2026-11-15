@@ -8,15 +8,10 @@ import { redirect } from "next/navigation";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold, updateHouseholdCurrency } from "@/lib/household";
-import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
-
+import { firstIssueMessage } from "@/lib/issue-message";
 export async function UpdateUserCurrency(
   currency: string,
 ): Promise<ActionResult<Household>> {
-  const parsed = UpdateUserCurrencySchema.safeParse({ currency });
-  if (!parsed.success) {
-    return fail("That currency is not supported. Choose one from the list.");
-  }
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -35,7 +30,12 @@ export async function UpdateUserCurrency(
     return ok(household);
   } catch (cause) {
     if (cause instanceof DomainError) {
-      return fail(cause.message);
+      return fail(
+        firstIssueMessage(
+          cause.message,
+          "That currency is not supported. Choose one from the list.",
+        ),
+      );
     }
     throw cause;
   }

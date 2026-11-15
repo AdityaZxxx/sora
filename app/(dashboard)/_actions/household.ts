@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
 
 export async function getHouseholdMemberCount() {
@@ -25,7 +25,7 @@ export async function getHouseholdMemberCount() {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to load the household. Refresh the page and try again.",
         ),

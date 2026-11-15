@@ -183,7 +183,11 @@ const CreateTransactionDialog = ({
 
   const membersQuery = useQuery({
     queryKey: ["householdMembers"],
-    queryFn: listMembers,
+    queryFn: async () => {
+      const res = await listMembers();
+      if (!res.ok) throw new Error(res.message);
+      return res.data ?? [];
+    },
     enabled: knownMemberCount !== undefined && knownMemberCount > 1,
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,

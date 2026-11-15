@@ -17,19 +17,15 @@ import {
   requireHousehold,
   setActiveHouseholdCookie,
 } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import {
+  listMembers as listMembersSeam,
   removeMember as removeMemberSeam,
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyHouseholdExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import {
-  RemoveMemberSchema,
-  SetEmailDigestSchema,
-  SetMemberRoleSchema,
-} from "@/schemas/membership";
-
-import { firstIssueMessage } from "./parse-error";
+import { SetEmailDigestSchema } from "@/schemas/membership";
 
 export async function listMembers() {
   const result = await requireHousehold();
@@ -39,24 +35,7 @@ export async function listMembers() {
 
   const { household } = result;
 
-  return await prisma.householdMembership.findMany({
-    where: {
-      householdId: household.id,
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
-      },
-    },
-    orderBy: {
-      joinedAt: "asc",
-    },
-  });
+  return ok(await listMembersSeam(household.id));
 }
 
 export async function leaveHousehold(): Promise<ActionResult> {
@@ -131,16 +110,6 @@ export async function leaveHousehold(): Promise<ActionResult> {
 export async function removeMember(
   form: RemoveMemberSchemaType,
 ): Promise<ActionResult> {
-  const parsedBody = RemoveMemberSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error,
-        "Unable to remove this member. Try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -154,11 +123,16 @@ export async function removeMember(
       household.id,
       session.user.id,
       result.membership.role,
-      parsedBody.data,
+      form,
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
-      return fail(cause.message);
+      return fail(
+        firstIssueMessage(
+          cause.message,
+          "Unable to remove this member. Try again.",
+        ),
+      );
     }
     throw cause;
   }
@@ -178,35 +152,30 @@ export async function removeMember(
 export async function setMemberRole(
   form: SetMemberRoleSchemaType,
 ): Promise<ActionResult> {
-  const parsedBody = SetMemberRoleSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error,
-        "Unable to change this member's access. Try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
   }
 
   const { session, household } = result;
-  const { userId } = parsedBody.data;
+  const { userId } = form;
 
-  let nextRole: (typeof parsedBody.data)["role"];
+  let nextRole: SetMemberRoleSchemaType["role"];
   try {
     ({ role: nextRole } = await setMemberRoleSeam(
       household.id,
       session.user.id,
       result.membership.role,
-      parsedBody.data,
+      form,
     ));
   } catch (cause) {
     if (cause instanceof DomainError) {
-      return fail(cause.message);
+      return fail(
+        firstIssueMessage(
+          cause.message,
+          "Unable to change this member's access. Try again.",
+        ),
+      );
     }
     throw cause;
   }
@@ -230,7 +199,7 @@ export async function setEmailDigest(
   if (!parsedBody.success) {
     return fail(
       firstIssueMessage(
-        parsedBody.error,
+        parsedBody.error.issues[0]?.message,
         "Unable to update the email digest. Try again.",
       ),
     );
