@@ -202,10 +202,17 @@ function requireValue(
   return value.trim();
 }
 
+const MAX_MONEY_AMOUNT = 1_000_000_000_000;
+
 function parseAmount(value: string): number {
   if (!/^\d+(\.\d{1,2})?$/.test(value) || Number(value) <= 0) {
     throw new CliError(
       `Invalid --amount: ${value}. Use a positive number with at most two decimals, such as 500 or 12.50.`,
+    );
+  }
+  if (Number(value) > MAX_MONEY_AMOUNT) {
+    throw new CliError(
+      `Invalid --amount: ${value}. The amount must be at most 1,000,000,000,000.`,
     );
   }
 

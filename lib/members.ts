@@ -9,6 +9,27 @@ import {
   type SetMemberRoleSchemaType,
 } from "@/schemas/membership";
 
+export async function listMembers(householdId: string) {
+  return prisma.householdMembership.findMany({
+    where: {
+      householdId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+    orderBy: {
+      joinedAt: "asc",
+    },
+  });
+}
+
 export async function removeMember(
   householdId: string,
   callerId: string,

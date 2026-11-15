@@ -8,39 +8,30 @@ import type { DeleteIdSchemaType } from "@/schemas/delete";
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
-import { ok, fail } from "@/lib/action-result";
+import { type ActionResult, ok, fail } from "@/lib/action-result";
 import {
   createHouseholdBudget,
   deleteHouseholdBudget,
   getBudgetsWithProgress,
+  type BudgetWithProgress,
   updateHouseholdBudget,
 } from "@/lib/budgets";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
-import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
-import { DeleteIdSchema } from "@/schemas/delete";
+import { firstIssueMessage } from "@/lib/issue-message";
 
-export async function listBudgets() {
+export async function listBudgets(): Promise<
+  ActionResult<BudgetWithProgress[]>
+> {
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
   }
 
-  return await getBudgetsWithProgress(result.household.id);
+  return ok(await getBudgetsWithProgress(result.household.id));
 }
 
 export async function createBudget(form: CreateBudgetSchemaType) {
-  const parsedBody = CreateBudgetSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to create the budget. Select a category and enter a valid amount, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -49,14 +40,14 @@ export async function createBudget(form: CreateBudgetSchemaType) {
     return ok(
       await createHouseholdBudget(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to create the budget. Select a category and enter a valid amount, then try again.",
         ),
@@ -67,16 +58,6 @@ export async function createBudget(form: CreateBudgetSchemaType) {
 }
 
 export async function updateBudget(form: UpdateBudgetSchemaType) {
-  const parsedBody = UpdateBudgetSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to update the budget. Select a category and enter a valid amount, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -85,14 +66,14 @@ export async function updateBudget(form: UpdateBudgetSchemaType) {
     return ok(
       await updateHouseholdBudget(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to update the budget. Select a category and enter a valid amount, then try again.",
         ),
@@ -103,16 +84,6 @@ export async function updateBudget(form: UpdateBudgetSchemaType) {
 }
 
 export async function deleteBudget(form: DeleteIdSchemaType) {
-  const parsedBody = DeleteIdSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to delete the budget. Check the budget and try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -121,14 +92,14 @@ export async function deleteBudget(form: DeleteIdSchemaType) {
     return ok(
       await deleteHouseholdBudget(
         result.household.id,
-        parsedBody.data.id,
+        form.id,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to delete the budget. Check the budget and try again.",
         ),
