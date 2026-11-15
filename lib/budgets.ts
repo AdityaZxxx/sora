@@ -248,7 +248,6 @@ export type BudgetGateInput = {
   date: Date;
 };
 
-// Throws on the hard-mode block; otherwise returns the soft threshold message to notify, or null.
 export async function assertBudgetAllows(input: BudgetGateInput) {
   const { householdId, currency, category, type, shared, amount, date } = input;
   if (type !== "expense" || !shared) {
