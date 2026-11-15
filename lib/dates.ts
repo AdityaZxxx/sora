@@ -45,14 +45,16 @@ export function resolveDateRange(from?: string, to?: string) {
 
   const start = from
     ? startOfDay(from)
-    : new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0));
+    : new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0),
+      );
   const end = to
     ? endOfDay(to)
     : new Date(
         Date.UTC(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
           23,
           59,
           59,
