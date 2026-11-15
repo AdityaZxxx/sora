@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
+import { createPersonalHousehold } from "@/lib/household";
 
 import { CurrencyComboBox } from "../../components/CurrencyComboBox";
 import Logo from "../../components/Logo";
@@ -20,6 +21,8 @@ const page = async () => {
   if (!session) {
     redirect("/sign-in");
   }
+  // Pages do not normally write; the wizard is the creation door.
+  await createPersonalHousehold(session.user.id);
   return (
     <div className="container flex max-w-2xl flex-col items-center justify-between gap-4">
       <div>

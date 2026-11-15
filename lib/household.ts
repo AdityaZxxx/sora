@@ -13,8 +13,7 @@ import {
 import { HouseholdNameSchema } from "@/schemas/household";
 import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
 
-// seam-parse-exempt: input is the session's user id, never user-controlled.
-export async function getOrCreatePersonalHousehold(userId: string) {
+async function resolveHouseholdMembership(userId: string) {
   const memberships = await prisma.householdMembership.findMany({
     where: {
       userId,
@@ -29,20 +28,7 @@ export async function getOrCreatePersonalHousehold(userId: string) {
 
   const oldest = memberships[0];
   if (!oldest) {
-    return await prisma.$transaction(async (tx) => {
-      const household = await tx.household.create({
-        data: {},
-      });
-      return await tx.householdMembership.create({
-        data: {
-          householdId: household.id,
-          userId,
-        },
-        include: {
-          household: true,
-        },
-      });
-    });
+    return null;
   }
 
   const cookieStore = await cookies();
@@ -59,13 +45,49 @@ export async function getOrCreatePersonalHousehold(userId: string) {
   return oldest;
 }
 
+// seam-parse-exempt: input is the session's user id, never user-controlled.
+export async function createPersonalHousehold(userId: string) {
+  return await prisma.$transaction(async (tx) => {
+    const existing = await tx.householdMembership.findFirst({
+      where: {
+        userId,
+      },
+      include: {
+        household: true,
+      },
+      orderBy: {
+        joinedAt: "asc",
+      },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const household = await tx.household.create({
+      data: {},
+    });
+    return await tx.householdMembership.create({
+      data: {
+        householdId: household.id,
+        userId,
+      },
+      include: {
+        household: true,
+      },
+    });
+  });
+}
+
 export const requireHousehold = cache(async () => {
   const session = await getSession();
   if (!session) {
     return null;
   }
 
-  const membership = await getOrCreatePersonalHousehold(session.user.id);
+  const membership = await resolveHouseholdMembership(session.user.id);
+  if (!membership) {
+    return null;
+  }
   return {
     session,
     household: membership.household,
