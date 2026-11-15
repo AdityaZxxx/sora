@@ -2,8 +2,8 @@ import type { MemberBalance, SimplifiedTransfer } from "@/schemas/balances";
 
 import { Prisma } from "@prisma/client";
 
-import { SETTLEMENT_CATEGORY_NAME } from "@/lib/constants";
 import prisma from "@/lib/prisma";
+import { settlementCategoryEquals } from "@/lib/settlements";
 
 const { Decimal } = Prisma;
 
@@ -43,7 +43,7 @@ async function loadBalanceInputs(householdId: string) {
           householdId,
           shared: false,
           type: "expense",
-          category: SETTLEMENT_CATEGORY_NAME,
+          category: settlementCategoryEquals(),
         },
         select: {
           addedById: true,

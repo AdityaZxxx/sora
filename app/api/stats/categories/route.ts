@@ -1,8 +1,8 @@
-import { SETTLEMENT_CATEGORY_NAME } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
 import { DomainError, unauthorized } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import prisma from "@/lib/prisma";
+import { settlementCategoryExclusion } from "@/lib/settlements";
 
 export async function GET(request: Request): Promise<Response> {
   const result = await requireHousehold();
@@ -41,9 +41,7 @@ async function getCategoriesStats(householdId: string, from: Date, to: Date) {
     where: {
       householdId,
       shared: true,
-      category: {
-        not: SETTLEMENT_CATEGORY_NAME,
-      },
+      category: settlementCategoryExclusion(),
       date: {
         gte: from,
         lte: to,

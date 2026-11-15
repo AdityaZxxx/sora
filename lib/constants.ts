@@ -13,7 +13,3 @@ export const READ_ONLY_SCOPE = "read-only";
 export const READ_WRITE_SCOPE = "read-write";
 
 export const UNUSUAL_SPENDING_TYPE = "unusual_spending";
-
-export const SETTLEMENT_CATEGORY_NAME = "Settlement";
-export const SETTLEMENT_CATEGORY_ICON = "🤝";
-export const SETTLEMENT_DESCRIPTION_PREFIX = "Settlement with ";
