@@ -7,6 +7,7 @@ import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
   CreateRecurringItemSchema,
+  SetRecurringItemPausedSchema,
   UpdateRecurringItemSchema,
   type CreateRecurringItemType,
   type UpdateRecurringItemType,
@@ -294,10 +295,10 @@ export async function setRecurringItemPaused(
 ) {
   assertFullMemberRole(role);
 
-  const parsedId = DeleteIdSchema.safeParse({ id });
-  if (!parsedId.success) {
+  const parsedBody = SetRecurringItemPausedSchema.safeParse({ id, paused });
+  if (!parsedBody.success) {
     throw new DomainError(
-      parsedId.error.issues[0]?.message ?? "Bill not found",
+      parsedBody.error.issues[0]?.message ?? "Bill not found",
     );
   }
   const result = await prisma.recurringItem.updateMany({

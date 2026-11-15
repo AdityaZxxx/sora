@@ -13,10 +13,9 @@ import {
   requireHousehold,
   setActiveHouseholdCookie,
 } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
-import { HouseholdNameSchema, parseHouseholdName } from "@/schemas/household";
-
-import { firstIssueMessage } from "./parse-error";
+import { parseHouseholdName } from "@/schemas/household";
 
 export async function switchHousehold(householdId: string) {
   const session = await getSession();
@@ -46,16 +45,6 @@ export async function switchHousehold(householdId: string) {
 export async function renameHousehold(
   name: string,
 ): Promise<ActionResult<Household>> {
-  const parsedName = HouseholdNameSchema.safeParse(name);
-  if (!parsedName.success) {
-    return fail(
-      firstIssueMessage(
-        parsedName.error,
-        "Unable to rename this space. Check the name and try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -64,7 +53,7 @@ export async function renameHousehold(
   try {
     const household = await renameHouseholdSeam(
       result.household.id,
-      parsedName.data,
+      name,
       result.membership.role,
     );
 
@@ -72,7 +61,12 @@ export async function renameHousehold(
     return ok(household);
   } catch (cause) {
     if (cause instanceof DomainError) {
-      return fail(cause.message);
+      return fail(
+        firstIssueMessage(
+          cause.message,
+          "Unable to rename this space. Check the name and try again.",
+        ),
+      );
     }
     throw cause;
   }

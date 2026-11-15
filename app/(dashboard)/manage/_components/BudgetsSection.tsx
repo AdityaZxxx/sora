@@ -65,7 +65,11 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
     refetch,
   } = useQuery({
     queryKey: ["budgets"],
-    queryFn: listBudgets,
+    queryFn: async () => {
+      const res = await listBudgets();
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,

@@ -8,7 +8,6 @@ import type { DeleteIdSchemaType } from "@/schemas/delete";
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import {
   createHouseholdCategory,
@@ -17,23 +16,9 @@ import {
 } from "@/lib/categories";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
-import {
-  CreateCategorySchema,
-  UpdateCategorySchema,
-} from "@/schemas/categories";
-import { DeleteIdSchema } from "@/schemas/delete";
+import { firstIssueMessage } from "@/lib/issue-message";
 
 export async function CreateCategory(form: CreateCategorySchemaType) {
-  const parsedBody = CreateCategorySchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to create the category. Check the name and icon, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -42,14 +27,14 @@ export async function CreateCategory(form: CreateCategorySchemaType) {
     return ok(
       await createHouseholdCategory(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to create the category. Check the name and icon, then try again.",
         ),
@@ -60,16 +45,6 @@ export async function CreateCategory(form: CreateCategorySchemaType) {
 }
 
 export async function UpdateCategory(form: UpdateCategorySchemaType) {
-  const parsedBody = UpdateCategorySchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to update the category. Check the name and icon, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -78,14 +53,14 @@ export async function UpdateCategory(form: UpdateCategorySchemaType) {
     return ok(
       await updateHouseholdCategory(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to update the category. Check the name and icon, then try again.",
         ),
@@ -96,16 +71,6 @@ export async function UpdateCategory(form: UpdateCategorySchemaType) {
 }
 
 export async function DeleteCategory(form: DeleteIdSchemaType) {
-  const parsedBody = DeleteIdSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to delete the category. Check the category and try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -114,14 +79,14 @@ export async function DeleteCategory(form: DeleteIdSchemaType) {
     return ok(
       await deleteHouseholdCategory(
         result.household.id,
-        parsedBody.data.id,
+        form.id,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to delete the category. Check the category and try again.",
         ),

@@ -8,7 +8,6 @@ import type {
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import {
@@ -18,8 +17,7 @@ import {
   updateHouseholdGoal,
 } from "@/lib/goals";
 import { requireHousehold } from "@/lib/household";
-import { DeleteIdSchema } from "@/schemas/delete";
-import { CreateGoalSchema, UpdateGoalSchema } from "@/schemas/goals";
+import { firstIssueMessage } from "@/lib/issue-message";
 
 export async function listGoals() {
   const result = await requireHousehold();
@@ -32,7 +30,7 @@ export async function listGoals() {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to load the goals. Refresh the page and try again.",
         ),
@@ -43,16 +41,6 @@ export async function listGoals() {
 }
 
 export async function createGoal(form: CreateGoalSchemaType) {
-  const parsedBody = CreateGoalSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to create the goal. Check the name and target amount, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -61,14 +49,14 @@ export async function createGoal(form: CreateGoalSchemaType) {
     return ok(
       await createHouseholdGoal(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to create the goal. Check the name and target amount, then try again.",
         ),
@@ -79,16 +67,6 @@ export async function createGoal(form: CreateGoalSchemaType) {
 }
 
 export async function updateGoal(form: UpdateGoalSchemaType) {
-  const parsedBody = UpdateGoalSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to update the goal. Check the name and target amount, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -97,14 +75,14 @@ export async function updateGoal(form: UpdateGoalSchemaType) {
     return ok(
       await updateHouseholdGoal(
         result.household.id,
-        parsedBody.data,
+        form,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to update the goal. Check the name and target amount, then try again.",
         ),
@@ -115,16 +93,6 @@ export async function updateGoal(form: UpdateGoalSchemaType) {
 }
 
 export async function deleteGoal(form: DeleteIdSchemaType) {
-  const parsedBody = DeleteIdSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to delete the goal. Check the goal and try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -133,14 +101,14 @@ export async function deleteGoal(form: DeleteIdSchemaType) {
     return ok(
       await deleteHouseholdGoal(
         result.household.id,
-        parsedBody.data.id,
+        form.id,
         result.membership.role,
       ),
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to delete the goal. Check the goal and try again.",
         ),

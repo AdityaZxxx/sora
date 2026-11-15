@@ -4,24 +4,13 @@ import type { CreateTransactionSchemaType } from "@/schemas/transaction";
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import { createTransaction } from "@/lib/transactions";
-import { CreateTransactionSchema } from "@/schemas/transaction";
 
 export async function CreateTransaction(form: CreateTransactionSchemaType) {
-  const parsedBody = CreateTransactionSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      writtenIssue(
-        parsedBody.error.issues[0]?.message,
-        "Unable to add the transaction. Check the amount, category and date, then try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -37,7 +26,7 @@ export async function CreateTransaction(form: CreateTransactionSchemaType) {
     goalId,
     shares,
     recurringItemId,
-  } = parsedBody.data;
+  } = form;
 
   try {
     await createTransaction(
@@ -59,7 +48,7 @@ export async function CreateTransaction(form: CreateTransactionSchemaType) {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to add the transaction. Check the amount, category and date, then try again.",
         ),

@@ -14,14 +14,14 @@ export function dateToUtcDate(date: Date) {
   );
 }
 
-// Zod's multipleOf(0.01) tolerates float sums like 0.1 + 0.2; the scaled
-// epsilon keeps the same acceptance at large amounts.
 export function hasTwoDecimals(value: number) {
-  return (
-    Number.isFinite(value) &&
-    Math.abs(value * 100 - Math.round(value * 100)) <
-      Math.max(1e-9, Math.abs(value) * 1e-10)
-  );
+  if (!Number.isFinite(value)) {
+    return false;
+  }
+  const ratio = value / 0.01;
+  const rounded = Math.round(ratio);
+  const tolerance = 4 * Number.EPSILON * Math.max(Math.abs(ratio), 1);
+  return Math.abs(ratio - rounded) < tolerance;
 }
 
 export function getFormatterForCurrency(currency: string) {
