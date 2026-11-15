@@ -3,7 +3,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { z } from "zod";
 
-import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { parseDate } from "@/lib/dates";
 import { recordSettlement } from "@/lib/settlements";
 import { createTransaction, deleteTransaction } from "@/lib/transactions";
@@ -68,8 +67,6 @@ export function registerTransactionWriteTools(
       shares,
       recurringItemId,
     }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const transaction = await createTransaction(
           context.householdId,
@@ -119,8 +116,6 @@ export function registerTransactionWriteTools(
       },
     },
     async ({ id }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         await deleteTransaction(context.householdId, id, context.role);
 
@@ -147,8 +142,6 @@ export function registerTransactionWriteTools(
       },
     },
     async ({ memberId, amount }) => {
-      if (context.scope !== READ_WRITE_SCOPE)
-        return toolError("This token is read-only.");
       try {
         const settlement = await recordSettlement(
           context.householdId,

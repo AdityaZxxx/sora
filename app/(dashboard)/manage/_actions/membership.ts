@@ -18,6 +18,7 @@ import {
   setActiveHouseholdCookie,
 } from "@/lib/household";
 import {
+  listMembers as listMembersSeam,
   removeMember as removeMemberSeam,
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
@@ -39,24 +40,7 @@ export async function listMembers() {
 
   const { household } = result;
 
-  return await prisma.householdMembership.findMany({
-    where: {
-      householdId: household.id,
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
-      },
-    },
-    orderBy: {
-      joinedAt: "asc",
-    },
-  });
+  return await listMembersSeam(household.id);
 }
 
 export async function leaveHousehold(): Promise<ActionResult> {

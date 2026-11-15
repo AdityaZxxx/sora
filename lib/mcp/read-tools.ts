@@ -8,7 +8,7 @@ import { getBudgetsWithProgress } from "@/lib/budgets";
 import { getCategories } from "@/lib/categories";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
-import prisma from "@/lib/prisma";
+import { listMembers } from "@/lib/members";
 import { getBalanceStats, getTransactionsHistory } from "@/lib/transactions";
 
 import {
@@ -206,17 +206,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     },
     async () => {
       try {
-        const memberships = await prisma.householdMembership.findMany({
-          where: {
-            householdId: context.householdId,
-          },
-          include: {
-            user: true,
-          },
-          orderBy: {
-            joinedAt: "asc",
-          },
-        });
+        const memberships = await listMembers(context.householdId);
 
         return toolResult({
           members: memberships.map((membership) => ({

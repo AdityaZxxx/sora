@@ -4,7 +4,7 @@ import { DomainError } from "@/lib/errors";
 export type MemberRole = typeof FULL_MEMBER_ROLE | typeof VIEW_ONLY_ROLE;
 
 export function parseMemberRole(role: string): MemberRole {
-  return role === VIEW_ONLY_ROLE ? VIEW_ONLY_ROLE : FULL_MEMBER_ROLE;
+  return role === FULL_MEMBER_ROLE ? FULL_MEMBER_ROLE : VIEW_ONLY_ROLE;
 }
 
 export function assertFullMemberRole(role: MemberRole) {
