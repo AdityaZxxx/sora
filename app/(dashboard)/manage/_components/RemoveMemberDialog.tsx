@@ -19,7 +19,9 @@ import {
 
 import { type listMembers, removeMember } from "../_actions/membership";
 
-type Member = Awaited<ReturnType<typeof listMembers>>[number];
+type Member = NonNullable<
+  Extract<Awaited<ReturnType<typeof listMembers>>, { ok: true }>["data"]
+>[number];
 
 interface Props {
   trigger: ReactNode;

@@ -52,7 +52,11 @@ const MembersSection = () => {
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["householdMembers"],
-    queryFn: listMembers,
+    queryFn: async () => {
+      const res = await listMembers();
+      if (!res.ok) throw new Error(res.message);
+      return res.data ?? [];
+    },
     staleTime: POLL_INTERVAL,
   });
 

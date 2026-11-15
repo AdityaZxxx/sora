@@ -9,7 +9,6 @@ import { useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -36,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { firstIssueMessage } from "@/lib/issue-message";
 import { cn } from "@/lib/utils";
 import {
   CreateRecurringItemSchema,
@@ -191,7 +191,7 @@ export default function RecurringItemDialog({
       });
       if (!parsed.success) {
         toast.error(
-          writtenIssue(
+          firstIssueMessage(
             parsed.error.issues[0]?.message,
             "Unable to save the bill. Check the name, amount and category, then try again.",
           ),
@@ -207,7 +207,7 @@ export default function RecurringItemDialog({
     const parsed = CreateRecurringItemSchema.safeParse(shared);
     if (!parsed.success) {
       toast.error(
-        writtenIssue(
+        firstIssueMessage(
           parsed.error.issues[0]?.message,
           "Unable to save the bill. Check the name, amount and category, then try again.",
         ),
