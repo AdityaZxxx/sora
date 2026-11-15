@@ -1,10 +1,5 @@
 import { after } from "next/server";
 
-import {
-  SETTLEMENT_CATEGORY_ICON,
-  SETTLEMENT_CATEGORY_NAME,
-  SETTLEMENT_DESCRIPTION_PREFIX,
-} from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
@@ -12,6 +7,22 @@ import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { RecordSettlementSchema } from "@/schemas/settlement";
+
+const SETTLEMENT_CATEGORY_NAME = "Settlement";
+const SETTLEMENT_CATEGORY_ICON = "🤝";
+const SETTLEMENT_DESCRIPTION_PREFIX = "Settlement with ";
+
+export function isSettlementCategory(name: string) {
+  return name === SETTLEMENT_CATEGORY_NAME;
+}
+
+export function settlementCategoryEquals() {
+  return { equals: SETTLEMENT_CATEGORY_NAME };
+}
+
+export function settlementCategoryExclusion() {
+  return { not: SETTLEMENT_CATEGORY_NAME };
+}
 
 export type RecordSettlementInput = {
   memberId: string;
@@ -110,37 +121,39 @@ async function runSettlement(
     throw new DomainError("Member not found");
   }
 
-  const category = await prisma.category.upsert({
-    where: {
-      name_householdId_type: {
+  const settlement = await prisma.$transaction(async (tx) => {
+    const category = await tx.category.upsert({
+      where: {
+        name_householdId_type: {
+          householdId,
+          name: SETTLEMENT_CATEGORY_NAME,
+          type: "expense",
+        },
+      },
+      create: {
         householdId,
         name: SETTLEMENT_CATEGORY_NAME,
+        icon: SETTLEMENT_CATEGORY_ICON,
         type: "expense",
       },
-    },
-    create: {
-      householdId,
-      name: SETTLEMENT_CATEGORY_NAME,
-      icon: SETTLEMENT_CATEGORY_ICON,
-      type: "expense",
-    },
-    update: {},
-  });
+      update: {},
+    });
 
-  const settlement = await prisma.transaction.create({
-    data: {
-      householdId,
-      addedById: userId,
-      counterpartyId: memberId,
-      amount,
-      date: new Date(),
-      description: `${SETTLEMENT_DESCRIPTION_PREFIX}${membership.user.name}`,
-      type: "expense",
-      shared: false,
-      category: category.name,
-      categoryIcon: category.icon,
-      addedVia: input.addedVia ?? null,
-    },
+    return tx.transaction.create({
+      data: {
+        householdId,
+        addedById: userId,
+        counterpartyId: memberId,
+        amount,
+        date: new Date(),
+        description: `${SETTLEMENT_DESCRIPTION_PREFIX}${membership.user.name}`,
+        type: "expense",
+        shared: false,
+        category: category.name,
+        categoryIcon: category.icon,
+        addedVia: input.addedVia ?? null,
+      },
+    });
   });
 
   log("info", "settlement.recorded", {

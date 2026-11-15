@@ -1,10 +1,10 @@
 import { Prisma } from "@prisma/client";
 
-import { SETTLEMENT_CATEGORY_NAME } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
+import { settlementCategoryExclusion } from "@/lib/settlements";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 
@@ -31,9 +31,7 @@ export function sharedSpendingFilter(
     householdId,
     shared: true,
     type: "expense" as const,
-    category: {
-      not: SETTLEMENT_CATEGORY_NAME,
-    },
+    category: settlementCategoryExclusion(),
     date: {
       gte: range.from,
       lte: range.to,

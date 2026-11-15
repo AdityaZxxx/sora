@@ -1,11 +1,8 @@
-import {
-  FULL_MEMBER_ROLE,
-  SETTLEMENT_CATEGORY_NAME,
-  UNUSUAL_SPENDING_TYPE,
-} from "@/lib/constants";
+import { FULL_MEMBER_ROLE, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
+import { isSettlementCategory } from "@/lib/settlements";
 
 const FLOOR_MINIMUM = 100;
 const INCOME_FLOOR_RATIO = 0.005;
@@ -64,7 +61,7 @@ export async function evaluateUnusualSpending(
   if (transaction.type !== "expense") {
     return { notified: 0 };
   }
-  if (transaction.category === SETTLEMENT_CATEGORY_NAME) {
+  if (isSettlementCategory(transaction.category)) {
     return { notified: 0 };
   }
 
