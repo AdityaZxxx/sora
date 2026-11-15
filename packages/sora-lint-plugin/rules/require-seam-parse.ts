@@ -7,7 +7,7 @@ const PARSE_PATTERN = /\.(?:safeParse|parse)\s*\(/;
 const EXEMPT_PATTERN = /seam-parse-exempt/;
 
 function isLibPath(filePath: string): boolean {
-  return /(?:^|\/)lib\//.test(filePath) && !filePath.includes("/lib/mcp/");
+  return /(?:^|\/)lib\//.test(filePath);
 }
 
 function exported(node: ESTree.Node): boolean {
