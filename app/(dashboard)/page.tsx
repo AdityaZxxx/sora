@@ -53,39 +53,41 @@ const DashboardPage = async () => {
   const memberCount = memberCountResult.data;
 
   return (
-    <div className="h-full bg-background px-6">
-      <div className="border-b bg-card">
-        <div className="container flex flex-wrap items-center justify-between gap-6 py-8">
-          <h1 className="text-2xl font-bold">
-            Hello, {session.user.name.split(" ")[0]}! 👋
-          </h1>
+    <div className="min-h-screen bg-background">
+      <div className="container pt-6">
+        <div className="rounded-xl border bg-card px-6 py-8">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <h1 className="text-2xl font-bold">
+              Hello, {session.user.name.split(" ")[0]}! 👋
+            </h1>
 
-          {canEdit && (
-            <div className="flex items-center gap-3">
-              <CreateTransactionDialog
-                trigger={
-                  <Button
-                    variant="default"
-                    className="bg-income-action text-white hover:bg-income-action-hover"
-                  >
-                    New income
-                  </Button>
-                }
-                type="income"
-              />
-              <CreateTransactionDialog
-                trigger={
-                  <Button
-                    variant="default"
-                    className="bg-expense-action text-white hover:bg-expense-action-hover"
-                  >
-                    New expense
-                  </Button>
-                }
-                type="expense"
-              />
-            </div>
-          )}
+            {canEdit && (
+              <div className="flex items-center gap-3">
+                <CreateTransactionDialog
+                  trigger={
+                    <Button
+                      variant="default"
+                      className="bg-income-action text-white hover:bg-income-action-hover"
+                    >
+                      New income
+                    </Button>
+                  }
+                  type="income"
+                />
+                <CreateTransactionDialog
+                  trigger={
+                    <Button
+                      variant="default"
+                      className="bg-expense-action text-white hover:bg-expense-action-hover"
+                    >
+                      New expense
+                    </Button>
+                  }
+                  type="expense"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {canEdit && <AddMemberCta memberCount={memberCount} />}

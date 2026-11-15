@@ -37,9 +37,9 @@ import UserMenu from "./UserMenu";
 export default function Navbar() {
   return (
     <div className="border-b bg-background">
-      <nav className="container flex items-center justify-between px-6">
-        <div className="flex h-[80px] min-h-[60px] items-center gap-x-4">
-          <Logo />
+      <nav className="container flex items-center justify-between">
+        <div className="flex h-8 min-h-15 items-center gap-x-4">
+          <Logo className="size-8" />
 
           <div className="hidden h-full md:flex">
             {items.map((item) => (
@@ -238,9 +238,6 @@ function NavbarItem({
       >
         {label}
       </Link>
-      {isActive && (
-        <div className="absolute -bottom-[1px] left-1/2 hidden h-[2px] w-[80%] -translate-x-1/2 rounded-xl bg-foreground md:block" />
-      )}
     </div>
   );
 }
