@@ -28,14 +28,14 @@ usage() {
 control-sora - launch, drive, and tear down a disposable Sora verification instance.
 
 Usage:
-  control-sora launch [--empty] [--prod] [--port <app-port>]
+  control-sora launch [--empty] [--average] [--prod] [--port <app-port>]
   control-sora doctor [--json]
   control-sora status
   control-sora login [--as member]
   control-sora browser <agent-browser args...>
   control-sora cli <sora args...>
   control-sora mcp <tool> [json-arguments]
-  control-sora reset [--empty]
+  control-sora reset [--empty] [--average]
   control-sora path
   control-sora stop
   control-sora cleanup
@@ -284,8 +284,19 @@ build_cli() {
   (cd "$REPO_ROOT" && pnpm --filter sora-cli run build >/dev/null)
 }
 
+# Fixture selection used by launch/reset: minimal = small deterministic
+# household (assertions in features/*.md). average = realistic two-adult
+# household with six months of history (UI judgment).
+SEED_VARIANT="${SORA_VERIFY_SEED:-minimal}"
+
 run_seed() {
-  info "Seeding household fixtures"
+  local script="$SCRIPT_DIR/seed.mjs"
+  local label="minimal household"
+  if [[ "$SEED_VARIANT" == "average" ]]; then
+    script="$SCRIPT_DIR/seed-average.mjs"
+    label="average household"
+  fi
+  info "Seeding household fixtures ($label)"
   SORA_VERIFY_BASE_URL="$BASE_URL" \
     SORA_VERIFY_DB_URL="$DB_URL" \
     SORA_VERIFY_RUN_ID="$RUN_ID" \
@@ -295,7 +306,7 @@ run_seed() {
     SORA_VERIFY_PASSWORD="$PRIMARY_PASSWORD" \
     SORA_VERIFY_MEMBER_EMAIL="$MEMBER_EMAIL" \
     SORA_VERIFY_MEMBER_PASSWORD="$MEMBER_PASSWORD" \
-    node "$SCRIPT_DIR/seed.mjs"
+    node "$script"
 }
 
 write_active() {
@@ -329,6 +340,7 @@ cmd_launch() {
   while (($# > 0)); do
     case "$1" in
       --empty) empty=1 ;;
+      --average) SEED_VARIANT="average" ;;
       --prod) APP_MODE="prod" ;;
       --dev) APP_MODE="dev" ;;
       --port)
@@ -377,6 +389,9 @@ cmd_launch() {
   build_cli
 
   local seed_mode="seeded"
+  if [[ "$SEED_VARIANT" == "average" ]]; then
+    seed_mode="average"
+  fi
   if [[ "$empty" == "1" ]]; then
     seed_mode="empty"
     : >"$RUN_ENV"
@@ -460,7 +475,7 @@ cmd_doctor() {
   fi
   check "port ownership" "$port_owned" "port $APP_PORT"
 
-  if [[ "$SEED_MODE" == "seeded" ]]; then
+  if [[ "$SEED_MODE" == "seeded" || "$SEED_MODE" == "average" ]]; then
     local cli_output="" cli_ok=1
     if ! cli_output="$(SORA_URL="$SORA_VERIFY_URL" SORA_TOKEN="$SORA_VERIFY_TOKEN" node "$REPO_ROOT/packages/sora-cli/dist/index.js" balance 2>&1)"; then
       cli_ok=0
@@ -577,6 +592,7 @@ cmd_reset() {
   load_active
   local empty=0
   [[ "${1:-}" == "--empty" ]] && empty=1
+  [[ "${1:-}" == "--average" ]] && SEED_VARIANT="average"
   info "Resetting database schema"
   psql_db -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null
   migrate
@@ -586,8 +602,10 @@ cmd_reset() {
     info "Database reset to an empty instance; sign in again before driving"
   else
     run_seed
-    json_set "$ACTIVE_FILE" seedMode "seeded"
-    info "Database reset to seeded fixtures; sign in again before driving"
+    local mode
+    mode="$([[ "$SEED_VARIANT" == "average" ]] && echo average || echo seeded)"
+    json_set "$ACTIVE_FILE" seedMode "$mode"
+    info "Database reset to seeded fixtures ($SEED_VARIANT); sign in again before driving"
   fi
 }
 
