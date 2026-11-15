@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const DashboardPage = async () => {
   const result = await requireHousehold();
   if (!result) {
-    redirect("/sign-in");
+    redirect("/wizard");
   }
 
   const { session, household } = result;
