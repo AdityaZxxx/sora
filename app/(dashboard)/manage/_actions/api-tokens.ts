@@ -17,14 +17,12 @@ import {
 import { FULL_MEMBER_ROLE, READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
 import {
   CreateApiTokenSchema,
   RevokeApiTokenSchema,
-  SetAgentAccessSchema,
 } from "@/schemas/api-tokens";
-
-import { firstIssueMessage } from "./parse-error";
 
 export async function createApiToken(
   form: CreateApiTokenSchemaType,
@@ -33,7 +31,7 @@ export async function createApiToken(
   if (!parsedBody.success) {
     return fail(
       firstIssueMessage(
-        parsedBody.error,
+        parsedBody.error.issues[0]?.message,
         "Unable to create the token. Check the details and try again.",
       ),
     );
@@ -124,7 +122,7 @@ export async function revokeApiToken(
   if (!parsedBody.success) {
     return fail(
       firstIssueMessage(
-        parsedBody.error,
+        parsedBody.error.issues[0]?.message,
         "Unable to revoke the token. Try again.",
       ),
     );
@@ -177,16 +175,6 @@ export async function revokeApiToken(
 export async function setAgentAccess(
   form: SetAgentAccessSchemaType,
 ): Promise<ActionResult> {
-  const parsedBody = SetAgentAccessSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error,
-        "Unable to change agent access. Try again.",
-      ),
-    );
-  }
-
   const result = await requireHousehold();
   if (!result) {
     redirect("/sign-in");
@@ -195,12 +183,17 @@ export async function setAgentAccess(
   try {
     await setAgentAccessSeam(
       result.household.id,
-      parsedBody.data.enabled,
+      form.enabled,
       result.membership.role,
     );
   } catch (cause) {
     if (cause instanceof DomainError) {
-      return fail(cause.message);
+      return fail(
+        firstIssueMessage(
+          cause.message,
+          "Unable to change agent access. Try again.",
+        ),
+      );
     }
     throw cause;
   }

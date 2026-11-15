@@ -4,10 +4,10 @@ import type { Notification } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
-import { writtenIssue } from "@/app/(dashboard)/_actions/plain-issue";
 import { ok, fail } from "@/lib/action-result";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
 
 export async function listNotifications() {
@@ -34,7 +34,7 @@ export async function listNotifications() {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to load the notifications. Refresh the page and try again.",
         ),
@@ -68,7 +68,7 @@ export async function markAllRead() {
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(
-        writtenIssue(
+        firstIssueMessage(
           cause.message,
           "Unable to mark the notifications as read. Refresh the page and try again.",
         ),
