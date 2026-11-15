@@ -4,6 +4,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 ## Conventions
 
+- **Self-contained bodies:** an issue, PR, or comment must stand alone for a reader with no access to your machine. Inline the decision-rich substance (what the candidate was, the trade-off, why it is independent of other work) in a sentence or two; never cite something that exists only on your machine, be it a `/tmp/...` path, a home-directory path, a `file://` URL, or an internal label from a local report ("candidate F").
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
 - **Read an issue**: `gh issue view <number> --json number,title,body,labels,comments`.
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
