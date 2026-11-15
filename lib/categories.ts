@@ -3,10 +3,13 @@ import type {
   UpdateCategorySchemaType,
 } from "@/schemas/categories";
 
-import { SETTLEMENT_CATEGORY_NAME } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
+import {
+  isSettlementCategory,
+  settlementCategoryExclusion,
+} from "@/lib/settlements";
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
@@ -20,9 +23,7 @@ export async function getCategories(
   return await prisma.category.findMany({
     where: {
       householdId,
-      name: {
-        not: SETTLEMENT_CATEGORY_NAME,
-      },
+      name: settlementCategoryExclusion(),
       ...(type && { type }),
     },
     orderBy: {
@@ -59,7 +60,7 @@ export async function createHouseholdCategory(
 }
 
 function assertNotSettlementCategory(name: string) {
-  if (name === SETTLEMENT_CATEGORY_NAME) {
+  if (isSettlementCategory(name)) {
     throw new DomainError("Sora manages the Settlement category.");
   }
 }
