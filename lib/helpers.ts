@@ -14,8 +14,6 @@ export function dateToUtcDate(date: Date) {
   );
 }
 
-// Mirrors zod's multipleOf(0.01) float-safe predicate so the dialogs accept
-// exactly what schemas/money.ts accepts.
 export function hasTwoDecimals(value: number) {
   if (!Number.isFinite(value)) {
     return false;
