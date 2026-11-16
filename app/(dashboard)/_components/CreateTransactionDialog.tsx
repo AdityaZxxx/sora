@@ -49,6 +49,7 @@ import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
+import { finalizeShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
@@ -81,45 +82,6 @@ type CreateTransactionFormValues = {
   shared: boolean;
   goalId: string;
 };
-
-type SplitMode = "equal" | "amounts" | "percent";
-
-type ShareDraft = { userId: string; amount: number };
-
-type SplitMember = { user: { id: string } };
-
-function parseAmountInput(raw: string | undefined) {
-  const parsed = Number.parseFloat((raw ?? "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function finalizeShares(
-  mode: "amounts" | "percent",
-  inputs: Record<string, string>,
-  members: SplitMember[],
-  amount: number,
-): ShareDraft[] {
-  const rounded = members.map((member) => {
-    const raw = parseAmountInput(inputs[member.user.id]);
-    return {
-      userId: member.user.id,
-      amount:
-        Math.round((mode === "percent" ? (amount * raw) / 100 : raw) * 100) /
-        100,
-    };
-  });
-
-  const remainder =
-    Math.round(
-      (amount - rounded.reduce((sum, share) => sum + share.amount, 0)) * 100,
-    ) / 100;
-  if (remainder !== 0 && rounded.length > 0) {
-    const largest = rounded.reduce((a, b) => (b.amount > a.amount ? b : a));
-    largest.amount = Math.round((largest.amount + remainder) * 100) / 100;
-  }
-
-  return rounded.filter((share) => share.amount > 0);
-}
 
 const CreateTransactionDialog = ({
   trigger,

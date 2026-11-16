@@ -12,6 +12,11 @@ import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
+import {
+  fromCents,
+  sharesMatchExpense,
+  sharesTotalCents,
+} from "@/lib/split-shares";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
@@ -218,12 +223,9 @@ export async function createTransaction(
     );
   }
 
-  const shareSum = Math.round(
-    shareInput.reduce((sum, share) => sum + share.amount, 0) * 100,
-  );
-  if (shareInput.length > 0 && shareSum !== Math.round(amount * 100)) {
+  if (!sharesMatchExpense(shareInput, amount)) {
     throw new DomainError(
-      `The member shares add up to ${formatAmount(shareSum / 100)} but the expense is ${formatAmount(amount)}.`,
+      `The member shares add up to ${formatAmount(fromCents(sharesTotalCents(shareInput)))} but the expense is ${formatAmount(amount)}.`,
     );
   }
 
