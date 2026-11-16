@@ -1,11 +1,14 @@
 import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
+import { notifyHouseholdExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import {
   RemoveMemberSchema,
+  SetEmailDigestSchema,
   SetMemberRoleSchema,
   type RemoveMemberSchemaType,
+  type SetEmailDigestSchemaType,
   type SetMemberRoleSchemaType,
 } from "@/schemas/membership";
 
@@ -26,6 +29,77 @@ export async function listMembers(householdId: string) {
     },
     orderBy: {
       joinedAt: "asc",
+    },
+  });
+}
+
+// seam-parse-exempt: inputs are session values, never user input.
+export async function leaveHousehold(
+  householdId: string,
+  userId: string,
+  userName: string,
+) {
+  await prisma.$transaction(async (tx) => {
+    await tx.householdMembership.delete({
+      where: {
+        householdId_userId: {
+          householdId,
+          userId,
+        },
+      },
+    });
+
+    await tx.apiToken.updateMany({
+      where: {
+        householdId,
+        userId,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+
+    const remaining = await tx.householdMembership.count({
+      where: {
+        householdId,
+      },
+    });
+
+    if (remaining === 0) {
+      await tx.household.delete({
+        where: {
+          id: householdId,
+        },
+      });
+    }
+  });
+
+  await notifyHouseholdExcept(
+    householdId,
+    userId,
+    "member_left",
+    `${userName} left the household.`,
+  );
+}
+
+export async function setEmailDigest(
+  householdId: string,
+  userId: string,
+  input: SetEmailDigestSchemaType,
+) {
+  const parsed = SetEmailDigestSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new DomainError(parsed.error.issues[0]?.message ?? "Bad request");
+  }
+
+  return await prisma.householdMembership.update({
+    where: {
+      householdId_userId: {
+        householdId,
+        userId,
+      },
+    },
+    data: {
+      emailDigest: parsed.data.emailDigest,
     },
   });
 }

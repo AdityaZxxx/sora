@@ -8,11 +8,11 @@ import { redirect } from "next/navigation";
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
 import {
+  assertHouseholdMembership,
+  createAdditionalHousehold,
   renameHousehold as renameHouseholdSeam,
   setActiveHouseholdCookie,
 } from "@/lib/household";
-import prisma from "@/lib/prisma";
-import { parseHouseholdName } from "@/schemas/household";
 
 export async function switchHousehold(householdId: string) {
   const session = await getSession();
@@ -20,21 +20,7 @@ export async function switchHousehold(householdId: string) {
     redirect("/sign-in");
   }
 
-  const membership = await prisma.householdMembership.findUnique({
-    where: {
-      householdId_userId: {
-        householdId,
-        userId: session.user.id,
-      },
-    },
-  });
-
-  if (!membership) {
-    throw new Error(
-      "You are not a member of that household. Ask for an invite link to join it.",
-    );
-  }
-
+  await assertHouseholdMembership(householdId, session.user.id);
   await setActiveHouseholdCookie(householdId);
   revalidatePath("/", "layout");
 }
@@ -62,22 +48,7 @@ export async function createHousehold(name: string) {
     redirect("/sign-in");
   }
 
-  const parsedName = parseHouseholdName(name);
-
-  const household = await prisma.$transaction(async (tx) => {
-    const created = await tx.household.create({
-      data: {
-        name: parsedName || null,
-      },
-    });
-    await tx.householdMembership.create({
-      data: {
-        householdId: created.id,
-        userId: session.user.id,
-      },
-    });
-    return created;
-  });
+  const household = await createAdditionalHousehold(session.user.id, name);
 
   await setActiveHouseholdCookie(household.id);
   revalidatePath("/", "layout");

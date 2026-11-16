@@ -1,3 +1,5 @@
+import type { Notification } from "@prisma/client";
+
 import prisma from "@/lib/prisma";
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
@@ -32,6 +34,39 @@ export async function notifyMembers(
       type,
       message,
     })),
+  });
+}
+
+export async function listNotifications(
+  householdId: string,
+  userId: string,
+): Promise<Notification[]> {
+  return await prisma.notification.findMany({
+    where: {
+      householdId,
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 50,
+  });
+}
+
+// seam-parse-exempt: inputs are session values, never user input.
+export async function markNotificationsRead(
+  householdId: string,
+  userId: string,
+) {
+  await prisma.notification.updateMany({
+    where: {
+      householdId,
+      userId,
+      readAt: null,
+    },
+    data: {
+      readAt: new Date(),
+    },
   });
 }
 

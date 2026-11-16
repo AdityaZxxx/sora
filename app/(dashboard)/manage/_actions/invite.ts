@@ -6,9 +6,9 @@ import type { InviteLink } from "@prisma/client";
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import {
   createInviteLink as createInviteLinkSeam,
+  listInviteLinks as listInviteLinksSeam,
   revokeInviteLink as revokeInviteLinkSeam,
 } from "@/lib/invites";
-import prisma from "@/lib/prisma";
 
 export async function createInviteLink(): Promise<ActionResult<InviteLink>> {
   return withHouseholdAction(
@@ -32,15 +32,6 @@ export async function revokeInviteLink(
 export async function listInviteLinks(): Promise<ActionResult<InviteLink[]>> {
   return withHouseholdAction(
     "Unable to load the invite links. Refresh the page and try again.",
-    ({ household }) =>
-      prisma.inviteLink.findMany({
-        where: {
-          householdId: household.id,
-          revokedAt: null,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
+    ({ household }) => listInviteLinksSeam(household.id),
   );
 }
