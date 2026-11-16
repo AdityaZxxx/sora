@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 
-import { unauthorized } from "@/lib/api-route";
+import { unauthorized } from "@/lib/http-error";
 
 const publicPrefixes = ["/invite"];
 const protectedPrefixes = ["/transactions", "/manage", "/wizard"];

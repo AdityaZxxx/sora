@@ -4,18 +4,9 @@ import type { z } from "zod";
 import { resolveDateRange } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
+import { rejection, unauthorized } from "@/lib/http-error";
 
-export function rejection(
-  message: string,
-  status: number,
-  headers?: HeadersInit,
-): Response {
-  return Response.json({ message }, { status, headers });
-}
-
-export function unauthorized(headers?: HeadersInit): Response {
-  return rejection("Unauthorized", 401, headers);
-}
+export { rejection, unauthorized } from "@/lib/http-error";
 
 type QueryInput = { [key: string]: string | null | undefined };
 

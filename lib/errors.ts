@@ -4,7 +4,3 @@ export class DomainError extends Error {
     this.name = "DomainError";
   }
 }
-
-export function unauthorized() {
-  return Response.json({ message: "Unauthorized" }, { status: 401 });
-}
