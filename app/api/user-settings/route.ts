@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { unauthorized } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
+import { withHouseholdRoute } from "@/lib/api-route";
 
 export async function GET() {
-  const result = await requireHousehold();
-
-  if (!result) {
-    return unauthorized();
-  }
-
-  return NextResponse.json(result.household);
+  return withHouseholdRoute(async (result) => {
+    return NextResponse.json(result.household);
+  });
 }

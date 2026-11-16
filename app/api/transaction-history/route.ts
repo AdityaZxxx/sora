@@ -1,36 +1,21 @@
 import type { NextRequest } from "next/server";
 
-import { resolveDateRange } from "@/lib/dates";
-import { DomainError, unauthorized } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
+import { dateRangeFromParams, withHouseholdRoute } from "@/lib/api-route";
 import { getTransactionsHistory } from "@/lib/transactions";
 
 export async function GET(request: NextRequest) {
-  const result = await requireHousehold();
+  return withHouseholdRoute(async (result) => {
+    const { searchParams } = new URL(request.url);
 
-  if (!result) {
-    return unauthorized();
-  }
+    const range = dateRangeFromParams(searchParams);
 
-  const { searchParams } = new URL(request.url);
-
-  let range;
-  try {
-    range = resolveDateRange(
-      searchParams.get("from") ?? undefined,
-      searchParams.get("to") ?? undefined,
+    const transactions = await getTransactionsHistory(
+      result.household.id,
+      result.session.user.id,
+      range.from,
+      range.to,
     );
-  } catch (cause) {
-    if (!(cause instanceof DomainError)) throw cause;
-    return Response.json({ message: cause.message }, { status: 400 });
-  }
 
-  const transactions = await getTransactionsHistory(
-    result.household.id,
-    result.session.user.id,
-    range.from,
-    range.to,
-  );
-
-  return Response.json(transactions);
+    return Response.json(transactions);
+  });
 }

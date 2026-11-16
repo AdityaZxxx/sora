@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 
+import { unauthorized } from "@/lib/api-route";
+
 const publicPrefixes = ["/invite"];
 const protectedPrefixes = ["/transactions", "/manage", "/wizard"];
 
@@ -26,7 +28,7 @@ export function proxy(request: NextRequest) {
 
   if (!sessionCookie && isProtected) {
     if (isApiRoute) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return unauthorized();
     }
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }

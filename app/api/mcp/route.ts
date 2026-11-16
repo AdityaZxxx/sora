@@ -1,5 +1,6 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
+import { rejection } from "@/lib/api-route";
 import { requireToken } from "@/lib/api-token";
 import { READ_ONLY_SCOPE } from "@/lib/constants";
 import { contextFromToken } from "@/lib/mcp/context";
@@ -27,10 +28,7 @@ export async function POST(request: Request) {
   const auth = await requireToken(READ_ONLY_SCOPE);
 
   if (!auth.ok) {
-    return Response.json(
-      { error: auth.error },
-      { status: auth.status, headers: CORS_HEADERS },
-    );
+    return rejection(auth.error, auth.status, CORS_HEADERS);
   }
 
   const server = createMcpServer(contextFromToken(auth));

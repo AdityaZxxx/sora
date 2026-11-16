@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { rejection } from "@/lib/api-route";
 import { sendEmail } from "@/lib/email";
 import prisma from "@/lib/prisma";
 
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const authorization = request.headers.get("authorization");
 
   if (!cronSecret || authorization !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return rejection("Unauthorized", 401);
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);

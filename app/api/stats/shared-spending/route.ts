@@ -1,18 +1,14 @@
+import { withHouseholdRoute } from "@/lib/api-route";
 import { sharedSpendingFilter } from "@/lib/budgets";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
-import { unauthorized } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
-  const result = await requireHousehold();
-  if (!result) {
-    return unauthorized();
-  }
+  return withHouseholdRoute(async (result) => {
+    const stats = await getSharedSpending(result.household.id);
 
-  const stats = await getSharedSpending(result.household.id);
-
-  return Response.json(stats);
+    return Response.json(stats);
+  });
 }
 
 export type GetSharedSpendingResponseType = Awaited<
