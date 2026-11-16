@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { deleteHouseholdBudget, setHouseholdBudget } from "@/lib/budgets";
-import { parseDate } from "@/lib/dates";
+import { DATE_PATTERN, parseDate } from "@/lib/dates";
 import {
   createHouseholdGoal,
   deleteHouseholdGoal,
@@ -17,7 +17,7 @@ import { goalFields } from "@/schemas/goals";
 
 import { toolError, toolErrorMessage, toolResult } from "./tools";
 
-const DEADLINE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DEADLINE_PATTERN = DATE_PATTERN;
 
 export function registerGoalBudgetWriteTools(
   server: McpServer,

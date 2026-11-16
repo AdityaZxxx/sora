@@ -3,6 +3,7 @@ import type { z } from "zod";
 
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
+import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -37,22 +38,6 @@ export type RecurringItemRow = {
   isDue: boolean;
   isOverdue: boolean;
 };
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-const utcStartOfDay = (date: Date) =>
-  new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
-
-const addDays = (date: Date, days: number) =>
-  new Date(date.getTime() + days * MS_PER_DAY);
-
-const daysInMonth = (year: number, month: number) =>
-  new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-
-const clampToMonth = (year: number, month: number, day: number) =>
-  Math.min(day, daysInMonth(year, month));
 
 function firstWeeklyOnOrAfter(first: Date, weekday: number) {
   const delta = (weekday - first.getUTCDay() + 7) % 7;

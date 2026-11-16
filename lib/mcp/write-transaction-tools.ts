@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { z } from "zod";
 
-import { parseDate } from "@/lib/dates";
+import { parseDate, todayAtUtcMidnight } from "@/lib/dates";
 import { recordSettlement } from "@/lib/settlements";
 import { createTransaction, deleteTransaction } from "@/lib/transactions";
 import { DeleteIdSchema } from "@/schemas/delete";
@@ -74,7 +74,7 @@ export function registerTransactionWriteTools(
           {
             amount,
             description,
-            date: date ? parseDate(date) : localTodayAtUtcMidnight(),
+            date: date ? parseDate(date) : todayAtUtcMidnight(),
             category,
             type,
             shared,
@@ -166,12 +166,5 @@ export function registerTransactionWriteTools(
         return toolError(toolErrorMessage(error));
       }
     },
-  );
-}
-
-function localTodayAtUtcMidnight() {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
   );
 }

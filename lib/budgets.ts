@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { requireCategory } from "@/lib/categories";
+import { utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
@@ -8,21 +9,6 @@ import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
-
-export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  return {
-    from: new Date(Date.UTC(year, month, 1)),
-    to: new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)),
-  };
-}
-
-export function previousMonthRange(date: Date): { from: Date; to: Date } {
-  return utcMonthRangeFor(
-    new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)),
-  );
-}
 
 export function sharedSpendingFilter(
   householdId: string,
