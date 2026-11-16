@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { after } from "next/server";
 
 import { assertBudgetAllows } from "@/lib/budgets";
+import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
@@ -46,6 +47,8 @@ export async function getTransactionsHistory(
       type: true,
       category: true,
       categoryIcon: true,
+      categoryIconKind: true,
+      categoryIconColor: true,
       shared: true,
       addedById: true,
       addedVia: true,
@@ -264,7 +267,7 @@ export async function createTransaction(
         type,
         shared,
         category: categoryRow.name,
-        categoryIcon: categoryRow.icon,
+        ...categoryIconSnapshot(categoryRow),
         goalId,
         addedVia,
       },

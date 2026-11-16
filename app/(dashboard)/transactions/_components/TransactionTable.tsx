@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { DataTableColumnHeader } from "@/components/datatable/ColumnHeader";
 import { DataTableViewOptions } from "@/components/datatable/Columntoggle";
 import { DataTableFacetedFilter } from "@/components/datatable/FacetedFilters";
@@ -66,6 +67,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
+import { categoryIconLabel } from "@/lib/category-icons";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
@@ -98,9 +100,12 @@ const buildColumns = (formatAmount: (value: number) => string) =>
       filterFn: (row, id, value) => value.includes(row.getValue(id)),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <span className="text-2xl" aria-hidden="true">
-            {row.original.categoryIcon}
-          </span>
+          <CategoryIcon
+            icon={row.original.categoryIcon}
+            iconKind={row.original.categoryIconKind}
+            iconColor={row.original.categoryIconColor}
+            className="size-6 text-2xl"
+          />
           <span className="font-medium capitalize">
             {row.original.category}
           </span>
@@ -511,7 +516,10 @@ function getCategoryOptions(transactions: GetTransactionsHistoryResponseType) {
   for (const transaction of transactions) {
     categories.set(transaction.category, {
       value: transaction.category,
-      label: `${transaction.categoryIcon} ${transaction.category}`,
+      label: `${categoryIconLabel({
+        icon: transaction.categoryIcon,
+        iconKind: transaction.categoryIconKind,
+      })} ${transaction.category}`,
     });
   }
   return Array.from(categories.values());

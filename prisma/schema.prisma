@@ -154,6 +154,8 @@ model Category {
   householdId String
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   icon String
+  iconKind String @default("emoji")
+  iconColor String?
   type String @default("income")
 
   @@unique([name, householdId, type])
@@ -181,6 +183,8 @@ model Transaction {
 
   category String
   categoryIcon String
+  categoryIconKind String @default("emoji")
+  categoryIconColor String?
 
   // null = added through the UI, "agent" = added through an assistant
   addedVia String?
@@ -220,6 +224,8 @@ model RecurringItem {
   amount      Decimal
   category    String
   categoryIcon String
+  categoryIconKind String @default("emoji")
+  categoryIconColor String?
   type        String    @default("expense")
   frequency   String
   weekday     Int?

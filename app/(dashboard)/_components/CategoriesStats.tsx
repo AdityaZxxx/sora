@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
@@ -113,10 +114,19 @@ function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
                 const amount = item._sum.amount || 0;
                 const percentage = total > 0 ? (amount * 100) / total : 0;
                 return (
-                  <div key={item.category} className="flex flex-col gap-1.5">
+                  <div
+                    key={`${item.category}-${item.categoryIconKind}-${item.categoryIcon}-${item.categoryIconColor}`}
+                    className="flex flex-col gap-1.5"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {item.categoryIcon} {item.category}
+                        <CategoryIcon
+                          icon={item.categoryIcon}
+                          iconKind={item.categoryIconKind}
+                          iconColor={item.categoryIconColor}
+                          className="size-4 text-base"
+                        />
+                        {item.category}
                       </span>
                       <span className="text-sm font-semibold text-foreground tabular-nums">
                         {formatter.format(amount)}

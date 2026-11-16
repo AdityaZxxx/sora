@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
@@ -215,11 +216,13 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                     className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0 sm:gap-y-2 sm:py-3"
                   >
                     <span className="flex min-w-0 items-center gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm sm:h-9 sm:w-9 sm:text-base"
-                      >
-                        {item.categoryIcon}
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm sm:h-9 sm:w-9 sm:text-base">
+                        <CategoryIcon
+                          icon={item.categoryIcon}
+                          iconKind={item.categoryIconKind}
+                          iconColor={item.categoryIconColor}
+                          className="size-4 text-base"
+                        />
                       </span>
                       <span className="min-w-0">
                         <span className="block max-w-32 truncate text-sm font-medium min-[380px]:max-w-44 sm:max-w-none">

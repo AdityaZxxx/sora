@@ -1,5 +1,6 @@
 import { after } from "next/server";
 
+import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
@@ -134,6 +135,8 @@ async function runSettlement(
         householdId,
         name: SETTLEMENT_CATEGORY_NAME,
         icon: SETTLEMENT_CATEGORY_ICON,
+        iconKind: "emoji",
+        iconColor: null,
         type: "expense",
       },
       update: {},
@@ -150,7 +153,7 @@ async function runSettlement(
         type: "expense",
         shared: false,
         category: category.name,
-        categoryIcon: category.icon,
+        ...categoryIconSnapshot(category),
         addedVia: input.addedVia ?? null,
       },
     });

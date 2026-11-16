@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
+import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -20,6 +21,8 @@ export type RecurringItemRow = {
   amount: number;
   category: string;
   categoryIcon: string;
+  categoryIconKind: string;
+  categoryIconColor: string | null;
   type: string;
   frequency: string;
   weekday: number | null;
@@ -153,6 +156,8 @@ function toRow(item: {
   amount: { toNumber(): number };
   category: string;
   categoryIcon: string;
+  categoryIconKind: string;
+  categoryIconColor: string | null;
   type: string;
   frequency: string;
   weekday: number | null;
@@ -230,7 +235,7 @@ export async function createRecurringItem(
       name: parsed.data.name,
       amount: parsed.data.amount,
       category: category.name,
-      categoryIcon: category.icon,
+      ...categoryIconSnapshot(category),
       type: parsed.data.type,
       frequency: parsed.data.frequency,
       ...scheduleFields(parsed.data),
@@ -269,7 +274,7 @@ export async function updateRecurringItem(
     name: parsed.data.name,
     amount: parsed.data.amount,
     category: category.name,
-    categoryIcon: category.icon,
+    ...categoryIconSnapshot(category),
     type: parsed.data.type,
     frequency: parsed.data.frequency,
     ...scheduleFields(parsed.data),
