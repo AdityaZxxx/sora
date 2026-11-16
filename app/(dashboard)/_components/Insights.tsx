@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ const rateFor = (bucket?: { income: number; expense: number }) =>
     : undefined;
 
 const Insights = ({ currency }: Props) => {
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const { data: queryMonths, isLoading } = useQuery<GetInsightsResponseType>({
     queryKey: ["insights"],

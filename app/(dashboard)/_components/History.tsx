@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +84,7 @@ const History = ({ currency }: { currency: string | null }) => {
     };
   });
 
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const historyDataQuery = useQuery({
     queryKey: ["overview", "history", timeframe, period],

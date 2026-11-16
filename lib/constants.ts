@@ -8,6 +8,7 @@ export const FULL_MEMBER_ROLE = "member";
 export const VIEW_ONLY_ROLE = "view_only";
 
 export const DEFAULT_HOUSEHOLD_NAME = "My household";
+export const DEFAULT_CURRENCY = "USD";
 
 export const READ_ONLY_SCOPE = "read-only";
 export const READ_WRITE_SCOPE = "read-write";

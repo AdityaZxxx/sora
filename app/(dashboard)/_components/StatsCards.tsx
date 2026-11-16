@@ -10,7 +10,7 @@ import { useState } from "react";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { type GetBalanceStatsResponseType } from "@/lib/transactions";
 
@@ -45,7 +45,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
     refetchOnWindowFocus: true,
   });
 
-  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
   const { income = 0, expense = 0 } = statsQuery.data || {};
   const balance = income - expense;

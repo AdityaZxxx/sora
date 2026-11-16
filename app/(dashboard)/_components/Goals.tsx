@@ -32,7 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { type GoalWithProgress } from "@/lib/goals";
 import { getFormatterForCurrency } from "@/lib/helpers";
 
@@ -48,7 +48,7 @@ const Goals = ({
   currency: string | null;
   canEdit?: boolean;
 }) => {
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const goalsQuery = useQuery({
     queryKey: ["goals"],

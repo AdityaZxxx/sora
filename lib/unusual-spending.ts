@@ -1,4 +1,8 @@
-import { FULL_MEMBER_ROLE, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
+import {
+  FULL_MEMBER_ROLE,
+  UNUSUAL_SPENDING_TYPE,
+  DEFAULT_CURRENCY,
+} from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
@@ -97,7 +101,9 @@ export async function evaluateUnusualSpending(
     where: { id: transaction.householdId },
     select: { currency: true },
   });
-  const format = getFormatterForCurrency(household?.currency ?? "USD").format;
+  const format = getFormatterForCurrency(
+    household?.currency ?? DEFAULT_CURRENCY,
+  ).format;
 
   const recipients = transaction.shared
     ? await prisma.householdMembership.findMany({

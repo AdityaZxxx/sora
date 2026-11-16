@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import {
@@ -25,7 +25,7 @@ interface Props {
 }
 
 const SimplifyDebts = ({ currency }: Props) => {
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const debtsQuery = useQuery<SimplifiedTransfer[]>({
     queryKey: ["simplified-debts"],

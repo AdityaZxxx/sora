@@ -1,4 +1,9 @@
+import { DEFAULT_CURRENCY } from "./constants";
 import { Currencies } from "./currencies";
+
+export function resolveCurrency(currency: string | null | undefined) {
+  return currency ?? DEFAULT_CURRENCY;
+}
 
 export function dateToUtcDate(date: Date) {
   return new Date(

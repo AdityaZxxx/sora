@@ -68,7 +68,7 @@ import {
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
 import { categoryIconLabel } from "@/lib/category-icons";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
 import { cn } from "@/lib/utils";
@@ -233,7 +233,7 @@ const TransactionTable = ({ from, to }: Props) => {
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,
   });
-  const currency = householdQuery.data?.currency ?? "USD";
+  const currency = householdQuery.data?.currency ?? DEFAULT_CURRENCY;
   const formatAmount = getFormatterForCurrency(currency).format;
   const columns = buildColumns(formatAmount);
 
@@ -270,7 +270,7 @@ const TransactionTable = ({ from, to }: Props) => {
   const csvData = getCsvData(
     history.data,
     formatAmount,
-    householdQuery.data?.currency ?? "USD",
+    householdQuery.data?.currency ?? DEFAULT_CURRENCY,
   );
 
   const csvHeaders = [

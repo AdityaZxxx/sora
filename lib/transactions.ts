@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { assertBudgetAllows } from "@/lib/budgets";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
@@ -209,7 +210,7 @@ export async function createTransaction(
   }
 
   const formatAmount = getFormatterForCurrency(
-    household?.currency ?? "USD",
+    household?.currency ?? DEFAULT_CURRENCY,
   ).format;
 
   const memberIds = new Set(memberships.map((m) => m.userId));
@@ -231,7 +232,7 @@ export async function createTransaction(
 
   const thresholdMessage = await assertBudgetAllows({
     householdId,
-    currency: household?.currency ?? "USD",
+    currency: household?.currency ?? DEFAULT_CURRENCY,
     category: categoryRow.name,
     type,
     shared,

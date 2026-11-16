@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getMemberBalances } from "@/lib/balances";
 import { getBudgetsWithProgress } from "@/lib/budgets";
 import { getCategories } from "@/lib/categories";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
@@ -73,7 +74,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     async ({ from, to, category, shared }) => {
       try {
         const range = resolveDateRange(from, to);
-        const currency = context.currency ?? "USD";
+        const currency = context.currency ?? DEFAULT_CURRENCY;
         const transactions = await getTransactionsHistory(
           context.householdId,
           context.userId,

@@ -55,7 +55,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 
 import {
@@ -107,7 +107,7 @@ const nextLabel = (item: {
 
 const UpcomingBills = ({ currency, canEdit }: Props) => {
   const queryClient = useQueryClient();
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
   const [showAll, setShowAll] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RecurringItemDraft | null>(
     null,

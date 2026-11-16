@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/select";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { finalizeShares, type SplitMode } from "@/lib/split-shares";
@@ -229,7 +229,9 @@ const CreateTransactionDialog = ({
 
   const sharedValue = useStore(form.store, (state) => state.values.shared);
   const amountValue = useStore(form.store, (state) => state.values.amount);
-  const formatter = getFormatterForCurrency(household.data?.currency ?? "USD");
+  const formatter = getFormatterForCurrency(
+    household.data?.currency ?? DEFAULT_CURRENCY,
+  );
   const { data: session } = useSession();
 
   const showSplitOptions =
