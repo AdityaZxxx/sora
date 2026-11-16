@@ -184,6 +184,29 @@
   padding-inline: 1.5rem;
 }
 
+/* Custom scrollbars fade in only on hover or during scroll. Base UI stamps
+   `data-scrolling` on the root, and the bar renders inside it. */
+.scroll-area-bar {
+  opacity: 0;
+  pointer-events: none;
+}
+.scroll-area-root:hover .scroll-area-bar,
+.scroll-area-root[data-scrolling] .scroll-area-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Native scrollbars, hidden at rest; reveal on hover or keyboard focus. */
+.scrollbar-idle {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s;
+}
+.scrollbar-idle:hover,
+.scrollbar-idle:focus-within {
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

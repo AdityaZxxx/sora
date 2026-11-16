@@ -19,7 +19,7 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      className={cn("scroll-area-root relative", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
@@ -49,7 +49,7 @@ function ScrollBar({
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "flex touch-none p-0.5 transition-colors select-none",
+        "scroll-area-bar flex touch-none p-0.5 transition-opacity duration-200 select-none",
         orientation === "vertical"
           ? "h-full w-2.5 border-l border-l-transparent"
           : "h-2.5 w-full flex-col border-t border-t-transparent",
