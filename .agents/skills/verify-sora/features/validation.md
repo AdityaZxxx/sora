@@ -19,7 +19,7 @@ The rules are written once, at the lib/ seam: each writer parses its own schema 
 - `validation-category-mismatch` an unknown category name is rejected with `Category not found`.
 - `validation-unknown-id` an unrecognised id is rejected with a plain message, never a Prisma trace.
 - `validation-hard-budget` a shared expense over a hard budget cap is rejected with the message from the budget.
-- `validation-text-caps` every free-text cap rejects over-length input (category name 3–20, category icon ≤20, goal 50, recurring bill name ≤60, description ≤200, household name ≤50, token name ≤60, budget amount ≤1e12).
+- `validation-text-caps` every free-text cap rejects over-length input (category name 3–20, category emoji icon ≤20, category Lucide icon name ≤64, goal 50, recurring bill name ≤60, description ≤200, household name ≤50, token name ≤60, budget amount ≤1e12).
 - `validation-settlement-shares` shares name each member at most once.
 - `validation-view-only` a view-only member's writes are rejected by the seam.
 - `validation-date-absent` an absent range defaults to the current month to today everywhere (exact bounds depend on the client).

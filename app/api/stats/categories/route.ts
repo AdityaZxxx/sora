@@ -37,7 +37,13 @@ export type GetCategoriesStatsResponseType = Awaited<
 
 async function getCategoriesStats(householdId: string, from: Date, to: Date) {
   const stats = await prisma.transaction.groupBy({
-    by: ["type", "category", "categoryIcon"],
+    by: [
+      "type",
+      "category",
+      "categoryIcon",
+      "categoryIconKind",
+      "categoryIconColor",
+    ],
     where: {
       householdId,
       shared: true,

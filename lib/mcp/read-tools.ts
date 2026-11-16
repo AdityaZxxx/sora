@@ -243,6 +243,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             id: category.id,
             name: category.name,
             icon: category.icon,
+            iconKind: category.iconKind,
+            iconColor: category.iconColor,
             type: category.type,
           })),
         });

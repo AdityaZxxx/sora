@@ -7,6 +7,8 @@ import {
   updateHouseholdCategory,
 } from "@/lib/categories";
 import {
+  categoryIconColorSchema,
+  categoryIconKindSchema,
   categoryIconSchema,
   categoryLookupNameSchema,
   categoryNameSchema,
@@ -31,18 +33,34 @@ export function registerCategoryWriteTools(
           "Name of the Category, 3 to 20 characters.",
         ),
         icon: categoryIconSchema.describe(
-          "Icon for the Category, up to 20 characters.",
+          "Icon for the Category: an emoji glyph, or a Lucide icon name from the curated set when iconKind is lucide.",
         ),
+        iconKind: categoryIconKindSchema
+          .optional()
+          .describe(
+            "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
+          ),
+        iconColor: categoryIconColorSchema
+          .nullish()
+          .describe(
+            "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
+          ),
         type: categoryTypeSchema.describe(
           "Whether the Category labels income or expense Transactions.",
         ),
       },
     },
-    async ({ name, icon, type }) => {
+    async ({ name, icon, iconKind, iconColor, type }) => {
       try {
         const category = await createHouseholdCategory(
           context.householdId,
-          { name, icon, type },
+          {
+            name,
+            icon,
+            iconKind: iconKind ?? "emoji",
+            iconColor: iconColor ?? null,
+            type,
+          },
           context.role,
         );
 
@@ -50,6 +68,8 @@ export function registerCategoryWriteTools(
           id: category.id,
           name: category.name,
           icon: category.icon,
+          iconKind: category.iconKind,
+          iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
         });
@@ -73,18 +93,35 @@ export function registerCategoryWriteTools(
           "New name for the Category, 3 to 20 characters.",
         ),
         icon: categoryIconSchema.describe(
-          "New icon for the Category, up to 20 characters.",
+          "New icon for the Category: an emoji glyph, or a Lucide icon name from the curated set when iconKind is lucide.",
         ),
+        iconKind: categoryIconKindSchema
+          .optional()
+          .describe(
+            "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
+          ),
+        iconColor: categoryIconColorSchema
+          .nullish()
+          .describe(
+            "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
+          ),
         type: categoryTypeSchema.describe(
           "Whether the Category labels income or expense Transactions.",
         ),
       },
     },
-    async ({ originalName, name, icon, type }) => {
+    async ({ originalName, name, icon, iconKind, iconColor, type }) => {
       try {
         const category = await updateHouseholdCategory(
           context.householdId,
-          { originalName, name, icon, type },
+          {
+            originalName,
+            name,
+            icon,
+            iconKind: iconKind ?? "emoji",
+            iconColor: iconColor ?? null,
+            type,
+          },
           context.role,
         );
 
@@ -92,6 +129,8 @@ export function registerCategoryWriteTools(
           id: category.id,
           name: category.name,
           icon: category.icon,
+          iconKind: category.iconKind,
+          iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
         });
@@ -125,6 +164,8 @@ export function registerCategoryWriteTools(
           id: category.id,
           name: category.name,
           icon: category.icon,
+          iconKind: category.iconKind,
+          iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
         });

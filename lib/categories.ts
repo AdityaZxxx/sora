@@ -3,6 +3,7 @@ import type {
   UpdateCategorySchemaType,
 } from "@/schemas/categories";
 
+import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -45,7 +46,7 @@ export async function createHouseholdCategory(
     );
   }
 
-  const { name, icon, type } = parsed.data;
+  const { name, icon, iconKind, iconColor, type } = parsed.data;
 
   assertNotSettlementCategory(name);
 
@@ -54,6 +55,8 @@ export async function createHouseholdCategory(
       householdId,
       name,
       icon,
+      iconKind,
+      iconColor,
       type,
     },
   });
@@ -78,7 +81,7 @@ export async function updateHouseholdCategory(
     );
   }
 
-  const { originalName, name, icon, type } = parsed.data;
+  const { originalName, name, icon, iconKind, iconColor, type } = parsed.data;
 
   assertNotSettlementCategory(originalName);
   if (name !== originalName) {
@@ -99,6 +102,11 @@ export async function updateHouseholdCategory(
     throw new DomainError("Category not found");
   }
 
+  const iconChanged =
+    icon !== existing.icon ||
+    iconKind !== existing.iconKind ||
+    iconColor !== existing.iconColor;
+
   return await prisma.$transaction(async (tx) => {
     const updated = await tx.category.update({
       where: {
@@ -108,7 +116,7 @@ export async function updateHouseholdCategory(
           type,
         },
       },
-      data: { name, icon },
+      data: { name, icon, iconKind, iconColor },
     });
 
     await tx.transaction.updateMany({
@@ -119,7 +127,7 @@ export async function updateHouseholdCategory(
       },
       data: {
         ...(name !== originalName && { category: name }),
-        ...(icon !== existing.icon && { categoryIcon: icon }),
+        ...(iconChanged && categoryIconSnapshot(updated)),
       },
     });
 
