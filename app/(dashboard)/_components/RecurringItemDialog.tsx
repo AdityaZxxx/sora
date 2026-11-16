@@ -64,9 +64,11 @@ export type RecurringItemDraft = {
 };
 
 interface Props {
-  trigger: React.ReactElement;
+  trigger?: React.ReactElement;
   item?: RecurringItemDraft;
   currency?: string | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 function handleSaveError(error: Error) {
@@ -100,9 +102,12 @@ export default function RecurringItemDialog({
   trigger,
   item,
   currency,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
 }: Props) {
   const isEdit = Boolean(item);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
   const queryClient = useQueryClient();
 
   const [name, setName] = useState(item?.name ?? "");
@@ -139,7 +144,8 @@ export default function RecurringItemDialog({
     if (next) {
       applyDraft();
     }
-    setOpen(next);
+    if (openProp === undefined) setInternalOpen(next);
+    onOpenChangeProp?.(next);
   };
 
   const createMutation = useMutation({
@@ -166,7 +172,7 @@ export default function RecurringItemDialog({
       id: "recurring-item",
     });
     queryClient.invalidateQueries({ queryKey: ["recurringItems"] });
-    setOpen(false);
+    handleOpenChange(false);
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -224,7 +230,7 @@ export default function RecurringItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={trigger} />
+      {trigger ? <DialogTrigger render={trigger} /> : null}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit bill" : "Add a bill"}</DialogTitle>
