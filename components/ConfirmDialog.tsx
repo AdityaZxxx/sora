@@ -34,6 +34,7 @@ interface Props<TInput> {
   trigger?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 function ConfirmDialog<TInput>({
@@ -50,6 +51,7 @@ function ConfirmDialog<TInput>({
   trigger,
   open: openProp,
   onOpenChange,
+  onSuccess,
 }: Props<TInput>) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
@@ -66,6 +68,7 @@ function ConfirmDialog<TInput>({
         ),
       );
       setOpen(false);
+      onSuccess?.();
     },
     onError: (error) => {
       toast.error(actionErrorMessage(error, errorMessage), { id: toastId });
