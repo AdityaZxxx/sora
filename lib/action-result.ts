@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { firstIssueMessage } from "@/lib/issue-message";
+import { withRequestId } from "@/lib/request-id";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
@@ -32,7 +33,7 @@ export async function withHouseholdAction<T>(
   }
 
   try {
-    return ok(await operation(result));
+    return ok(await withRequestId(async () => operation(result)));
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(firstIssueMessage(cause.message, fallback));
