@@ -10,6 +10,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     <ScrollArea
       className="relative w-full"
       viewportClassName="w-full overscroll-x-contain"
+      fade="x"
     >
       <table
         data-slot="table"

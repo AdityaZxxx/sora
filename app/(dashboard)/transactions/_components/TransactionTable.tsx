@@ -411,10 +411,6 @@ const TransactionTable = ({ from, to }: Props) => {
               )}
             </TableBody>
           </Table>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-lg bg-gradient-to-l from-background via-background/60 to-transparent xl:hidden"
-          />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
