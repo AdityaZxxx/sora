@@ -49,7 +49,12 @@ import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
-import { finalizeShares, type SplitMode } from "@/lib/split-shares";
+import {
+  finalizeShares,
+  sharesTotalCents,
+  toCents,
+  type SplitMode,
+} from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
@@ -270,9 +275,7 @@ const CreateTransactionDialog = ({
 
   const splitInvalid =
     previewShares !== null &&
-    Math.round(
-      previewShares.reduce((sum, share) => sum + share.amount, 0) * 100,
-    ) !== Math.round(amountValue * 100);
+    sharesTotalCents(previewShares) !== toCents(amountValue);
 
   const resetSplitInputs = () => {
     setSplitMode("equal");
