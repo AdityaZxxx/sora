@@ -3,9 +3,8 @@ import prisma from "@/lib/prisma";
 // seam-parse-exempt: inputs are session values, never user input.
 export async function deleteUserAccount(userId: string, email: string) {
   await prisma.$transaction(async (tx) => {
-    // Households where this user is the only member are deleted in one go.
-    // `every` alone is also true for households without any membership, so
-    // `some` is required to keep the user from removing unrelated households.
+    // `some` is required because `every` is vacuously true for households with
+    // no members, which would otherwise delete unrelated households.
     const soleMemberHouseholds = await tx.household.findMany({
       where: {
         AND: [
