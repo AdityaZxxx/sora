@@ -6,7 +6,6 @@ import type { ReactElement, ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleOff, Loader2 } from "lucide-react";
-import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -58,7 +57,6 @@ const EditCategoryDialog = ({
   const setOpen = onOpenChange ?? setInternalOpen;
 
   const queryClient = useQueryClient();
-  const theme = useTheme();
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof UpdateCategory>[0]) => {
@@ -226,9 +224,8 @@ const EditCategoryDialog = ({
                     </PopoverTrigger>
                     <PopoverContent className="w-full">
                       <EmojiPicker
-                        theme={theme.resolvedTheme}
-                        onEmojiSelect={(emoji: { native: string }) => {
-                          field.handleChange(emoji.native);
+                        onEmojiSelect={(emoji: string) => {
+                          field.handleChange(emoji);
                         }}
                       />
                     </PopoverContent>
