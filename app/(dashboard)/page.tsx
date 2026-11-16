@@ -93,7 +93,7 @@ const DashboardPage = async () => {
       {canEdit && <AddMemberCta memberCount={memberCount} />}
       <Overview currency={household.currency} />
       <Insights currency={household.currency} />
-      <div className="container mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="section grid gap-4 lg:grid-cols-3">
         <SafeToSpend currency={household.currency} />
         <div className="lg:col-span-2">
           <UpcomingBills currency={household.currency} canEdit={canEdit} />
@@ -103,8 +103,8 @@ const DashboardPage = async () => {
       <div
         className={
           memberCount > 1
-            ? "container mt-6 grid gap-4 lg:grid-cols-2"
-            : "container mt-6 grid gap-4"
+            ? "section grid gap-4 lg:grid-cols-2"
+            : "section grid gap-4"
         }
       >
         {memberCount > 1 && (
