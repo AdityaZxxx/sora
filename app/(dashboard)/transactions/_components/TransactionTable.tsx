@@ -429,7 +429,7 @@ const TransactionTable = ({ from, to }: Props) => {
               <SelectTrigger aria-label="Rows per page" className="h-10 sm:h-9">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-(--anchor-width) min-w-0">
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <SelectItem key={size} value={String(size)}>
                     {size} / page
