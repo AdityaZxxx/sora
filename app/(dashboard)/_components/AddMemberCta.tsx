@@ -5,12 +5,12 @@ import { useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CardShell } from "@/components/ui/card-shell";
 
 import InviteLinkDialog from "../manage/_components/InviteLinkDialog";
 
@@ -47,8 +47,8 @@ const AddMemberCta = ({ memberCount }: Props) => {
   };
 
   return (
-    <div className="container mt-6">
-      <CardShell className="relative">
+    <div className="section">
+      <Card className="relative transition-all hover:shadow-md">
         <button
           type="button"
           onClick={dismiss}
@@ -77,7 +77,7 @@ const AddMemberCta = ({ memberCount }: Props) => {
             }
           />
         </CardContent>
-      </CardShell>
+      </Card>
     </div>
   );
 };

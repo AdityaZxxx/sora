@@ -207,7 +207,7 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
           {tokens.map((token) => (
             <div
               key={token.id}
-              className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              className="flex items-center justify-between gap-3 rounded-lg border p-4"
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
@@ -347,7 +347,7 @@ const CreateApiTokenDialog = ({
                 keeps only its hash and cannot show it again.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex items-center gap-2 rounded-lg border p-3">
+            <div className="flex items-center gap-2 rounded-lg border p-4">
               <code className="min-w-0 flex-1 truncate text-sm">{created}</code>
               <Tooltip>
                 <TooltipTrigger

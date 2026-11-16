@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -121,7 +120,6 @@ const MembersSection = () => {
             members follow along
           </CardDescription>
         </CardHeader>
-        <Separator />
         <CardContent className="p-6">
           {isLoading ? (
             <Skeleton className="h-24 w-full" />
@@ -248,7 +246,6 @@ const MembersSection = () => {
             </div>
           )}
         </CardContent>
-        <Separator />
         <CardFooter>
           {!isLoading && (
             <LeaveHouseholdDialog

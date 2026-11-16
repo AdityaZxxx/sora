@@ -8,8 +8,13 @@ import { useState } from "react";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import { Button } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,19 +64,24 @@ const Goals = ({
   const goals = goalsQuery.data ?? [];
 
   return (
-    <CardShell className="h-full">
-      <CardShellHeader
-        title="Goals"
-        description="Savings targets for this space. Add a contribution by tagging an expense transaction with a goal."
-        action={
-          canEdit ? (
+    <Card className="h-full transition-all hover:shadow-md">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">Goals</CardTitle>
+            <CardDescription>
+              Savings targets for this space. Add a contribution by tagging an
+              expense transaction with a goal.
+            </CardDescription>
+          </div>
+          {canEdit ? (
             <CreateGoalDialog
               currency={currency}
               trigger={<AddIconButton label="New goal" />}
             />
-          ) : undefined
-        }
-      />
+          ) : undefined}
+        </div>
+      </CardHeader>
       <CardContent>
         <SkeletonWrapper isLoading={goalsQuery.isLoading}>
           {goals.length === 0 ? (
@@ -92,7 +102,7 @@ const Goals = ({
                 return (
                   <div
                     key={goal.id}
-                    className="space-y-2 rounded-lg bg-muted/40 p-3"
+                    className="space-y-2 rounded-lg border p-4"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
@@ -129,7 +139,7 @@ const Goals = ({
           )}
         </SkeletonWrapper>
       </CardContent>
-    </CardShell>
+    </Card>
   );
 };
 

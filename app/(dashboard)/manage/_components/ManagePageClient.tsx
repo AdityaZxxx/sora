@@ -36,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import EmptyStateUI from "@/components/ui/empty-state";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -216,8 +215,6 @@ function CategoryList({
           </div>
         </CardHeader>
 
-        <Separator />
-
         <CardContent className="p-6">
           {isError ? (
             <ErrorState type={type} onRetry={refetch} />
@@ -314,7 +311,7 @@ function CategoryCard({
 
   return (
     <>
-      <div className="relative flex items-center justify-between rounded-lg border p-4 transition-all hover:shadow-md">
+      <div className="relative flex items-center justify-between rounded-lg border p-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="text-xl" aria-hidden="true">
             {category.icon}

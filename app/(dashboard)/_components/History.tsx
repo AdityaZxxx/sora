@@ -9,8 +9,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -110,11 +109,11 @@ const History = ({ currency }: { currency: string | null }) => {
     historyDataQuery.data.length > 0;
 
   return (
-    <div className="container mt-6">
-      <CardShell className="col-span-12">
-        <CardShellHeader
-          title="History"
-          action={
+    <div className="section">
+      <Card className="col-span-12 transition-all hover:shadow-md">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-lg">History</CardTitle>
             <div className="flex flex-wrap items-center justify-start gap-2">
               <HistoryPeriodSelector
                 period={period}
@@ -137,8 +136,8 @@ const History = ({ currency }: { currency: string | null }) => {
                 }
               />
             </div>
-          }
-        />
+          </div>
+        </CardHeader>
         <CardContent>
           <SkeletonWrapper isLoading={historyDataQuery.isLoading}>
             {dataAvailable ? (
@@ -165,7 +164,7 @@ const History = ({ currency }: { currency: string | null }) => {
             )}
           </SkeletonWrapper>
         </CardContent>
-      </CardShell>
+      </Card>
     </div>
   );
 };

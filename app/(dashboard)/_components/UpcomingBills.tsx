@@ -30,8 +30,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardFooter } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,19 +170,23 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
 
   return (
     <>
-      <CardShell className="h-full">
-        <CardShellHeader
-          title="Upcoming bills"
-          description="Recurring income and expenses, due and past due"
-          action={
-            canEdit ? (
+      <Card className="h-full transition-all hover:shadow-md">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-lg">Upcoming bills</CardTitle>
+              <CardDescription>
+                Recurring income and expenses, due and past due
+              </CardDescription>
+            </div>
+            {canEdit ? (
               <RecurringItemDialog
                 currency={currency}
                 trigger={<AddIconButton label="Add bill" />}
               />
-            ) : undefined
-          }
-        />
+            ) : undefined}
+          </div>
+        </CardHeader>
         <CardContent>
           <SkeletonWrapper isLoading={isLoading}>
             {items.length === 0 ? (
@@ -295,7 +305,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
             </Button>
           </CardFooter>
         )}
-      </CardShell>
+      </Card>
 
       <RecurringItemDialog
         item={editItem ?? undefined}
