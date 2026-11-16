@@ -5,15 +5,12 @@ import type { Household } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { type ActionResult, fail, ok } from "@/lib/action-result";
+import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
-import { DomainError } from "@/lib/errors";
 import {
   renameHousehold as renameHouseholdSeam,
-  requireHousehold,
   setActiveHouseholdCookie,
 } from "@/lib/household";
-import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
 import { parseHouseholdName } from "@/schemas/household";
 
@@ -45,31 +42,18 @@ export async function switchHousehold(householdId: string) {
 export async function renameHousehold(
   name: string,
 ): Promise<ActionResult<Household>> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  try {
-    const household = await renameHouseholdSeam(
-      result.household.id,
-      name,
-      result.membership.role,
-    );
-
-    revalidatePath("/", "layout");
-    return ok(household);
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to rename this space. Check the name and try again.",
-        ),
+  return withHouseholdAction(
+    "Unable to rename this space. Check the name and try again.",
+    async ({ household, membership }) => {
+      const renamed = await renameHouseholdSeam(
+        household.id,
+        name,
+        membership.role,
       );
-    }
-    throw cause;
-  }
+      revalidatePath("/", "layout");
+      return renamed;
+    },
+  );
 }
 
 export async function createHousehold(name: string) {

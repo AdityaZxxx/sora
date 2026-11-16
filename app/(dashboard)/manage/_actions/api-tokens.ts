@@ -9,13 +9,17 @@ import type { Prisma } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
-import { type ActionResult, fail, ok } from "@/lib/action-result";
+import {
+  type ActionResult,
+  fail,
+  ok,
+  withHouseholdAction,
+} from "@/lib/action-result";
 import {
   generateApiToken,
   setAgentAccess as setAgentAccessSeam,
 } from "@/lib/api-token";
 import { FULL_MEMBER_ROLE, READ_WRITE_SCOPE } from "@/lib/constants";
-import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { firstIssueMessage } from "@/lib/issue-message";
 import prisma from "@/lib/prisma";
@@ -175,28 +179,10 @@ export async function revokeApiToken(
 export async function setAgentAccess(
   form: SetAgentAccessSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  try {
-    await setAgentAccessSeam(
-      result.household.id,
-      form.enabled,
-      result.membership.role,
-    );
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to change agent access. Try again.",
-        ),
-      );
-    }
-    throw cause;
-  }
-
-  return ok();
+  return withHouseholdAction(
+    "Unable to change agent access. Try again.",
+    async ({ household, membership }) => {
+      await setAgentAccessSeam(household.id, form.enabled, membership.role);
+    },
+  );
 }

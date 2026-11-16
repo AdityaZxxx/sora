@@ -9,9 +9,13 @@ import type { HouseholdMembership } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
-import { type ActionResult, fail, ok } from "@/lib/action-result";
+import {
+  type ActionResult,
+  fail,
+  ok,
+  withHouseholdAction,
+} from "@/lib/action-result";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
-import { DomainError } from "@/lib/errors";
 import {
   clearActiveHouseholdCookie,
   requireHousehold,
@@ -28,14 +32,10 @@ import prisma from "@/lib/prisma";
 import { SetEmailDigestSchema } from "@/schemas/membership";
 
 export async function listMembers() {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { household } = result;
-
-  return ok(await listMembersSeam(household.id));
+  return withHouseholdAction(
+    "Unable to load the members. Refresh the page and try again.",
+    ({ household }) => listMembersSeam(household.id),
+  );
 }
 
 export async function leaveHousehold(): Promise<ActionResult> {
@@ -110,86 +110,51 @@ export async function leaveHousehold(): Promise<ActionResult> {
 export async function removeMember(
   form: RemoveMemberSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-
-  let removedName: string;
-  try {
-    removedName = await removeMemberSeam(
-      household.id,
-      session.user.id,
-      result.membership.role,
-      form,
-    );
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to remove this member. Try again.",
-        ),
+  return withHouseholdAction(
+    "Unable to remove this member. Try again.",
+    async ({ household, session, membership }) => {
+      const removedName = await removeMemberSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
       );
-    }
-    throw cause;
-  }
 
-  // The removed member now belongs to a different household, so their bell
-  // would never show this; only the remaining members are notified.
-  await notifyHouseholdExcept(
-    household.id,
-    session.user.id,
-    "member_left",
-    `${removedName} was removed from the household.`,
+      // The removed member now belongs to a different household, so their bell
+      // would never show this; only the remaining members are notified.
+      await notifyHouseholdExcept(
+        household.id,
+        session.user.id,
+        "member_left",
+        `${removedName} was removed from the household.`,
+      );
+    },
   );
-
-  return ok();
 }
 
 export async function setMemberRole(
   form: SetMemberRoleSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-  const { userId } = form;
-
-  let nextRole: SetMemberRoleSchemaType["role"];
-  try {
-    ({ role: nextRole } = await setMemberRoleSeam(
-      household.id,
-      session.user.id,
-      result.membership.role,
-      form,
-    ));
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to change this member's access. Try again.",
-        ),
+  return withHouseholdAction(
+    "Unable to change this member's access. Try again.",
+    async ({ household, session, membership }) => {
+      const { role: nextRole } = await setMemberRoleSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
       );
-    }
-    throw cause;
-  }
 
-  await notify(
-    household.id,
-    userId,
-    "member_role",
-    nextRole === VIEW_ONLY_ROLE
-      ? `${session.user.name} set your access to view-only in this household.`
-      : `${session.user.name} gave you full edit access in this household.`,
+      await notify(
+        household.id,
+        form.userId,
+        "member_role",
+        nextRole === VIEW_ONLY_ROLE
+          ? `${session.user.name} set your access to view-only in this household.`
+          : `${session.user.name} gave you full edit access in this household.`,
+      );
+    },
   );
-
-  return ok();
 }
 
 export async function setEmailDigest(
