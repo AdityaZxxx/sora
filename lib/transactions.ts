@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { after } from "next/server";
 
 import { assertBudgetAllows } from "@/lib/budgets";
+import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -117,26 +118,6 @@ export type CreateTransactionInput = {
   recurringItemId?: string;
 };
 
-async function resolveCategory(
-  householdId: string,
-  type: TransactionType,
-  name: string,
-) {
-  const category = await prisma.category.findFirst({
-    where: {
-      householdId,
-      name,
-      type,
-    },
-  });
-
-  if (!category) {
-    throw new DomainError("Category not found");
-  }
-
-  return category;
-}
-
 export async function createTransaction(
   householdId: string,
   userId: string,
@@ -144,7 +125,7 @@ export async function createTransaction(
   role: MemberRole,
 ) {
   assertFullMemberRole(role);
-  const categoryRow = await resolveCategory(
+  const categoryRow = await requireCategory(
     householdId,
     input.type,
     input.category,

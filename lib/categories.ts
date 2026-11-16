@@ -62,6 +62,26 @@ export async function createHouseholdCategory(
   });
 }
 
+export async function requireCategory(
+  householdId: string,
+  name: string,
+  type: string,
+) {
+  const category = await prisma.category.findFirst({
+    where: {
+      householdId,
+      name,
+      type,
+    },
+  });
+
+  if (!category) {
+    throw new DomainError("Category not found");
+  }
+
+  return category;
+}
+
 function assertNotSettlementCategory(name: string) {
   if (isSettlementCategory(name)) {
     throw new DomainError("Sora manages the Settlement category.");
@@ -138,6 +158,19 @@ export async function updateHouseholdCategory(
           category: originalName,
         },
         data: { category: name },
+      });
+    }
+
+    if (name !== originalName || iconChanged) {
+      await tx.recurringItem.updateMany({
+        where: {
+          householdId,
+          category: originalName,
+        },
+        data: {
+          ...(name !== originalName && { category: name }),
+          ...(iconChanged && categoryIconSnapshot(updated)),
+        },
       });
     }
 
