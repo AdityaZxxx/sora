@@ -24,8 +24,11 @@ export function hasTwoDecimals(value: number) {
   return Math.abs(ratio - rounded) < tolerance;
 }
 
+const localeForCurrency = (currency: string) =>
+  Currencies.find((c) => c.value === currency)?.locale;
+
 export function getFormatterForCurrency(currency: string) {
-  const locale = Currencies.find((c) => c.value === currency)?.locale;
+  const locale = localeForCurrency(currency);
 
   return {
     format: (value: number) => {
@@ -37,5 +40,18 @@ export function getFormatterForCurrency(currency: string) {
       });
       return formatter.format(value);
     },
+  };
+}
+
+export function getNumberFlowCurrencyProps(currency: string) {
+  return {
+    locales: localeForCurrency(currency),
+    format: {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      trailingZeroDisplay: "stripIfInteger",
+    } satisfies Intl.NumberFormatOptions,
   };
 }

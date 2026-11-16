@@ -6,12 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
-import CountUp from "react-countup";
 
+import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
 import { POLL_INTERVAL } from "@/lib/constants";
-import { getFormatterForCurrency } from "@/lib/helpers";
+import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { type GetBalanceStatsResponseType } from "@/lib/transactions";
 
 interface Props {
@@ -45,7 +45,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
     refetchOnWindowFocus: true,
   });
 
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
 
   const { income = 0, expense = 0 } = statsQuery.data || {};
   const balance = income - expense;
@@ -55,7 +55,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
       <SkeletonWrapper isLoading={statsQuery.isLoading}>
         <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
-            formatter={formatter}
+            currencyFlow={currencyFlow}
             value={income}
             title="Income"
             trend="up"
@@ -67,7 +67,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
             }
           />
           <StatCard
-            formatter={formatter}
+            currencyFlow={currencyFlow}
             value={expense}
             title="Expense"
             trend="down"
@@ -79,7 +79,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
             }
           />
           <StatCard
-            formatter={formatter}
+            currencyFlow={currencyFlow}
             value={balance}
             title="Balance"
             trend={balance >= 0 ? "up" : "down"}
@@ -99,7 +99,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
 export default StatsCards;
 
 interface StatCardProps {
-  formatter: { format: (value: number) => string };
+  currencyFlow: ReturnType<typeof getNumberFlowCurrencyProps>;
   value: number;
   title: string;
   icon: ReactNode;
@@ -108,7 +108,7 @@ interface StatCardProps {
 }
 
 function StatCard({
-  formatter,
+  currencyFlow,
   value,
   title,
   icon,
@@ -143,12 +143,9 @@ function StatCard({
         {isLoading ? (
           <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
         ) : (
-          <CountUp
-            preserveValue
-            redraw={false}
-            end={value}
-            decimals={2}
-            formattingFn={(amount: number) => formatter.format(amount)}
+          <AnimatedNumber
+            value={value}
+            {...currencyFlow}
             className="text-xl font-bold text-foreground tabular-nums"
           />
         )}

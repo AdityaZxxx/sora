@@ -4,10 +4,9 @@ import type { GetInsightsResponseType } from "../../api/insights/route";
 
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins } from "lucide-react";
-import { useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import CountUp from "react-countup";
 
+import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
@@ -57,7 +56,6 @@ const rateFor = (bucket?: { income: number; expense: number }) =>
     : undefined;
 
 const Insights = ({ currency }: Props) => {
-  const shouldReduceMotion = useReducedMotion();
   const formatter = getFormatterForCurrency(currency ?? "USD");
 
   const { data: queryMonths, isLoading } = useQuery<GetInsightsResponseType>({
@@ -144,19 +142,10 @@ const Insights = ({ currency }: Props) => {
               >
                 –
               </span>
-            ) : shouldReduceMotion ? (
-              <span
-                className={cn("text-3xl font-bold tabular-nums", rateColor)}
-              >
-                {Math.round(currentRate * 100)}%
-              </span>
             ) : (
-              <CountUp
-                end={currentRate * 100}
-                decimals={0}
-                duration={1.2}
-                suffix="%"
-                preserveValue
+              <AnimatedNumber
+                value={currentRate}
+                format={{ style: "percent", maximumFractionDigits: 0 }}
                 className={cn("text-3xl font-bold tabular-nums", rateColor)}
               />
             )}

@@ -2,9 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
-import { useReducedMotion } from "motion/react";
-import CountUp from "react-countup";
 
+import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL } from "@/lib/constants";
-import { getFormatterForCurrency } from "@/lib/helpers";
+import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 
 import { listBudgets } from "../_actions/budgets";
 import BudgetDialog from "../manage/_components/BudgetDialog";
@@ -26,8 +25,7 @@ interface Props {
 }
 
 const SafeToSpend = ({ currency }: Props) => {
-  const shouldReduceMotion = useReducedMotion();
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
 
   const { data: budgets = [], isLoading } = useQuery({
     queryKey: ["budgets"],
@@ -80,20 +78,11 @@ const SafeToSpend = ({ currency }: Props) => {
                   />
                 </div>
                 <div>
-                  {shouldReduceMotion ? (
-                    <span className="text-3xl font-bold tabular-nums">
-                      {formatter.format(remaining)}
-                    </span>
-                  ) : (
-                    <CountUp
-                      end={remaining}
-                      decimals={2}
-                      duration={1.2}
-                      formattingFn={(value: number) => formatter.format(value)}
-                      preserveValue
-                      className="text-3xl font-bold tabular-nums"
-                    />
-                  )}
+                  <AnimatedNumber
+                    value={remaining}
+                    {...currencyFlow}
+                    className="text-3xl font-bold tabular-nums"
+                  />
                 </div>
               </div>
             </div>

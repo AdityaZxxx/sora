@@ -2,12 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
-import CountUp from "react-countup";
 
+import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
 import { POLL_INTERVAL } from "@/lib/constants";
-import { getFormatterForCurrency } from "@/lib/helpers";
+import {
+  getFormatterForCurrency,
+  getNumberFlowCurrencyProps,
+} from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 import { type GetSharedSpendingResponseType } from "../../api/stats/shared-spending/route";
@@ -32,6 +35,7 @@ const SharedSpendingCard = ({ currency }: Props) => {
   });
 
   const formatter = getFormatterForCurrency(currency ?? "USD");
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
 
   const { thisMonth = 0, lastMonth = 0 } = spendingQuery.data ?? {};
   const difference = thisMonth - lastMonth;
@@ -51,12 +55,9 @@ const SharedSpendingCard = ({ currency }: Props) => {
                 <p className="text-sm font-medium text-muted-foreground">
                   Shared spending this month
                 </p>
-                <CountUp
-                  preserveValue
-                  redraw={false}
-                  end={thisMonth}
-                  decimals={2}
-                  formattingFn={(amount: number) => formatter.format(amount)}
+                <AnimatedNumber
+                  value={thisMonth}
+                  {...currencyFlow}
                   className="text-xl font-bold text-foreground tabular-nums"
                 />
               </div>
