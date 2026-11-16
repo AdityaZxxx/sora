@@ -1,11 +1,11 @@
 "use client";
-
 import type { Timeframe } from "@/lib/types";
 
 import {
   EChartsBarChart,
   type ChartConfig,
 } from "@/components/evilcharts/charts/echarts-bar-chart";
+import { MONEY_TOOLTIP_OPTIONS, moneyTooltip } from "@/components/money-chart";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 export type HistoryChartRow = {
@@ -80,10 +80,6 @@ export default function HistoryChart({
     const row = rows.find((entry) => entry.key === String(bucketIndex));
     if (!row) return "";
 
-    const net = row.income - row.expense;
-    const netColor =
-      net >= 0 ? "text-income-foreground" : "text-expense-foreground";
-    const netSign = net >= 0 ? "+" : "";
     const header = new Date(
       row.year,
       row.month,
@@ -94,33 +90,24 @@ export default function HistoryChart({
       day: "numeric",
     });
 
-    const body = (["income", "expense"] as const)
-      .flatMap((key) => {
-        if (hidden.has(key)) return [];
-        const value = key === "income" ? row.income : row.expense;
-        const label = key === "income" ? "Income" : "Expense";
-        const dot = `<span aria-hidden="true" class="h-2.5 w-2.5 shrink-0 rounded-[2px]" style="background:${seriesSwatch(key)}"></span>`;
-        return [
-          `
-          <div class="flex w-full items-center gap-2">
-            ${dot}
-            <span class="flex flex-1 justify-between gap-4">
-              <span class="text-muted-foreground">${label}</span>
-              <span class="font-mono tabular-nums">${formatter.format(value)}</span>
-            </span>
-          </div>`.trim(),
-        ];
-      })
-      .join("");
-
-    return `
-      <div class="grid min-w-36 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm">
-        <div class="flex w-full items-center justify-between gap-4">
-          <span class="font-medium">${header}</span>
-          <span class="font-mono tabular-nums ${netColor}">${netSign}${formatter.format(net)}</span>
-        </div>
-        <div class="grid gap-1.5">${body}</div>
-      </div>`.trim();
+    return moneyTooltip({
+      header,
+      income: row.income,
+      expense: row.expense,
+      rows: (["income", "expense"] as const).flatMap((key) =>
+        hidden.has(key)
+          ? []
+          : [
+              {
+                key,
+                label: key === "income" ? "Income" : "Expense",
+                value: key === "income" ? row.income : row.expense,
+                color: seriesSwatch(key),
+              },
+            ],
+      ),
+      formatter,
+    });
   };
 
   return (
@@ -133,13 +120,7 @@ export default function HistoryChart({
       xDataKey="key"
       chartOptions={{
         tooltip: {
-          trigger: "axis",
-          confine: true,
-          backgroundColor: "transparent",
-          padding: 0,
-          borderWidth: 0,
-          extraCssText: "box-shadow:none;",
-          axisPointer: { type: "none" },
+          ...MONEY_TOOLTIP_OPTIONS,
           formatter: tooltipFormatter,
         },
       }}

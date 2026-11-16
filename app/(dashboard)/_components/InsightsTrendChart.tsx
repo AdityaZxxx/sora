@@ -6,6 +6,7 @@ import * as echarts from "echarts";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 
+import { MONEY_TOOLTIP_OPTIONS, moneyTooltip } from "@/components/money-chart";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface Props {
@@ -59,38 +60,26 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
       const bucket = index === undefined ? undefined : months[index];
       if (!bucket) return "";
 
-      const net = bucket.income - bucket.expense;
-      const netColor =
-        net >= 0 ? "text-income-foreground" : "text-expense-foreground";
-      const netSign = net >= 0 ? "+" : "";
-
-      const rows = (
-        [
-          { key: "income", label: "Income", value: bucket.income },
-          { key: "expense", label: "Expense", value: bucket.expense },
-        ] as const
-      )
-        .map((row) => {
-          const dot = `<span aria-hidden="true" class="h-2.5 w-2.5 shrink-0 rounded-[2px]" style="background:${row.key === "income" ? income : expense}"></span>`;
-          return `
-          <div class="flex w-full items-center gap-2">
-            ${dot}
-            <span class="flex flex-1 justify-between gap-4">
-              <span class="text-muted-foreground">${row.label}</span>
-              <span class="font-mono tabular-nums">${formatter.format(row.value)}</span>
-            </span>
-          </div>`.trim();
-        })
-        .join("");
-
-      return `
-        <div class="grid min-w-36 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm">
-          <div class="flex w-full items-center justify-between gap-4">
-            <span class="font-medium">${fullMonth(bucket.year, bucket.month)}</span>
-            <span class="font-mono tabular-nums ${netColor}">${netSign}${formatter.format(net)}</span>
-          </div>
-          <div class="grid gap-1.5">${rows}</div>
-        </div>`.trim();
+      return moneyTooltip({
+        header: fullMonth(bucket.year, bucket.month),
+        income: bucket.income,
+        expense: bucket.expense,
+        rows: [
+          {
+            key: "income",
+            label: "Income",
+            value: bucket.income,
+            color: income,
+          },
+          {
+            key: "expense",
+            label: "Expense",
+            value: bucket.expense,
+            color: expense,
+          },
+        ],
+        formatter,
+      });
     };
 
     const chart = echarts.init(container, null, { renderer: "canvas" });
@@ -102,13 +91,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
         left: isDesktop ? 68 : 8,
       },
       tooltip: {
-        trigger: "axis",
-        confine: true,
-        backgroundColor: "transparent",
-        padding: 0,
-        borderWidth: 0,
-        extraCssText: "box-shadow:none;",
-        axisPointer: { type: "none" },
+        ...MONEY_TOOLTIP_OPTIONS,
         formatter: tooltipFormatter as never,
       },
       xAxis: {
