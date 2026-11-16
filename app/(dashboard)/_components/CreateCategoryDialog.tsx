@@ -1,3 +1,4 @@
+import type { CategoryIconKind } from "@/lib/category-icons";
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
@@ -5,10 +6,10 @@ import type { ReactElement, ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleOff, Loader2, PlusSquare } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,8 +36,7 @@ import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
 import { CreateCategory } from "../_actions/categories";
-
-const EmojiPicker = dynamic(() => import("./EmojiPicker"), { ssr: false });
+import CategoryIconPicker from "./CategoryIconPicker";
 
 interface Props {
   type: TransactionType;
@@ -46,6 +46,18 @@ interface Props {
 
 const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
   const [open, setOpen] = useState(false);
+  const [iconState, setIconState] = useState(() => ({
+    icon: "",
+    iconKind: "emoji" as CategoryIconKind,
+    iconColor: null as string | null,
+  }));
+  const getDefaultValues = () => ({
+    name: "",
+    icon: "",
+    iconKind: "emoji" as CategoryIconKind,
+    iconColor: null as string | null,
+    type,
+  });
 
   const queryClient = useQueryClient();
 
@@ -61,7 +73,8 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
       return res.data;
     },
     onSuccess: async (category) => {
-      form.reset();
+      form.reset(getDefaultValues());
+      setIconState({ icon: "", iconKind: "emoji", iconColor: null });
       toast.success(`Category "${category.name}" added`, {
         id: "create-category",
       });
@@ -87,11 +100,7 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
   });
 
   const form = useForm({
-    defaultValues: {
-      name: "",
-      icon: "",
-      type,
-    },
+    defaultValues: getDefaultValues(),
     validators: {
       onSubmit: CreateCategorySchema,
     },
@@ -106,6 +115,11 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
     },
   });
 
+  const resetDraft = () => {
+    form.reset(getDefaultValues());
+    setIconState({ icon: "", iconKind: "emoji", iconColor: null });
+  };
+
   const triggerElement = (trigger ?? (
     <Button
       variant={"ghost"}
@@ -117,7 +131,13 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
   )) as ReactElement;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) resetDraft();
+        setOpen(nextOpen);
+      }}
+    >
       <DialogTrigger render={triggerElement} />
       <DialogContent>
         <DialogHeader>
@@ -199,11 +219,14 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
                         />
                       }
                     >
-                      {field.state.value ? (
+                      {iconState.icon ? (
                         <div className="flex flex-col items-center gap-2">
-                          <span className="text-3xl" aria-hidden="true">
-                            {field.state.value}
-                          </span>
+                          <CategoryIcon
+                            icon={iconState.icon}
+                            iconKind={iconState.iconKind}
+                            iconColor={iconState.iconColor}
+                            className="size-10 text-3xl"
+                          />
                           <p className="text-xs text-muted-foreground">
                             Click to change
                           </p>
@@ -217,10 +240,16 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
                         </div>
                       )}
                     </PopoverTrigger>
-                    <PopoverContent className="w-full">
-                      <EmojiPicker
-                        onEmojiSelect={(emoji: string) => {
-                          field.handleChange(emoji);
+                    <PopoverContent className="w-[22rem]">
+                      <CategoryIconPicker
+                        icon={iconState.icon}
+                        iconKind={iconState.iconKind}
+                        iconColor={iconState.iconColor}
+                        onChange={(next) => {
+                          setIconState(next);
+                          form.setFieldValue("icon", next.icon);
+                          form.setFieldValue("iconKind", next.iconKind);
+                          form.setFieldValue("iconColor", next.iconColor);
                         }}
                       />
                     </PopoverContent>
@@ -237,15 +266,7 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
           </form.Field>
           <DialogFooter>
             <DialogClose
-              render={
-                <Button
-                  variant={"secondary"}
-                  type="button"
-                  onClick={() => {
-                    form.reset();
-                  }}
-                />
-              }
+              render={<Button variant={"secondary"} type="button" />}
             >
               Cancel
             </DialogClose>

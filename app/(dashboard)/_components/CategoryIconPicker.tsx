@@ -6,12 +6,27 @@ import {
   defaultEmojiDataResolver,
   EmojiPicker as FrimoussePicker,
 } from "frimousse";
-import { Search } from "lucide-react";
+import { Ban, Check, Search } from "lucide-react";
+import { useRef, useState } from "react";
 
+import CategoryIcon from "@/components/CategoryIcon";
+import {
+  ALL_LUCIDE_ICONS,
+  CURATED_LUCIDE_ICONS,
+  ICON_COLOR_PRESETS,
+  REST_LUCIDE_ICONS,
+  type CategoryIconKind,
+} from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 
-interface Props {
-  onEmojiSelect: (emoji: string) => void;
+interface CategoryIconValue {
+  icon: string;
+  iconKind: CategoryIconKind;
+  iconColor: string | null;
+}
+
+interface Props extends CategoryIconValue {
+  onChange: (value: CategoryIconValue) => void;
 }
 
 const CURATED_EMOJIS = [
@@ -111,37 +126,360 @@ const listComponents: EmojiPickerListComponents = {
   ),
 };
 
-export default function EmojiPicker({ onEmojiSelect }: Props) {
-  return (
-    <FrimoussePicker.Root
-      columns={8}
-      sticky={false}
-      resolveEmojiData={resolveEmojiData}
-      onEmojiSelect={(emoji) => onEmojiSelect(emoji.emoji)}
-    >
-      <div className="flex h-96 w-full flex-col gap-2">
-        <div className="relative shrink-0">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <FrimoussePicker.Search
-            placeholder="Search all emoji"
-            aria-label="Search all emoji"
-            className="h-9 w-full rounded-md border border-input bg-transparent pr-2 pl-8 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset dark:bg-input/30"
-          />
-        </div>
+const ICON_COLUMNS = 8;
+const ROW_HEIGHT = 40;
+const HEADER_HEIGHT = 28;
+const VIEWPORT_HEIGHT = 320;
 
-        <FrimoussePicker.Viewport className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
-          <FrimoussePicker.Loading className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Loading emoji
-          </FrimoussePicker.Loading>
-          <FrimoussePicker.Empty className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            No emoji found
-          </FrimoussePicker.Empty>
-          <FrimoussePicker.List components={listComponents} />
-        </FrimoussePicker.Viewport>
+const SUGGESTED_ICONS = CURATED_LUCIDE_ICONS.map((icon) => ({
+  name: icon.name,
+  label: icon.label,
+  keywords: [...icon.keywords],
+}));
+
+type IconMetadata = {
+  name: string;
+  label: string;
+  keywords: string[];
+};
+
+type VirtualRow =
+  | { type: "header"; label: string; top: number; height: number }
+  | { type: "icons"; icons: IconMetadata[]; top: number; height: number };
+
+function chunkIcons(items: IconMetadata[], size: number) {
+  const rows: IconMetadata[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+}
+
+function buildRows(searchResults: IconMetadata[] | null): {
+  rows: VirtualRow[];
+  totalHeight: number;
+} {
+  const rows: VirtualRow[] = [];
+  let top = 0;
+  const pushHeader = (label: string) => {
+    rows.push({ type: "header", label, top, height: HEADER_HEIGHT });
+    top += HEADER_HEIGHT;
+  };
+  const pushIconRows = (items: IconMetadata[]) => {
+    for (const icons of chunkIcons(items, ICON_COLUMNS)) {
+      rows.push({ type: "icons", icons, top, height: ROW_HEIGHT });
+      top += ROW_HEIGHT;
+    }
+  };
+
+  if (searchResults) {
+    pushIconRows(searchResults);
+    return { rows, totalHeight: top };
+  }
+
+  pushHeader("Suggested");
+  pushIconRows(SUGGESTED_ICONS);
+  pushHeader("All icons");
+  pushIconRows(REST_LUCIDE_ICONS);
+
+  return { rows, totalHeight: top };
+}
+
+function iconMatches(icon: IconMetadata, query: string) {
+  return [icon.name, icon.label, ...icon.keywords]
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
+}
+
+function LucideIconButton({
+  icon,
+  selected,
+  color,
+  onSelect,
+}: {
+  icon: IconMetadata;
+  selected: boolean;
+  color: string | null;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={icon.label}
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex size-9 items-center justify-center rounded-md transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+        selected && "bg-muted",
+      )}
+    >
+      <CategoryIcon
+        icon={icon.name}
+        iconKind="lucide"
+        iconColor={color}
+        className="size-5"
+      />
+    </button>
+  );
+}
+
+export default function CategoryIconPicker({
+  icon,
+  iconKind,
+  iconColor,
+  onChange,
+}: Props) {
+  const [tab, setTab] = useState<CategoryIconKind>(
+    iconKind === "lucide" ? "lucide" : "emoji",
+  );
+  const [iconQuery, setIconQuery] = useState("");
+  const [scrollTop, setScrollTop] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  const search = iconQuery.trim().toLowerCase();
+
+  const resetScroll = (nextQuery: string) => {
+    setIconQuery(nextQuery);
+    setScrollTop(0);
+    if (viewportRef.current) viewportRef.current.scrollTop = 0;
+  };
+
+  const selectedLucide = iconKind === "lucide" ? icon : null;
+  const presetColorValues = new Set<string>(ICON_COLOR_PRESETS);
+  const isCustomColor =
+    iconColor !== null && !presetColorValues.has(iconColor.toLowerCase());
+  const searchResults = search
+    ? ALL_LUCIDE_ICONS.filter((item) => iconMatches(item, search))
+    : null;
+  const { rows, totalHeight } = buildRows(searchResults);
+  const visibleRows = rows.filter(
+    (row) =>
+      row.top + row.height >= scrollTop &&
+      row.top <= scrollTop + VIEWPORT_HEIGHT,
+  );
+
+  const selectLucide = (nextIcon: string) =>
+    onChange({
+      icon: nextIcon,
+      iconKind: "lucide",
+      iconColor: iconKind === "lucide" ? iconColor : null,
+    });
+
+  return (
+    <div className="flex h-96 w-full flex-col gap-2">
+      <div
+        role="tablist"
+        aria-label="Icon type"
+        className="grid shrink-0 grid-cols-2 rounded-md bg-muted p-1"
+      >
+        {(["emoji", "lucide"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={tab === value}
+            onClick={() => setTab(value)}
+            className={cn(
+              "rounded-sm px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+              tab === value && "bg-background text-foreground shadow-sm",
+            )}
+          >
+            {value === "emoji" ? "Emoji" : "Lucide icons"}
+          </button>
+        ))}
       </div>
-    </FrimoussePicker.Root>
+
+      {tab === "emoji" ? (
+        <FrimoussePicker.Root
+          columns={8}
+          sticky={false}
+          resolveEmojiData={resolveEmojiData}
+          className="flex min-h-0 flex-1 flex-col"
+          onEmojiSelect={(emoji) =>
+            onChange({ icon: emoji.emoji, iconKind: "emoji", iconColor: null })
+          }
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="relative shrink-0">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <FrimoussePicker.Search
+                placeholder="Search all emoji"
+                aria-label="Search all emoji"
+                className="h-9 w-full rounded-md border border-input bg-transparent pr-2 pl-8 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset dark:bg-input/30"
+              />
+            </div>
+            <FrimoussePicker.Viewport className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
+              <FrimoussePicker.Loading className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Loading emoji
+              </FrimoussePicker.Loading>
+              <FrimoussePicker.Empty className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No emoji found
+              </FrimoussePicker.Empty>
+              <FrimoussePicker.List components={listComponents} />
+            </FrimoussePicker.Viewport>
+          </div>
+        </FrimoussePicker.Root>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="relative shrink-0">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              value={iconQuery}
+              onChange={(event) => resetScroll(event.target.value)}
+              placeholder="Search icons"
+              aria-label="Search icons"
+              className="h-9 w-full rounded-md border border-input bg-transparent pr-2 pl-8 text-sm transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset dark:bg-input/30"
+            />
+          </div>
+
+          {search && searchResults?.length === 0 ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+              No icons found
+            </div>
+          ) : (
+            <div
+              ref={viewportRef}
+              onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1"
+            >
+              <div className="relative" style={{ height: totalHeight }}>
+                {visibleRows.map((row) =>
+                  row.type === "header" ? (
+                    <div
+                      key={`header-${row.label}`}
+                      className="absolute inset-x-0 flex items-center px-1 text-xs font-medium text-muted-foreground"
+                      style={{ top: row.top, height: row.height }}
+                    >
+                      {row.label}
+                    </div>
+                  ) : (
+                    <div
+                      key={`icons-${row.top}`}
+                      className="absolute inset-x-0 grid grid-cols-8 gap-1"
+                      style={{ top: row.top, height: row.height }}
+                    >
+                      {row.icons.map((item) => {
+                        const selected = selectedLucide === item.name;
+                        return (
+                          <LucideIconButton
+                            key={item.name}
+                            icon={item}
+                            selected={selected}
+                            color={iconColor}
+                            onSelect={() => selectLucide(item.name)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
+
+          {selectedLucide ? (
+            <div className="shrink-0 border-t pt-2">
+              <div className="mb-2 flex min-w-0 items-center gap-2">
+                <CategoryIcon
+                  icon={selectedLucide}
+                  iconKind="lucide"
+                  iconColor={iconColor}
+                  className="size-5"
+                />
+                <span className="truncate text-xs text-muted-foreground">
+                  {ALL_LUCIDE_ICONS.find((item) => item.name === selectedLucide)
+                    ?.label ?? selectedLucide}
+                </span>
+              </div>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Icon color"
+              >
+                <button
+                  type="button"
+                  aria-label="Use default color"
+                  aria-pressed={iconColor === null}
+                  onClick={() =>
+                    onChange({
+                      icon: selectedLucide,
+                      iconKind: "lucide",
+                      iconColor: null,
+                    })
+                  }
+                  className={cn(
+                    "flex size-6 items-center justify-center rounded-full transition-shadow outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    iconColor === null &&
+                      "ring-2 ring-ring ring-offset-2 ring-offset-popover",
+                  )}
+                >
+                  <Ban className="size-4 text-foreground" aria-hidden="true" />
+                </button>
+
+                <input
+                  type="color"
+                  value={iconColor ?? "#111111"}
+                  onChange={(event) =>
+                    onChange({
+                      icon: selectedLucide,
+                      iconKind: "lucide",
+                      iconColor: event.target.value,
+                    })
+                  }
+                  aria-label="Custom icon color"
+                  className={cn(
+                    "size-6 cursor-pointer appearance-none rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none [&::-webkit-color-swatch]:h-full [&::-webkit-color-swatch]:w-full [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:p-0",
+                    isCustomColor &&
+                      "ring-2 ring-ring ring-offset-2 ring-offset-popover",
+                  )}
+                />
+                {ICON_COLOR_PRESETS.map((color) => {
+                  const selected = iconColor?.toLowerCase() === color;
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={`Set color ${color}`}
+                      aria-pressed={selected}
+                      onClick={() =>
+                        onChange({
+                          icon: selectedLucide,
+                          iconKind: "lucide",
+                          iconColor: color,
+                        })
+                      }
+                      className={cn(
+                        "flex size-6 items-center justify-center rounded-full transition-shadow outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                        selected &&
+                          "ring-2 ring-ring ring-offset-2 ring-offset-popover",
+                      )}
+                      style={{ backgroundColor: color }}
+                    >
+                      {selected && (
+                        <Check
+                          className="size-4 text-white"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="shrink-0 border-t pt-2 text-xs text-muted-foreground">
+              Pick an icon to choose a color.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { CurrencyComboBox } from "@/components/CurrencyComboBox";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
@@ -313,9 +314,12 @@ function CategoryCard({
     <>
       <div className="relative flex items-center justify-between rounded-lg border p-4">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="text-xl" aria-hidden="true">
-            {category.icon}
-          </span>
+          <CategoryIcon
+            icon={category.icon}
+            iconKind={category.iconKind}
+            iconColor={category.iconColor}
+            className="size-6 text-xl"
+          />
           <span className="truncate font-medium">{category.name}</span>
         </div>
 

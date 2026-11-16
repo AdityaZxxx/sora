@@ -1,15 +1,16 @@
 "use client";
 
+import type { CategoryIconKind } from "@/lib/category-icons";
 import type { Category } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleOff, Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,8 +37,7 @@ import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
 import { UpdateCategory } from "../_actions/categories";
-
-const EmojiPicker = dynamic(() => import("./EmojiPicker"), { ssr: false });
+import CategoryIconPicker from "./CategoryIconPicker";
 
 interface Props {
   category: Category;
@@ -55,6 +55,19 @@ const EditCategoryDialog = ({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
+  const [iconState, setIconState] = useState(() => ({
+    icon: category.icon,
+    iconKind: (category.iconKind as CategoryIconKind) ?? "emoji",
+    iconColor: category.iconColor,
+  }));
+
+  const getSavedValues = (savedCategory: Category = category) => ({
+    name: savedCategory.name,
+    icon: savedCategory.icon,
+    iconKind: (savedCategory.iconKind as CategoryIconKind) ?? "emoji",
+    iconColor: savedCategory.iconColor,
+    type: savedCategory.type as "income" | "expense",
+  });
 
   const queryClient = useQueryClient();
 
@@ -70,6 +83,14 @@ const EditCategoryDialog = ({
       return res.data;
     },
     onSuccess: async (updated) => {
+      const values = getSavedValues(updated);
+      form.reset(values);
+      setIconState({
+        icon: values.icon,
+        iconKind: values.iconKind,
+        iconColor: values.iconColor,
+      });
+
       toast.success(`Category "${updated.name}" updated`, {
         id: "update-category",
       });
@@ -96,11 +117,7 @@ const EditCategoryDialog = ({
   });
 
   const form = useForm({
-    defaultValues: {
-      name: category.name,
-      icon: category.icon,
-      type: category.type as "income" | "expense",
-    },
+    defaultValues: getSavedValues(),
     validators: {
       onSubmit: CreateCategorySchema,
     },
@@ -115,13 +132,31 @@ const EditCategoryDialog = ({
         originalName: category.name,
         name: value.name,
         icon: value.icon,
+        iconKind: value.iconKind,
+        iconColor: value.iconColor,
         type: value.type,
       });
     },
   });
 
+  const resetDraft = () => {
+    const values = getSavedValues();
+    form.reset(values);
+    setIconState({
+      icon: values.icon,
+      iconKind: values.iconKind,
+      iconColor: values.iconColor,
+    });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) resetDraft();
+        setOpen(nextOpen);
+      }}
+    >
       {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
       <DialogContent>
         <DialogHeader>
@@ -204,11 +239,14 @@ const EditCategoryDialog = ({
                         />
                       }
                     >
-                      {field.state.value ? (
+                      {iconState.icon ? (
                         <div className="flex flex-col items-center gap-2">
-                          <span className="text-3xl" aria-hidden="true">
-                            {field.state.value}
-                          </span>
+                          <CategoryIcon
+                            icon={iconState.icon}
+                            iconKind={iconState.iconKind}
+                            iconColor={iconState.iconColor}
+                            className="size-10 text-3xl"
+                          />
                           <p className="text-xs text-muted-foreground">
                             Click to change
                           </p>
@@ -222,10 +260,16 @@ const EditCategoryDialog = ({
                         </div>
                       )}
                     </PopoverTrigger>
-                    <PopoverContent className="w-full">
-                      <EmojiPicker
-                        onEmojiSelect={(emoji: string) => {
-                          field.handleChange(emoji);
+                    <PopoverContent className="w-[22rem]">
+                      <CategoryIconPicker
+                        icon={iconState.icon}
+                        iconKind={iconState.iconKind}
+                        iconColor={iconState.iconColor}
+                        onChange={(next) => {
+                          setIconState(next);
+                          form.setFieldValue("icon", next.icon);
+                          form.setFieldValue("iconKind", next.iconKind);
+                          form.setFieldValue("iconColor", next.iconColor);
                         }}
                       />
                     </PopoverContent>

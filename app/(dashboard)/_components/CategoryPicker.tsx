@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useId, useState } from "react";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -143,7 +144,12 @@ export default CategoryPicker;
 function CategoryRow({ category }: { category: Category }) {
   return (
     <div className="flex items-center gap-2">
-      <span aria-hidden="true">{category.icon}</span>
+      <CategoryIcon
+        icon={category.icon}
+        iconKind={category.iconKind}
+        iconColor={category.iconColor}
+        className="size-4 text-base"
+      />
       <span>{category.name}</span>
     </div>
   );
