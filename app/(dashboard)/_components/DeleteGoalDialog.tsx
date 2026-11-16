@@ -1,23 +1,8 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { type GoalWithProgress } from "@/lib/goals";
 
 import { deleteGoal } from "../_actions/goals";
@@ -35,66 +20,29 @@ const DeleteGoalDialog = ({
   open: openProp,
   onOpenChange,
 }: Props) => {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = openProp ?? internalOpen;
-  const setOpen = onOpenChange ?? setInternalOpen;
   const goalIdentifier = `delete-goal-${goal.id}`;
-
-  const queryClient = useQueryClient();
-  const deleteMutation = useMutation({
-    mutationFn: async (input: { id: string }) => {
-      return unwrapAction(await deleteGoal(input));
-    },
-    onSuccess: async () => {
-      toast.success("Goal deleted", {
-        id: goalIdentifier,
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ["goals"],
-      });
-      setOpen(false);
-    },
-    onError: (error) => {
-      toast.error(
-        actionErrorMessage(
-          error,
-          "Unable to delete the goal. Refresh the page and try again.",
-        ),
-        {
-          id: goalIdentifier,
-        },
-      );
-    },
-  });
-
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      {trigger ? <AlertDialogTrigger render={trigger as ReactElement} /> : null}
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            Delete goal &quot;{goal.name}&quot;?
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently deletes the &quot;{goal.name}&quot; goal. Its
-            contribution transactions stay in your ledger. This action cannot be
-            undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            onClick={() => {
-              toast.loading("Deleting goal…", { id: goalIdentifier });
-              deleteMutation.mutate({ id: goal.id });
-            }}
-          >
-            Delete goal
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      trigger={trigger}
+      open={openProp}
+      onOpenChange={onOpenChange}
+      title={<>Delete goal &quot;{goal.name}&quot;?</>}
+      description={
+        <>
+          This permanently deletes the &quot;{goal.name}&quot; goal. Its
+          contribution transactions stay in your ledger. This action cannot be
+          undone.
+        </>
+      }
+      confirmLabel="Delete goal"
+      loadingLabel="Deleting goal…"
+      successMessage="Goal deleted"
+      errorMessage="Unable to delete the goal. Refresh the page and try again."
+      toastId={goalIdentifier}
+      input={{ id: goal.id }}
+      action={deleteGoal}
+      queryKeys={[["goals"]]}
+    />
   );
 };
 

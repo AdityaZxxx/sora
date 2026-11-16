@@ -1,23 +1,8 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 import { deleteAccount } from "../_actions/account";
 
@@ -25,57 +10,19 @@ interface Props {
   trigger: ReactNode;
 }
 
-const DeleteAccountDialog = ({ trigger }: Props) => {
-  const router = useRouter();
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return unwrapAction(await deleteAccount());
-    },
-    onSuccess: () => {
-      toast.success("Your account was deleted", { id: "delete-account" });
-      router.replace("/sign-in");
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(
-        actionErrorMessage(error, "Unable to delete your account. Try again."),
-        {
-          id: "delete-account",
-        },
-      );
-    },
-  });
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger render={trigger as ReactElement} />
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete your account?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently deletes your sign-in and sessions. Every household
-            where you are the last member is deleted with all of its data. In
-            households with other members you are removed; transactions you
-            added are deleted with your account, while transactions added by
-            other members stay. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            onClick={() => {
-              toast.loading("Deleting account…", { id: "delete-account" });
-              deleteMutation.mutate();
-            }}
-          >
-            Delete account
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-};
+const DeleteAccountDialog = ({ trigger }: Props) => (
+  <ConfirmDialog
+    trigger={trigger}
+    title="Delete your account?"
+    description="This permanently deletes your sign-in and sessions. Every household where you are the last member is deleted with all of its data. In households with other members you are removed; transactions you added are deleted with your account, while transactions added by other members stay. This action cannot be undone."
+    confirmLabel="Delete account"
+    loadingLabel="Deleting account…"
+    successMessage="Your account was deleted"
+    errorMessage="Unable to delete your account. Try again."
+    toastId="delete-account"
+    action={deleteAccount}
+    queryKeys={[]}
+  />
+);
 
 export default DeleteAccountDialog;
