@@ -46,11 +46,12 @@ Why a container and not the Postgres already on the machine: `lib/prisma.ts` con
 
 Options:
 
-| Flag         | Effect                                                                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `--empty`    | Skip the seed. The database is empty, so onboarding can be driven for real.                                                        |
-| `--prod`     | Build and serve the production bundle instead of the dev server.                                                                   |
-| `--port <n>` | Pin the port instead of letting `control-sora` pick a free one. An explicit port that is busy fails fast; unset means free choice. |
+| Flag         | Effect                                                                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--empty`    | Skip the seed. The database is empty, so onboarding can be driven for real.                                                                   |
+| `--average`  | Seed the average household (~130 transactions, six months, two members, goals at 58/100/31%, several budgets) instead of the minimal fixture. |
+| `--prod`     | Build and serve the production bundle instead of the dev server.                                                                              |
+| `--port <n>` | Pin the port instead of letting `control-sora` pick a free one. An explicit port that is busy fails fast; unset means free choice.            |
 
 `SORA_VERIFY_MODE=prod` and `SORA_VERIFY_PORT` do the same thing through the environment.
 
@@ -117,6 +118,14 @@ The values every surface must agree on:
 | Transactions in the table | 6                                              |
 
 The rent split is not decorative: it is what makes the balance 870.25 rather than an even split's 570.25. If a journey changes the ledger, restore it with `control-sora reset` before the next one.
+
+To switch to the realistic fixture:
+
+```bash
+.agents/skills/verify-sora/scripts/control-sora reset --average
+```
+
+This wipes the database and seeds ~130 transactions across six months, a settled rent balance, a funded Emergency fund, an almost-done Vacation goal, a stalled camera fund, and a mid-month settlement — the same shape of data a real household accumulates. `fixtures.json` is rewritten with its own expected values (a few of which, like the balance, are computed from the actual rows rather than pinned). `.agents/skills/verify-sora/scripts/seed-average.mjs` is the source of truth; `control-sora reset` without `--average` returns to the minimal fixture used for assertions.
 
 `fixtures.json` in `.scratch/verify-sora/` holds the same numbers in machine-readable form, plus the ids of the household, the members, and the goal.
 
