@@ -127,8 +127,8 @@ export async function createTransaction(
   assertFullMemberRole(role);
   const categoryRow = await requireCategory(
     householdId,
-    input.type,
     input.category,
+    input.type,
   );
 
   const parsedBody = CreateTransactionSchema.safeParse({

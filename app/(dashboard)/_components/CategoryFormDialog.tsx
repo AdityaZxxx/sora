@@ -4,7 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CircleOff, Loader2 } from "lucide-react";
+import { CircleOff, Loader2, PlusSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -124,7 +124,17 @@ const CategoryFormDialog = ({
       return savedCategory;
     },
     onSuccess: async (savedCategory) => {
-      const values = defaultValues();
+      const values = isEditing
+        ? {
+            name: savedCategory.name,
+            ...withIconKindDefault(
+              savedCategory.icon,
+              savedCategory.iconKind,
+              savedCategory.iconColor,
+            ),
+            type: (savedCategory.type as TransactionType) ?? type,
+          }
+        : defaultValues();
       form.reset(values);
       setIconState({
         icon: values.icon,
@@ -181,7 +191,21 @@ const CategoryFormDialog = ({
         setOpen(nextOpen);
       }}
     >
-      {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
+      {trigger ? (
+        <DialogTrigger render={trigger as ReactElement} />
+      ) : !isEditing && open === undefined ? (
+        <DialogTrigger
+          render={
+            <Button
+              variant={"ghost"}
+              className="flex border-separate items-center justify-start rounded-none border-b px-3 py-3 text-muted-foreground"
+            >
+              <PlusSquare className="mr-2 h-4 w-4" />
+              Add new
+            </Button>
+          }
+        />
+      ) : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>

@@ -1,3 +1,4 @@
+import type { TransactionType } from "@/lib/types";
 import type {
   CreateCategorySchemaType,
   UpdateCategorySchemaType,
@@ -65,7 +66,7 @@ export async function createHouseholdCategory(
 export async function requireCategory(
   householdId: string,
   name: string,
-  type: string,
+  type: TransactionType,
 ) {
   const category = await prisma.category.findFirst({
     where: {
@@ -166,6 +167,7 @@ export async function updateHouseholdCategory(
         where: {
           householdId,
           category: originalName,
+          type,
         },
         data: {
           ...(name !== originalName && { category: name }),

@@ -209,8 +209,8 @@ export async function createRecurringItem(
 
   const category = await requireCategory(
     householdId,
-    parsed.data.type,
     parsed.data.category,
+    parsed.data.type,
   );
   return prisma.recurringItem.create({
     data: {
@@ -250,8 +250,8 @@ export async function updateRecurringItem(
   }
   const category = await requireCategory(
     householdId,
-    parsed.data.type,
     parsed.data.category,
+    parsed.data.type,
   );
   const data: Prisma.RecurringItemUpdateInput = {
     name: parsed.data.name,
