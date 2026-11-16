@@ -6,9 +6,8 @@ import { READ_ONLY_SCOPE } from "@/lib/constants";
 import { contextFromToken } from "@/lib/mcp/context";
 import { createMcpServer } from "@/lib/mcp/server";
 
-// Browser MCP clients call this endpoint from a page, so it needs CORS
-// headers. The wildcard origin is safe because the endpoint authenticates on
-// the Authorization header and sets no cookie, so no ambient session can ride.
+// Wildcard origin is safe because auth is header-based and no cookie is set,
+// so no ambient session can ride.
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -21,9 +20,8 @@ export function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
-// The MCP session layer would need state between invocations, which a
-// serverless runtime cannot hold, so the transport runs with session
-// management disabled.
+// Session management is off because a serverless invocation cannot hold state
+// between calls.
 export async function POST(request: Request) {
   const auth = await requireToken(READ_ONLY_SCOPE);
 
@@ -34,9 +32,7 @@ export async function POST(request: Request) {
   const server = createMcpServer(contextFromToken(auth));
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
-    // An SSE stream leaves a keep-alive timer running after the response,
-    // which holds the serverless invocation open, so the transport answers
-    // with JSON.
+    // JSON avoids the SSE keep-alive that would hold the invocation open.
     enableJsonResponse: true,
   });
 
