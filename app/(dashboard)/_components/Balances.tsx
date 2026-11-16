@@ -4,9 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Handshake, Users } from "lucide-react";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
-import { Button } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import AddIconButton from "@/components/ui/add-icon-button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
@@ -39,29 +44,32 @@ const Balances = ({ currency, canEdit = true }: Props) => {
   const balances = balancesQuery.data ?? [];
 
   return (
-    <CardShell className="h-full">
-      <CardShellHeader
-        title="Balances"
-        description="Net amounts from shared expenses and settlements. No money moves inside the app."
-        action={
-          canEdit ? (
+    <Card className="h-full transition-all hover:shadow-md">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">Balances</CardTitle>
+            <CardDescription>
+              Net amounts from shared expenses and settlements. No money moves
+              inside the app.
+            </CardDescription>
+          </div>
+          {canEdit ? (
             <RecordSettlementDialog
               currency={currency}
               members={balances.map(({ userId, name }) => ({ userId, name }))}
               trigger={
-                <Button
+                <AddIconButton
+                  label="Record settlement"
                   variant="outline"
-                  className="gap-2"
+                  icon={<Handshake aria-hidden="true" className="h-4 w-4" />}
                   disabled={balances.length === 0}
-                >
-                  <Handshake className="h-4 w-4" />
-                  Record settlement
-                </Button>
+                />
               }
             />
-          ) : undefined
-        }
-      />
+          ) : undefined}
+        </div>
+      </CardHeader>
       <CardContent>
         <SkeletonWrapper isLoading={balancesQuery.isLoading}>
           {balances.length === 0 ? (
@@ -74,7 +82,7 @@ const Balances = ({ currency, canEdit = true }: Props) => {
               {balances.map((balance) => (
                 <div
                   key={balance.userId}
-                  className="flex items-center justify-between gap-2 rounded-lg border p-3"
+                  className="flex items-center justify-between gap-2 rounded-lg border p-4"
                 >
                   <span className="text-sm font-medium">{balance.name}</span>
                   {balance.balance === 0 ? (
@@ -97,7 +105,7 @@ const Balances = ({ currency, canEdit = true }: Props) => {
           )}
         </SkeletonWrapper>
       </CardContent>
-    </CardShell>
+    </Card>
   );
 };
 

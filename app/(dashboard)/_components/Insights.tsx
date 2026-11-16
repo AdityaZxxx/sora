@@ -10,8 +10,13 @@ import CountUp from "react-countup";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { POLL_INTERVAL } from "@/lib/constants";
@@ -77,24 +82,24 @@ const Insights = ({ currency }: Props) => {
 
   if (!isLoading && !hasAnyData) {
     return (
-      <div className="container mt-6">
-        <CardShell>
-          <CardShellHeader
-            title="Savings rate"
-            action={
+      <div className="section">
+        <Card className="transition-all hover:shadow-md">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-lg">Savings rate</CardTitle>
               <CreateTransactionDialog
                 type="expense"
                 trigger={<AddIconButton label="Add a transaction" />}
               />
-            }
-          />
+            </div>
+          </CardHeader>
           <CardContent>
             <EmptyState
               icon={HandCoins}
               hint="Add your first transaction to see your savings rate."
             />
           </CardContent>
-        </CardShell>
+        </Card>
       </div>
     );
   }
@@ -112,16 +117,18 @@ const Insights = ({ currency }: Props) => {
     currentRate === undefined || currentRate === 0
       ? "text-muted-foreground"
       : currentRate > 0
-        ? "text-emerald-600 dark:text-emerald-400"
-        : "text-rose-600 dark:text-rose-400";
+        ? "text-income-foreground"
+        : "text-expense-foreground";
 
   return (
-    <div className="container mt-6 grid gap-4 lg:grid-cols-3">
-      <CardShell className="flex flex-col justify-center">
-        <CardShellHeader
-          title="Savings rate"
-          description={current ? monthLong(current.year, current.month) : ""}
-        />
+    <div className="section grid gap-4 lg:grid-cols-3">
+      <Card className="flex flex-col justify-center transition-all hover:shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg">Savings rate</CardTitle>
+          <CardDescription>
+            {current ? monthLong(current.year, current.month) : ""}
+          </CardDescription>
+        </CardHeader>
         <CardContent className="gap-1">
           <div
             aria-label={
@@ -162,8 +169,8 @@ const Insights = ({ currency }: Props) => {
                 className={cn(
                   "tabular-nums",
                   deltaPt >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400",
+                    ? "text-income-foreground"
+                    : "text-expense-foreground",
                 )}
               >
                 {deltaPt >= 0 ? "+" : "-"}
@@ -173,13 +180,13 @@ const Insights = ({ currency }: Props) => {
             vs {previousMonthLabel(previous)}
           </p>
         </CardContent>
-      </CardShell>
+      </Card>
 
-      <CardShell className="lg:col-span-2">
-        <CardShellHeader
-          title="Income vs expense"
-          description="Last six months"
-        />
+      <Card className="transition-all hover:shadow-md lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-lg">Income vs expense</CardTitle>
+          <CardDescription>Last six months</CardDescription>
+        </CardHeader>
         <CardContent>
           <SkeletonWrapper isLoading={isLoading}>
             <div className="h-44 w-full">
@@ -187,7 +194,7 @@ const Insights = ({ currency }: Props) => {
             </div>
           </SkeletonWrapper>
         </CardContent>
-      </CardShell>
+      </Card>
     </div>
   );
 };

@@ -16,8 +16,8 @@ const Overview = ({ currency }: { currency: string | null }) => {
     to: new Date(),
   }));
   return (
-    <>
-      <div className="container flex flex-wrap items-end justify-between gap-2 py-6">
+    <section className="section flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-2 py-6">
         <h2 className="text-xl font-bold">Overview</h2>
         <div className="flex items-center gap-3">
           <DateRangePicker
@@ -38,7 +38,7 @@ const Overview = ({ currency }: { currency: string | null }) => {
         </div>
       </div>
 
-      <div className="container flex w-full flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <StatsCards
           currency={currency}
           from={dateRange.from}
@@ -51,7 +51,7 @@ const Overview = ({ currency }: { currency: string | null }) => {
           to={dateRange.to}
         />
       </div>
-    </>
+    </section>
   );
 };
 

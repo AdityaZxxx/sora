@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import EmptyStateUI from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -98,7 +97,6 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
             )}
           </div>
         </CardHeader>
-        <Separator />
         <CardContent className="p-6">
           <SkeletonWrapper isLoading={isLoading}>
             {isError ? (
@@ -160,7 +158,7 @@ function BudgetCard({
 
   return (
     <>
-      <div className="relative flex flex-col gap-2 rounded-lg border p-4 transition-all hover:shadow-md">
+      <div className="relative flex flex-col gap-2 rounded-lg border p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-medium">{budget.category}</span>

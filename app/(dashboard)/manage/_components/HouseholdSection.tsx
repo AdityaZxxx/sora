@@ -85,7 +85,7 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
               {householdsQuery.isLoading ? (
                 <Skeleton className="h-5 w-32" />
               ) : (
-                <span className="truncate text-sm font-medium">
+                <span className="text-sm font-medium break-words">
                   {displayName}
                 </span>
               )}

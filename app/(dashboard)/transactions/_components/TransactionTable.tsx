@@ -411,10 +411,6 @@ const TransactionTable = ({ from, to }: Props) => {
               )}
             </TableBody>
           </Table>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-lg bg-gradient-to-l from-background via-background/60 to-transparent xl:hidden"
-          />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -433,7 +429,7 @@ const TransactionTable = ({ from, to }: Props) => {
               <SelectTrigger aria-label="Rows per page" className="h-10 sm:h-9">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-(--anchor-width) min-w-0">
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <SelectItem key={size} value={String(size)}>
                     {size} / page

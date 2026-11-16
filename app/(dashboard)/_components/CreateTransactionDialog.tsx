@@ -580,7 +580,7 @@ const CreateTransactionDialog = ({
           )}
 
           {showSplitOptions && members.length > 0 && (
-            <div className="space-y-3 rounded-lg border p-3">
+            <div className="space-y-3 rounded-lg border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">Split</p>
                 <Select

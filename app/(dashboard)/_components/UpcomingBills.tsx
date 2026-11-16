@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  MoreHorizontal,
   Pause,
   Pencil,
   Play,
@@ -29,9 +30,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardFooter } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import EmptyState from "@/components/ui/empty-state";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 
@@ -89,6 +110,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<RecurringItemDraft | null>(
     null,
   );
+  const [editItem, setEditItem] = useState<RecurringItemDraft | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["recurringItems"],
@@ -148,19 +170,23 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
 
   return (
     <>
-      <CardShell className="h-full">
-        <CardShellHeader
-          title="Upcoming bills"
-          description="Recurring income and expenses, due and past due"
-          action={
-            canEdit ? (
+      <Card className="h-full transition-all hover:shadow-md">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-lg">Upcoming bills</CardTitle>
+              <CardDescription>
+                Recurring income and expenses, due and past due
+              </CardDescription>
+            </div>
+            {canEdit ? (
               <RecurringItemDialog
                 currency={currency}
                 trigger={<AddIconButton label="Add bill" />}
               />
-            ) : undefined
-          }
-        />
+            ) : undefined}
+          </div>
+        </CardHeader>
         <CardContent>
           <SkeletonWrapper isLoading={isLoading}>
             {items.length === 0 ? (
@@ -186,17 +212,17 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                 {visible.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0"
+                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0 sm:gap-y-2 sm:py-3"
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <span
                         aria-hidden="true"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-base"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm sm:h-9 sm:w-9 sm:text-base"
                       >
                         {item.categoryIcon}
                       </span>
                       <span className="min-w-0">
-                        <span className="block max-w-44 truncate text-sm font-medium sm:max-w-none">
+                        <span className="block max-w-32 truncate text-sm font-medium min-[380px]:max-w-44 sm:max-w-none">
                           {item.name}
                         </span>
                         <span className="block text-xs text-muted-foreground">
@@ -208,7 +234,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                         </span>
                       </span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                    <span className="flex w-full items-center justify-between gap-y-1 sm:ml-auto sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-x-2">
                       <span
                         className={
                           item.type === "income"
@@ -219,7 +245,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                         {formatter.format(item.amount)}
                       </span>
                       {canEdit && (
-                        <>
+                        <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                           <CreateTransactionDialog
                             key={item.id}
                             type={item.type as TransactionType}
@@ -237,49 +263,18 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                               </Button>
                             }
                           />
-                          <RecurringItemDialog
-                            currency={currency}
+                          <UpcomingBillActions
                             item={item}
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon-lg"
-                                aria-label={`Edit ${item.name}`}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            }
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon-lg"
-                            aria-label={
-                              item.paused
-                                ? `Resume ${item.name}`
-                                : `Pause ${item.name}`
-                            }
-                            onClick={() =>
+                            onEdit={() => setEditItem(item)}
+                            onPause={() =>
                               pauseMutation.mutate({
                                 id: item.id,
                                 paused: !item.paused,
                               })
                             }
-                          >
-                            {item.paused ? (
-                              <Play className="h-4 w-4" />
-                            ) : (
-                              <Pause className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-lg"
-                            aria-label={`Delete ${item.name}`}
-                            onClick={() => setDeleteTarget(item)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
+                            onDelete={() => setDeleteTarget(item)}
+                          />
+                        </span>
                       )}
                     </span>
                   </div>
@@ -310,8 +305,16 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
             </Button>
           </CardFooter>
         )}
-      </CardShell>
+      </Card>
 
+      <RecurringItemDialog
+        item={editItem ?? undefined}
+        currency={currency}
+        open={editItem !== null}
+        onOpenChange={(next) => {
+          if (!next) setEditItem(null);
+        }}
+      />
       <AlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
@@ -347,6 +350,73 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+const UpcomingBillActions = ({
+  item,
+  onEdit,
+  onPause,
+  onDelete,
+}: {
+  item: RecurringItemDraft;
+  onEdit: () => void;
+  onPause: () => void;
+  onDelete: () => void;
+}) => {
+  return (
+    <Tooltip>
+      <DropdownMenu>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted"
+                  aria-label={`Open actions for ${item.name}`}
+                />
+              }
+            />
+          }
+        >
+          <span className="sr-only">Open actions</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </TooltipTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={onEdit}
+            className="flex items-center gap-2"
+          >
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onPause}
+            className="flex items-center gap-2"
+          >
+            {item.paused ? (
+              <Play className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Pause className="h-4 w-4 text-muted-foreground" />
+            )}
+            {item.paused ? "Resume" : "Pause"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onDelete}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <TooltipContent>Actions</TooltipContent>
+    </Tooltip>
   );
 };
 

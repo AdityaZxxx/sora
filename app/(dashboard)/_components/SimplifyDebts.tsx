@@ -4,8 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
@@ -38,12 +43,15 @@ const SimplifyDebts = ({ currency }: Props) => {
   const transfers = debtsQuery.data ?? [];
 
   return (
-    <div className="container mt-6">
-      <CardShell>
-        <CardShellHeader
-          title="Simplify debts"
-          description="The fewest transfers that settle every balance. No money moves inside the app. Record what you paid as a Settlement."
-        />
+    <div className="section">
+      <Card className="transition-all hover:shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg">Simplify debts</CardTitle>
+          <CardDescription>
+            The fewest transfers that settle every balance. No money moves
+            inside the app. Record what you paid as a Settlement.
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           <SkeletonWrapper isLoading={debtsQuery.isLoading}>
             {transfers.length === 0 ? (
@@ -58,7 +66,7 @@ const SimplifyDebts = ({ currency }: Props) => {
                 {transfers.map((transfer) => (
                   <div
                     key={`${transfer.fromUserId}-${transfer.toUserId}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border p-3"
+                    className="flex items-center justify-between gap-2 rounded-lg border p-4"
                   >
                     <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
                       <span className="truncate">{transfer.fromName}</span>
@@ -74,7 +82,7 @@ const SimplifyDebts = ({ currency }: Props) => {
             )}
           </SkeletonWrapper>
         </CardContent>
-      </CardShell>
+      </Card>
     </div>
   );
 };

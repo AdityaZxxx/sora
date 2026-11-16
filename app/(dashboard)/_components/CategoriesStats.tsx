@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -93,12 +93,12 @@ export default CategoriesStats;
 
 function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
   return (
-    <CardShell className="flex h-80 w-full flex-col">
-      <CardShellHeader
-        title={
-          type === "income" ? "Incomes by category" : "Expenses by category"
-        }
-      />
+    <Card className="flex h-88 w-full flex-col transition-all hover:shadow-md">
+      <CardHeader>
+        <CardTitle className="text-lg">
+          {type === "income" ? "Incomes by category" : "Expenses by category"}
+        </CardTitle>
+      </CardHeader>
       <div className="flex-1 overflow-hidden">
         {data.length === 0 && (
           <EmptyState
@@ -136,6 +136,6 @@ function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
           </ScrollArea>
         )}
       </div>
-    </CardShell>
+    </Card>
   );
 }

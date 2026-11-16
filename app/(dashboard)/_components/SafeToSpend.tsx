@@ -7,8 +7,13 @@ import CountUp from "react-countup";
 
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
-import { CardContent } from "@/components/ui/card";
-import { CardShell, CardShellHeader } from "@/components/ui/card-shell";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -42,16 +47,20 @@ const SafeToSpend = ({ currency }: Props) => {
   );
 
   return (
-    <CardShell className="h-full">
-      <CardShellHeader
-        title="Safe to spend"
-        description="Left across your budgets this month"
-        action={
-          budgets.length === 0 ? (
+    <Card className="h-full transition-all hover:shadow-md">
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">Safe to spend</CardTitle>
+            <CardDescription>
+              Left across your budgets this month
+            </CardDescription>
+          </div>
+          {budgets.length === 0 ? (
             <BudgetDialog trigger={<AddIconButton label="Create a budget" />} />
-          ) : undefined
-        }
-      />
+          ) : undefined}
+        </div>
+      </CardHeader>
       <SkeletonWrapper isLoading={isLoading}>
         {budgets.length === 0 ? (
           <CardContent>
@@ -64,10 +73,10 @@ const SafeToSpend = ({ currency }: Props) => {
           <CardContent>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="rounded-full bg-emerald-500/10 p-3">
+                <div className="rounded-full bg-income-soft p-3">
                   <Wallet
                     aria-hidden="true"
-                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                    className="h-6 w-6 text-income-foreground"
                   />
                 </div>
                 <div>
@@ -91,7 +100,7 @@ const SafeToSpend = ({ currency }: Props) => {
           </CardContent>
         )}
       </SkeletonWrapper>
-    </CardShell>
+    </Card>
   );
 };
 

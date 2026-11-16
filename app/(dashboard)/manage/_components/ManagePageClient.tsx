@@ -36,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import EmptyStateUI from "@/components/ui/empty-state";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -60,9 +59,9 @@ const ManagePageClient = () => {
   const { canEdit } = useCallerRole();
 
   return (
-    <div className="min-h-screen bg-background px-6">
-      <header className="border-b bg-card py-8">
-        <div className="container">
+    <div className="min-h-screen bg-background">
+      <header className="container pt-6">
+        <div className="rounded-xl border bg-card px-6 py-8">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">Manage</h1>
             <p className="text-muted-foreground">
@@ -216,8 +215,6 @@ function CategoryList({
           </div>
         </CardHeader>
 
-        <Separator />
-
         <CardContent className="p-6">
           {isError ? (
             <ErrorState type={type} onRetry={refetch} />
@@ -314,7 +311,7 @@ function CategoryCard({
 
   return (
     <>
-      <div className="relative flex items-center justify-between rounded-lg border p-4 transition-all hover:shadow-md">
+      <div className="relative flex items-center justify-between rounded-lg border p-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="text-xl" aria-hidden="true">
             {category.icon}

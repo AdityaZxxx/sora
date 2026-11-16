@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { Plus } from "lucide-react";
 
@@ -14,8 +14,9 @@ const AddIconButton = ({
   label,
   className,
   variant = "ghost",
+  icon,
   ...rest
-}: ComponentProps<typeof Button> & { label: string }) => (
+}: ComponentProps<typeof Button> & { label: string; icon?: ReactNode }) => (
   <Tooltip>
     <TooltipTrigger
       render={
@@ -28,7 +29,7 @@ const AddIconButton = ({
         />
       }
     >
-      <Plus aria-hidden="true" className="h-4 w-4" />
+      {icon ?? <Plus aria-hidden="true" className="h-4 w-4" />}
     </TooltipTrigger>
     <TooltipContent>{label}</TooltipContent>
   </Tooltip>

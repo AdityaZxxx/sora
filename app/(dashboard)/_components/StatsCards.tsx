@@ -85,8 +85,8 @@ const StatsCards = ({ from, to, currency }: Props) => {
             trend={balance >= 0 ? "up" : "down"}
             isLoading={statsQuery.isLoading}
             icon={
-              <div className="flex items-center justify-center rounded-lg bg-violet-500/10 p-3">
-                <Wallet className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
+                <Wallet className="h-6 w-6 text-primary" />
               </div>
             }
           />

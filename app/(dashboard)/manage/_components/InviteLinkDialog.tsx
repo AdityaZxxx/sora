@@ -153,7 +153,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
                 return (
                   <div
                     key={link.id}
-                    className="flex flex-col items-center gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
+                    className="flex flex-col items-center gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
                   >
                     {showQr && (
                       <div className="shrink-0 rounded-md bg-white p-2 outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">

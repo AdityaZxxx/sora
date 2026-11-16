@@ -15,9 +15,9 @@ const TransactionsClient = () => {
     to: new Date(),
   }));
   return (
-    <div className="min-h-screen bg-background px-6">
-      <header className="border-b bg-card py-8">
-        <div className="container">
+    <div className="min-h-screen bg-background">
+      <header className="container pt-6">
+        <div className="rounded-xl border bg-card px-6 py-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
               <h1 className="text-2xl font-bold tracking-tight">

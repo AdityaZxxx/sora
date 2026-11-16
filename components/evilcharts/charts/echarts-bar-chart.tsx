@@ -723,7 +723,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     name: isLoading ? undefined : categorySlot.label,
     nameLocation: "middle" as const,
     nameGap: categoryNameGap,
-    nameTextStyle: { color: axisLabelColor, fontSize: 10 },
+    nameTextStyle: { color: axisLabelColor, fontSize: 14 },
     axisLine: { show: false },
     axisTick: {
       show: !isLoading && categorySlot.present && !categorySlot.hideDots,
@@ -738,7 +738,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     axisLabel: {
       show: !isLoading && categorySlot.present,
       color: axisLabelColor,
-      fontSize: 10,
+      fontSize: 14,
       margin: 8,
       formatter: catFormatter
         ? (value: string, index: number) => catFormatter(value, index)
@@ -756,7 +756,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     name: isLoading ? undefined : valueSlot.label,
     nameLocation: "middle" as const,
     nameGap: valueNameGap,
-    nameTextStyle: { color: axisLabelColor, fontSize: 10 },
+    nameTextStyle: { color: axisLabelColor, fontSize: 14 },
     axisLine: { show: false },
     axisTick: {
       show: valueSlot.present && !isLoading && !valueSlot.hideDots,
@@ -774,7 +774,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     axisLabel: {
       show: valueSlot.present && !isLoading,
       color: axisLabelColor,
-      fontSize: 10,
+      fontSize: 14,
       margin: 8,
       formatter: isPercent
         ? (value: number) => `${Math.round(value * 100)}%`

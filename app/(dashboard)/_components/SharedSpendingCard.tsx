@@ -39,13 +39,13 @@ const SharedSpendingCard = ({ currency }: Props) => {
   const TrendIcon = isUp ? ArrowUpRight : ArrowDownRight;
 
   return (
-    <div className="container mt-6">
+    <div className="section">
       <Card className="w-full p-6 transition-all hover:shadow-md">
         <SkeletonWrapper isLoading={spendingQuery.isLoading}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center rounded-lg bg-violet-500/10 p-3">
-                <Users className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
+                <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
