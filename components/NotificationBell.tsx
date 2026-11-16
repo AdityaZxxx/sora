@@ -25,6 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +35,7 @@ const NotificationBell = () => {
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
-      const res = await listNotifications();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listNotifications());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
@@ -53,9 +52,7 @@ const NotificationBell = () => {
 
   const { mutate: markRead, isPending } = useMutation({
     mutationFn: async () => {
-      const res = await markAllRead();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await markAllRead());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -64,9 +61,10 @@ const NotificationBell = () => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to mark the notifications as read. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to mark the notifications as read. Refresh the page and try again.",
+        ),
         {
           id: "mark-all-read",
         },

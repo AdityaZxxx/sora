@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { Currencies } from "@/lib/currencies";
 import { hasTwoDecimals } from "@/lib/helpers";
@@ -98,10 +99,7 @@ const BudgetDialog = ({
             amount: values.amount,
             mode: values.mode,
           });
-      if (!res.ok) {
-        throw new Error(res.message);
-      }
-      return res.data;
+      return unwrapAction(res);
     },
     onSuccess: () => {
       toast.success(isEditing ? "Budget updated" : "Budget added", {
@@ -120,9 +118,10 @@ const BudgetDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : `Unable to ${isEditing ? "update" : "create"} budget. Try again.`,
+        actionErrorMessage(
+          error,
+          `Unable to ${isEditing ? "update" : "create"} budget. Try again.`,
+        ),
         {
           id: "budget-dialog",
         },

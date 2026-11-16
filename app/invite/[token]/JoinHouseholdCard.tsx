@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { actionErrorMessage } from "@/lib/action-client";
 
 import { joinHouseholdByToken } from "../_actions/invite";
 
@@ -32,9 +33,7 @@ const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to join the household. Try again.",
+        actionErrorMessage(error, "Unable to join the household. Try again."),
         {
           id: "join-household",
         },

@@ -33,6 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
@@ -73,14 +74,13 @@ const EditCategoryDialog = ({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof UpdateCategory>[0]) => {
-      const res = await UpdateCategory(input);
-      if (!res.ok) throw new Error(res.message);
-      if (!res.data) {
+      const updated = unwrapAction(await UpdateCategory(input));
+      if (!updated) {
         throw new Error(
           "Unable to update the category. Refresh the page and try again.",
         );
       }
-      return res.data;
+      return updated;
     },
     onSuccess: async (updated) => {
       const values = getSavedValues(updated);
@@ -106,9 +106,10 @@ const EditCategoryDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to update the category. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to update the category. Refresh the page and try again.",
+        ),
         {
           id: "update-category",
         },

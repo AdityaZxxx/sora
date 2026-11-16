@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { Currencies } from "@/lib/currencies";
 import { hasTwoDecimals } from "@/lib/helpers";
 
@@ -55,9 +56,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof RecordSettlement>[0]) => {
-      const res = await RecordSettlement(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await RecordSettlement(input));
     },
     onSuccess: () => {
       toast.success("Settlement recorded", {
@@ -81,9 +80,10 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to record the settlement. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to record the settlement. Refresh the page and try again.",
+        ),
         {
           id: "record-settlement",
         },

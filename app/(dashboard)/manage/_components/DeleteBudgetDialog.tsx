@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 
 import { deleteBudget } from "../../_actions/budgets";
@@ -42,11 +43,7 @@ const DeleteBudgetDialog = ({
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: async (values: { id: string }) => {
-      const res = await deleteBudget(values);
-      if (!res.ok) {
-        throw new Error(res.message);
-      }
-      return res.data;
+      return unwrapAction(await deleteBudget(values));
     },
     onSuccess: async () => {
       toast.success("Budget deleted", {
@@ -58,9 +55,7 @@ const DeleteBudgetDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to delete budget. Try again.",
+        actionErrorMessage(error, "Unable to delete budget. Try again."),
         {
           id: budgetIdentifier,
         },

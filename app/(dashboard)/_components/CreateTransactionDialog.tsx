@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
@@ -155,9 +156,7 @@ const CreateTransactionDialog = ({
   const goalsQuery = useQuery({
     queryKey: ["goals"],
     queryFn: async () => {
-      const res = await listGoals();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listGoals());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
@@ -169,9 +168,7 @@ const CreateTransactionDialog = ({
   const memberCountQuery = useQuery({
     queryKey: ["memberCount"],
     queryFn: async () => {
-      const res = await getHouseholdMemberCount();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await getHouseholdMemberCount());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
@@ -184,9 +181,7 @@ const CreateTransactionDialog = ({
   const membersQuery = useQuery({
     queryKey: ["householdMembers"],
     queryFn: async () => {
-      const res = await listMembers();
-      if (!res.ok) throw new Error(res.message);
-      return res.data ?? [];
+      return unwrapAction(await listMembers()) ?? [];
     },
     enabled: knownMemberCount !== undefined && knownMemberCount > 1,
     staleTime: POLL_INTERVAL,
@@ -199,9 +194,7 @@ const CreateTransactionDialog = ({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof CreateTransaction>[0]) => {
-      const res = await CreateTransaction(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await CreateTransaction(input));
     },
     onSuccess: () => {
       toast.success("Transaction added", {
@@ -224,9 +217,10 @@ const CreateTransactionDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to add the transaction. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to add the transaction. Refresh the page and try again.",
+        ),
         {
           id: "create-transaction",
         },

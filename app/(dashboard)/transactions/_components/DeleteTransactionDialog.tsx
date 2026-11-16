@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 
 import { DeleteTransaction } from "../_actions/DeleteTransaction";
 
@@ -26,11 +27,7 @@ const DeleteTransactionDialog = ({ open, setOpen, transactionId }: Props) => {
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: async (values: { id: string }) => {
-      const res = await DeleteTransaction(values);
-      if (!res.ok) {
-        throw new Error(res.message);
-      }
-      return res.data;
+      return unwrapAction(await DeleteTransaction(values));
     },
     onSuccess: async () => {
       toast.success("Transaction deleted", {
@@ -42,9 +39,10 @@ const DeleteTransactionDialog = ({ open, setOpen, transactionId }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to delete the transaction. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to delete the transaction. Refresh the page and try again.",
+        ),
         {
           id: transactionId,
         },

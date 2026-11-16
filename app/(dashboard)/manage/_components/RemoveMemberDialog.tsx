@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 
 import { type listMembers, removeMember } from "../_actions/membership";
 
@@ -34,9 +35,7 @@ const RemoveMemberDialog = ({ trigger, member }: Props) => {
   const queryClient = useQueryClient();
   const removeMutation = useMutation({
     mutationFn: async (input: Parameters<typeof removeMember>[0]) => {
-      const res = await removeMember(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await removeMember(input));
     },
     onSuccess: async () => {
       toast.success(`${member.user.name} removed from the household`, {
@@ -48,9 +47,7 @@ const RemoveMemberDialog = ({ trigger, member }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to remove this member. Try again.",
+        actionErrorMessage(error, "Unable to remove this member. Try again."),
         {
           id: toastId,
         },

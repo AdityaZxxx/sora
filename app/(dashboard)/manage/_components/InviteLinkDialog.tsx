@@ -26,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 
 import {
@@ -56,9 +57,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
   const { data: inviteLinks = [], isLoading } = useQuery<InviteLink[]>({
     queryKey: ["inviteLinks"],
     queryFn: async () => {
-      const res = await listInviteLinks();
-      if (!res.ok) throw new Error(res.message);
-      return res.data ?? [];
+      return unwrapAction(await listInviteLinks()) ?? [];
     },
     enabled: open,
     staleTime: POLL_INTERVAL,
@@ -66,9 +65,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await createInviteLink();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await createInviteLink());
     },
     onSuccess: async () => {
       toast.success("Invite link created", { id: "invite-link" });
@@ -76,9 +73,10 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to create the invite link. Try again.",
+        actionErrorMessage(
+          error,
+          "Unable to create the invite link. Try again.",
+        ),
         {
           id: "invite-link",
         },
@@ -88,9 +86,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
 
   const revokeMutation = useMutation({
     mutationFn: async (input: Parameters<typeof revokeInviteLink>[0]) => {
-      const res = await revokeInviteLink(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await revokeInviteLink(input));
     },
     onSuccess: async () => {
       toast.success("Invite link revoked", { id: "invite-link" });
@@ -98,9 +94,10 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to revoke the invite link. Try again.",
+        actionErrorMessage(
+          error,
+          "Unable to revoke the invite link. Try again.",
+        ),
         {
           id: "invite-link",
         },

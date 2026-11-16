@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 
 import { DeleteCategory } from "../_actions/categories";
 
@@ -42,9 +43,7 @@ const DeleteCategoryDialog = ({
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: async (input: Parameters<typeof DeleteCategory>[0]) => {
-      const res = await DeleteCategory(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await DeleteCategory(input));
     },
     onSuccess: async () => {
       toast.success("Category deleted", {
@@ -56,9 +55,10 @@ const DeleteCategoryDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to delete the category. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to delete the category. Refresh the page and try again.",
+        ),
         {
           id: categoryIdentifier,
         },

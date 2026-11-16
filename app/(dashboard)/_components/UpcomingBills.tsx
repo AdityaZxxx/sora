@@ -54,6 +54,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 
@@ -116,9 +117,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["recurringItems"],
     queryFn: async () => {
-      const res = await listRecurringItemsAction();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listRecurringItemsAction());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
@@ -127,18 +126,17 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
 
   const pauseMutation = useMutation({
     mutationFn: async (input: { id: string; paused: boolean }) => {
-      const res = await SetRecurringItemPaused(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await SetRecurringItemPaused(input));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recurringItems"] });
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to update the bill. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to update the bill. Refresh the page and try again.",
+        ),
         { id: "pause-recurring-item" },
       );
     },
@@ -146,9 +144,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (input: { id: string }) => {
-      const res = await DeleteRecurringItem(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await DeleteRecurringItem(input));
     },
     onSuccess: () => {
       toast.success("Bill deleted", { id: "delete-recurring-item" });
@@ -157,9 +153,10 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to delete the bill. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to delete the bill. Refresh the page and try again.",
+        ),
         { id: "delete-recurring-item" },
       );
     },

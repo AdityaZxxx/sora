@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { type GoalWithProgress } from "@/lib/goals";
 
 import { deleteGoal } from "../_actions/goals";
@@ -42,9 +43,7 @@ const DeleteGoalDialog = ({
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
     mutationFn: async (input: { id: string }) => {
-      const res = await deleteGoal(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await deleteGoal(input));
     },
     onSuccess: async () => {
       toast.success("Goal deleted", {
@@ -57,9 +56,10 @@ const DeleteGoalDialog = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to delete the goal. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to delete the goal. Refresh the page and try again.",
+        ),
         {
           id: goalIdentifier,
         },

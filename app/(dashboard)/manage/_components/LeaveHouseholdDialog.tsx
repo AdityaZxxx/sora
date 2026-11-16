@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 
 import { leaveHousehold } from "../_actions/membership";
 
@@ -31,9 +32,7 @@ const LeaveHouseholdDialog = ({ trigger, memberCount }: Props) => {
 
   const leaveMutation = useMutation({
     mutationFn: async () => {
-      const res = await leaveHousehold();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await leaveHousehold());
     },
     onSuccess: () => {
       toast.success(isOnlyMember ? "Space deleted" : "You left the household", {
@@ -43,11 +42,12 @@ const LeaveHouseholdDialog = ({ trigger, memberCount }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : isOnlyMember
+        actionErrorMessage(
+          error,
+          isOnlyMember
             ? "Unable to delete the space. Try again."
             : "Unable to leave the household. Try again.",
+        ),
         {
           id: "leave-household",
         },
