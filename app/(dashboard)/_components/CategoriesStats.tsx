@@ -93,7 +93,7 @@ export default CategoriesStats;
 
 function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
   return (
-    <Card className="flex h-80 w-full flex-col transition-all hover:shadow-md">
+    <Card className="flex h-88 w-full flex-col transition-all hover:shadow-md">
       <CardHeader>
         <CardTitle className="text-lg">
           {type === "income" ? "Incomes by category" : "Expenses by category"}
