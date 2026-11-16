@@ -10,7 +10,7 @@ import { DeleteIdSchema } from "@/schemas/delete";
 import { settlementFields } from "@/schemas/settlement";
 import { transactionFields } from "@/schemas/transaction";
 
-import { toolError, toolErrorMessage, toolResult } from "./tools";
+import { runWriteTool } from "./tools";
 
 export function registerTransactionWriteTools(
   server: McpServer,
@@ -66,8 +66,8 @@ export function registerTransactionWriteTools(
       goalId,
       shares,
       recurringItemId,
-    }) => {
-      try {
+    }) =>
+      runWriteTool(async () => {
         const transaction = await createTransaction(
           context.householdId,
           context.userId,
@@ -86,7 +86,7 @@ export function registerTransactionWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: transaction.id,
           currency: context.currency,
           date: transaction.date.toISOString(),
@@ -96,11 +96,8 @@ export function registerTransactionWriteTools(
           category: transaction.category,
           shared: transaction.shared,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -115,15 +112,12 @@ export function registerTransactionWriteTools(
         ),
       },
     },
-    async ({ id }) => {
-      try {
+    async ({ id }) =>
+      runWriteTool(async () => {
         await deleteTransaction(context.householdId, id, context.role);
 
-        return toolResult({ deleted: id, memberId: context.userId });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        return { deleted: id, memberId: context.userId };
+      }),
   );
 
   server.registerTool(
@@ -141,8 +135,8 @@ export function registerTransactionWriteTools(
         ),
       },
     },
-    async ({ memberId, amount }) => {
-      try {
+    async ({ memberId, amount }) =>
+      runWriteTool(async () => {
         const settlement = await recordSettlement(
           context.householdId,
           context.userId,
@@ -154,17 +148,14 @@ export function registerTransactionWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: settlement.id,
           currency: context.currency,
           date: settlement.date.toISOString(),
           amount: settlement.amount.toNumber(),
           description: settlement.description,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 }

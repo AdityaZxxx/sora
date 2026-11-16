@@ -1,7 +1,5 @@
-import { z } from "zod";
+import { IdSchema, type IdSchemaType } from "@/schemas/id";
 
-export const RevokeInviteLinkSchema = z.object({
-  id: z.string().min(1),
-});
+export const RevokeInviteLinkSchema = IdSchema;
 
-export type RevokeInviteLinkSchemaType = z.infer<typeof RevokeInviteLinkSchema>;
+export type RevokeInviteLinkSchemaType = IdSchemaType;

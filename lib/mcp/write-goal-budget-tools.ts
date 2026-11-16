@@ -15,7 +15,7 @@ import { budgetFields } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { goalFields } from "@/schemas/goals";
 
-import { toolError, toolErrorMessage, toolResult } from "./tools";
+import { runWriteTool } from "./tools";
 
 const DEADLINE_PATTERN = DATE_PATTERN;
 
@@ -37,15 +37,12 @@ export function registerGoalBudgetWriteTools(
         ),
       },
     },
-    async ({ id }) => {
-      try {
+    async ({ id }) =>
+      runWriteTool(async () => {
         await deleteHouseholdGoal(context.householdId, id, context.role);
 
-        return toolResult({ deleted: id, memberId: context.userId });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        return { deleted: id, memberId: context.userId };
+      }),
   );
 
   server.registerTool(
@@ -60,15 +57,12 @@ export function registerGoalBudgetWriteTools(
         ),
       },
     },
-    async ({ id }) => {
-      try {
+    async ({ id }) =>
+      runWriteTool(async () => {
         await deleteHouseholdBudget(context.householdId, id, context.role);
 
-        return toolResult({ deleted: id, memberId: context.userId });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        return { deleted: id, memberId: context.userId };
+      }),
   );
 
   server.registerTool(
@@ -89,8 +83,8 @@ export function registerGoalBudgetWriteTools(
           .describe("Deadline as YYYY-MM-DD. Optional."),
       },
     },
-    async ({ name, target, deadline }) => {
-      try {
+    async ({ name, target, deadline }) =>
+      runWriteTool(async () => {
         const goal = await createHouseholdGoal(
           context.householdId,
           {
@@ -101,18 +95,15 @@ export function registerGoalBudgetWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: goal.id,
           currency: context.currency,
           name: goal.name,
           target: goal.target,
           deadline: goal.deadline?.toISOString() ?? null,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -141,8 +132,8 @@ export function registerGoalBudgetWriteTools(
           ),
       },
     },
-    async ({ id, name, target, deadline }) => {
-      try {
+    async ({ id, name, target, deadline }) =>
+      runWriteTool(async () => {
         const update: UpdateGoalSchemaType = { id };
         if (name !== undefined) {
           update.name = name;
@@ -161,18 +152,15 @@ export function registerGoalBudgetWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: goal.id,
           currency: context.currency,
           name: goal.name,
           target: goal.target,
           deadline: goal.deadline?.toISOString() ?? null,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -195,25 +183,22 @@ export function registerGoalBudgetWriteTools(
           ),
       },
     },
-    async ({ category, amount, mode }) => {
-      try {
+    async ({ category, amount, mode }) =>
+      runWriteTool(async () => {
         const budget = await setHouseholdBudget(
           context.householdId,
           { category, amount, mode },
           context.role,
         );
 
-        return toolResult({
+        return {
           id: budget.id,
           currency: context.currency,
           category: budget.category,
           amount: budget.amount,
           mode: budget.mode,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 }

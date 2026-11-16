@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { IdSchema, type IdSchemaType } from "@/schemas/id";
 import { freeText } from "@/schemas/text";
 
 export const CreateApiTokenSchema = z.object({
@@ -13,11 +14,9 @@ export const CreateApiTokenSchema = z.object({
 
 export type CreateApiTokenSchemaType = z.output<typeof CreateApiTokenSchema>;
 
-export const RevokeApiTokenSchema = z.object({
-  id: z.string().min(1),
-});
+export const RevokeApiTokenSchema = IdSchema;
 
-export type RevokeApiTokenSchemaType = z.infer<typeof RevokeApiTokenSchema>;
+export type RevokeApiTokenSchemaType = IdSchemaType;
 
 export const SetAgentAccessSchema = z.object({
   enabled: z.boolean(),
