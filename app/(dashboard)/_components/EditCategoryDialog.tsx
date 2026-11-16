@@ -1,6 +1,5 @@
 "use client";
 
-import type { CategoryIconKind } from "@/lib/category-icons";
 import type { Category } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
@@ -34,6 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import { withIconKindDefault } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
@@ -56,17 +56,17 @@ const EditCategoryDialog = ({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
-  const [iconState, setIconState] = useState(() => ({
-    icon: category.icon,
-    iconKind: (category.iconKind as CategoryIconKind) ?? "emoji",
-    iconColor: category.iconColor,
-  }));
+  const [iconState, setIconState] = useState(() =>
+    withIconKindDefault(category.icon, category.iconKind, category.iconColor),
+  );
 
   const getSavedValues = (savedCategory: Category = category) => ({
     name: savedCategory.name,
-    icon: savedCategory.icon,
-    iconKind: (savedCategory.iconKind as CategoryIconKind) ?? "emoji",
-    iconColor: savedCategory.iconColor,
+    ...withIconKindDefault(
+      savedCategory.icon,
+      savedCategory.iconKind,
+      savedCategory.iconColor,
+    ),
     type: savedCategory.type as "income" | "expense",
   });
 

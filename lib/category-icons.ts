@@ -286,6 +286,28 @@ export function getLucideIconLabel(name: string): string {
   );
 }
 
+export type CategoryIconValue = {
+  icon: string;
+  iconKind: CategoryIconKind;
+  iconColor: string | null;
+};
+
+export function defaultCategoryIcon(): CategoryIconValue {
+  return { icon: "", iconKind: "emoji", iconColor: null };
+}
+
+export function withIconKindDefault(
+  icon: string,
+  iconKind: string | null | undefined,
+  iconColor: string | null | undefined,
+): CategoryIconValue {
+  return {
+    icon,
+    iconKind: iconKind === "lucide" ? "lucide" : "emoji",
+    iconColor: iconKind === "lucide" ? (iconColor ?? null) : null,
+  };
+}
+
 export function categoryIconLabel(icon: {
   icon: string;
   iconKind?: string | null;

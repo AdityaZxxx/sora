@@ -15,15 +15,11 @@ import {
   CURATED_LUCIDE_ICONS,
   ICON_COLOR_PRESETS,
   REST_LUCIDE_ICONS,
+  defaultCategoryIcon,
   type CategoryIconKind,
+  type CategoryIconValue,
 } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
-
-interface CategoryIconValue {
-  icon: string;
-  iconKind: CategoryIconKind;
-  iconColor: string | null;
-}
 
 interface Props extends CategoryIconValue {
   onChange: (value: CategoryIconValue) => void;
@@ -297,7 +293,7 @@ export default function CategoryIconPicker({
           resolveEmojiData={resolveEmojiData}
           className="flex min-h-0 flex-1 flex-col"
           onEmojiSelect={(emoji) =>
-            onChange({ icon: emoji.emoji, iconKind: "emoji", iconColor: null })
+            onChange({ ...defaultCategoryIcon(), icon: emoji.emoji })
           }
         >
           <div className="flex min-h-0 flex-1 flex-col gap-2">

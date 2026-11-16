@@ -1,4 +1,3 @@
-import type { CategoryIconKind } from "@/lib/category-icons";
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
@@ -33,6 +32,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import { defaultCategoryIcon } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
@@ -47,16 +47,10 @@ interface Props {
 
 const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
   const [open, setOpen] = useState(false);
-  const [iconState, setIconState] = useState(() => ({
-    icon: "",
-    iconKind: "emoji" as CategoryIconKind,
-    iconColor: null as string | null,
-  }));
+  const [iconState, setIconState] = useState(defaultCategoryIcon);
   const getDefaultValues = () => ({
     name: "",
-    icon: "",
-    iconKind: "emoji" as CategoryIconKind,
-    iconColor: null as string | null,
+    ...defaultCategoryIcon(),
     type,
   });
 
@@ -74,7 +68,7 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
     },
     onSuccess: async (category) => {
       form.reset(getDefaultValues());
-      setIconState({ icon: "", iconKind: "emoji", iconColor: null });
+      setIconState(defaultCategoryIcon());
       toast.success(`Category "${category.name}" added`, {
         id: "create-category",
       });
@@ -118,7 +112,7 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
 
   const resetDraft = () => {
     form.reset(getDefaultValues());
-    setIconState({ icon: "", iconKind: "emoji", iconColor: null });
+    setIconState(defaultCategoryIcon());
   };
 
   const triggerElement = (trigger ?? (

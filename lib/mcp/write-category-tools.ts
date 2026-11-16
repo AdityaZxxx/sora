@@ -6,6 +6,7 @@ import {
   deleteHouseholdCategory,
   updateHouseholdCategory,
 } from "@/lib/categories";
+import { withIconKindDefault } from "@/lib/category-icons";
 import {
   categoryIconColorSchema,
   categoryIconKindSchema,
@@ -56,9 +57,7 @@ export function registerCategoryWriteTools(
           context.householdId,
           {
             name,
-            icon,
-            iconKind: iconKind ?? "emoji",
-            iconColor: iconColor ?? null,
+            ...withIconKindDefault(icon, iconKind, iconColor),
             type,
           },
           context.role,
@@ -117,9 +116,7 @@ export function registerCategoryWriteTools(
           {
             originalName,
             name,
-            icon,
-            iconKind: iconKind ?? "emoji",
-            iconColor: iconColor ?? null,
+            ...withIconKindDefault(icon, iconKind, iconColor),
             type,
           },
           context.role,
