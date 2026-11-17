@@ -60,12 +60,12 @@ Sora is in active development. The build order, milestones, and launch plan live
    cp .env.example .env
    ```
 
-   | Variable | Purpose |
-   | --- | --- |
-   | `POSTGRES_PRISMA_URL` | Pooled connection string used by the app |
+   | Variable                   | Purpose                                                                  |
+   | -------------------------- | ------------------------------------------------------------------------ |
+   | `POSTGRES_PRISMA_URL`      | Pooled connection string used by the app                                 |
    | `POSTGRES_URL_NON_POOLING` | Direct connection string used as Prisma's shadow database for migrations |
-   | `BETTER_AUTH_SECRET` | Session signing secret, generate one with `openssl rand -base64 32` |
-   | `BETTER_AUTH_URL` | App origin, `http://localhost:3000` locally |
+   | `BETTER_AUTH_SECRET`       | Session signing secret, generate one with `openssl rand -base64 32`      |
+   | `BETTER_AUTH_URL`          | App origin, `http://localhost:3000` locally                              |
 
    `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable optional Google sign-in. If you use them, add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI in the Google Cloud Console. `RESEND_API_KEY` and `RESEND_FROM` enable auth emails and the digest; without them, local email sends are skipped with a warning. `CRON_SECRET` guards the daily digest route.
 
@@ -105,16 +105,16 @@ The feature map in `.agents/skills/verify-sora/features/agent-access.md` lists w
 
 ## Repository layout
 
-| Path | Contents |
-| --- | --- |
-| `app/` | Routes, server actions, and API routes |
-| `components/` | React components |
-| `hooks/` | Client hooks |
-| `lib/` | Domain functions that every surface reaches |
-| `schemas/` | Zod contracts the transports validate with |
-| `prisma/` | Schema and migrations |
-| `packages/` | `sora-cli` and `sora-lint-plugin` |
-| `docs/` | ADRs, roadmap, and the release process |
+| Path          | Contents                                    |
+| ------------- | ------------------------------------------- |
+| `app/`        | Routes, server actions, and API routes      |
+| `components/` | React components                            |
+| `hooks/`      | Client hooks                                |
+| `lib/`        | Domain functions that every surface reaches |
+| `schemas/`    | Zod contracts the transports validate with  |
+| `prisma/`     | Schema and migrations                       |
+| `packages/`   | `sora-cli` and `sora-lint-plugin`           |
+| `docs/`       | ADRs, roadmap, and the release process      |
 
 Product vocabulary is defined in [GLOSSARY.md](GLOSSARY.md), hard-to-reverse decisions in [docs/adr/](docs/adr/), and contribution rules in [CODING_STANDARDS.md](CODING_STANDARDS.md).
 
