@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
 import { categoryIconSnapshot } from "@/lib/category-icons";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
@@ -167,7 +168,7 @@ async function runSettlement(
   });
 
   const amountText = getFormatterForCurrency(
-    household?.currency ?? "USD",
+    household?.currency ?? DEFAULT_CURRENCY,
   ).format(amount);
   const payerName = payer?.name ?? "A member";
 

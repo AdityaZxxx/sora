@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { firstIssueMessage } from "@/lib/issue-message";
 import { cn } from "@/lib/utils";
@@ -224,7 +225,7 @@ export default function RecurringItemDialog({
     createMutation.mutate(parsed.data);
   };
 
-  const formatter = getFormatterForCurrency(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 
 import { listBudgets } from "../_actions/budgets";
@@ -26,7 +26,7 @@ interface Props {
 }
 
 const SafeToSpend = ({ currency }: Props) => {
-  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
   const { data: budgets = [], isLoading } = useQuery({
     queryKey: ["budgets"],

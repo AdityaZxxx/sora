@@ -6,7 +6,7 @@ import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import {
   getFormatterForCurrency,
   getNumberFlowCurrencyProps,
@@ -34,8 +34,8 @@ const SharedSpendingCard = ({ currency }: Props) => {
     refetchOnWindowFocus: true,
   });
 
-  const formatter = getFormatterForCurrency(currency ?? "USD");
-  const currencyFlow = getNumberFlowCurrencyProps(currency ?? "USD");
+  const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
+  const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
   const { thisMonth = 0, lastMonth = 0 } = spendingQuery.data ?? {};
   const difference = thisMonth - lastMonth;
