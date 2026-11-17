@@ -82,8 +82,7 @@ type EChartsOption = ComposeOption<
   | DataZoomComponentOption
 >;
 
-// Single-entry views of the composed option's array-or-single fields — the
-// modular entry points don't export the axis option types directly.
+// Modular entry points don't export axis option types, so derive them from EChartsOption.
 type ArrayItem<T> = T extends readonly (infer U)[] ? U : T;
 type XAxisOption = ArrayItem<NonNullable<EChartsOption["xAxis"]>>;
 type YAxisOption = ArrayItem<NonNullable<EChartsOption["yAxis"]>>;
@@ -108,14 +107,8 @@ const BLOCK_TRACK_OPACITY = 0.22;
 const STACK_SEGMENT_GAP_PX = 4;
 const MAX_HIGHLIGHT_DIM = 0.16;
 
-// The `stripped` variant caps each bar with a small BRIGHT pill of CONSTANT pixel
-// height (Recharts draws a fixed ~2px strip on top of a dimmed body, identical on
-// tall and short bars). The cap is expressed PER DATUM as a fraction of that bar's
-// own pixel height, so a fixed pixel height maps to a shrinking fraction as the bar
-// grows — the fraction is derived at runtime from the measured value-axis
-// pixels-per-unit (see measureValuePxPerUnit). A canvas gradient alone can't do
-// this: its bright band is a fraction of the bounding box, so it would scale with
-// bar length (the bug this replaced).
+// The stripped cap is a fixed pixel height per datum; a canvas gradient band
+// scales with bar length, so derive the fraction from measured px/unit.
 const STRIPPED_CAP_HEIGHT_PX = 4;
 const STRIPPED_BODY_ALPHA = 0.2;
 const STRIPPED_CAP_MAX_FRACTION = 0.85;
@@ -179,11 +172,7 @@ export interface BarProps {
   bufferBar?: boolean;
 }
 
-/**
- * A single bar series. Declares its own fill variant, radius, glow, buffer, and
- * clickability. Renders nothing — the root reads these props to build the
- * ECharts series.
- */
+/** Config-only <Bar> series; renders nothing, the root reads its props to build the series. */
 const Bar: FC<BarProps> = () => null;
 
 export interface XAxisProps {
@@ -449,8 +438,7 @@ function measureValuePxPerUnit(
   isHorizontal: boolean,
 ): number | null {
   const finder = isHorizontal ? { xAxisIndex: 0 } : { yAxisIndex: 0 };
-  // convertToPixel throws before the first setOption (no coordinate system yet) and
-  // whenever the value axis isn't laid out — treat any failure as "not measurable".
+  // convertToPixel throws before the first setOption or before the axis is laid out.
   try {
     const p0 = chart.convertToPixel(finder, 0);
     const p1 = chart.convertToPixel(finder, 1);
@@ -655,9 +643,7 @@ type OptionBuildContext = {
   maxHighlightIndex: number | null;
 };
 
-// Grid insets plus the footer band reserved for the brush. ECharts 6 contains
-// axis labels automatically (the legacy `containLabel` flag now only triggers a
-// deprecation warning).
+// ECharts 6 contains axis labels automatically; containLabel now only warns.
 function buildChartLayout({
   legendSlot,
   showBrush,
@@ -728,9 +714,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     axisTick: {
       show: !isLoading && categorySlot.present && !categorySlot.hideDots,
       length: 0.5,
-      // Bars use boundaryGap, so ECharts would drop each tick on the BOUNDARY
-      // between two categories — a dot floating between labels rather than under
-      // one. Align them to the labels instead.
+      // boundaryGap drops boundary ticks, so alignWithLabel keeps dots under labels.
       alignWithLabel: true,
       lineStyle: { color: tickDotColor, width: 3, cap: "round" as const },
     },
@@ -746,9 +730,7 @@ function buildMainAxes(ctx: OptionBuildContext): {
     },
   };
 
-  // An ECharts axis with `show: false` hides its splitLines too, but Recharts'
-  // <CartesianGrid> draws with or without a visible value axis. Keep the axis on
-  // whenever <Grid/> is present and gate the LABELS on the slot instead.
+  // show: false hides splitLines, so keep the axis and gate the labels instead.
   const valueAxis = {
     type: "value" as const,
     show: valueSlot.present || showGrid,
@@ -824,7 +806,7 @@ function createTooltipFormatter(ctx: OptionBuildContext) {
             : String(p.value ?? "");
 
         return tooltipRow({
-          indicatorHtml: tooltipIndicatorHtml(key, colorsCount),
+          trustedIndicatorHtml: tooltipIndicatorHtml(key, colorsCount),
           labelText,
           valueText: value,
           dimmed,
@@ -834,7 +816,7 @@ function createTooltipFormatter(ctx: OptionBuildContext) {
 
     return tooltipShell({
       label,
-      body,
+      trustedBody: body,
       roundness: tooltipSlot.roundness,
       variant: tooltipSlot.variant,
     });
@@ -1209,16 +1191,6 @@ type LiveState = {
   patchStrippedCaps: () => void;
 };
 
-/**
- * Apache ECharts port of the EvilCharts bar chart, exposing a compound-as-config
- * API so its JSX reads identically to the Recharts twin. The root owns the data,
- * config, selection state, loading skeleton, intro grow-in, and optional zoom
- * brush; every visual part — `<Bar>`, `<XAxis>`, `<YAxis>`, `<Grid>`,
- * `<Tooltip>`, `<Legend>` — is composed as a declarative child that renders
- * nothing. The root walks those children by reference and drives a single
- * imperative ECharts instance. Fully self-contained: its only dependencies are
- * `react`, `echarts`, and `motion`.
- */
 export function EChartsBarChart<TData extends Record<string, unknown>>({
   data,
   config,
@@ -1278,8 +1250,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
     patchStrippedCaps: () => {},
   }).current;
 
-  // Skeleton rows roll lazily on first use — an impure useRef initializer would
-  // re-roll Math.random() on every render.
+  // A lazy initializer avoids re-rolling Math.random() when the render replays.
   const loadingData = useCallback(
     () => (live.loadingRows ??= getLoadingBarData(loadingBars)),
     [live, loadingBars],
@@ -1518,9 +1489,7 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
     echartsRef.current = chart;
 
     const resizeObserver = new ResizeObserver(() => {
-      // Observers always fire once right after observe(). Repushing on that
-      // no-op fire would land one frame into the intro and stomp the grow-in —
-      // only react when the renderer size actually changed.
+      // ResizeObserver fires once on observe; ignore it so the grow-in is not stomped.
       if (
         mount.clientWidth === chart.getWidth() &&
         mount.clientHeight === chart.getHeight()
@@ -1666,12 +1635,10 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
       live.animateExpand = () => {};
       live.valuePxPerUnit = null;
       live.barWidthPx = null;
-      // The reveal guard belongs to the chart instance it guarded. Without this
-      // reset, StrictMode's dev-only mount→unmount→remount plays the entrance on
-      // the throwaway instance and the surviving one renders without it.
+      // StrictMode's double mount consumes the entrance, so reset hasRevealed per instance.
       live.hasRevealed = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- renderer-keyed setup; other values are read through live refs
   }, [renderer]);
 
   useEffect(() => {

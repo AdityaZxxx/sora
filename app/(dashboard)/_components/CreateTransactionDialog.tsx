@@ -206,8 +206,7 @@ const CreateTransactionDialog = ({
       goalId: "",
     },
     validators: {
-      // The schema uses z.coerce, so its input type differs from the form
-      // values; the values are already typed correctly client-side.
+      // z.coerce changes the schema input type; the form values are already typed.
       onSubmit:
         CreateTransactionSchema as StandardSchemaV1<CreateTransactionFormValues>,
     },

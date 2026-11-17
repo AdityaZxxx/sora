@@ -22,12 +22,6 @@ export interface BrushProps {
 
 export const Brush: FC<BrushProps> = () => null;
 
-// range, dimmed unselected sides, centered grip-dot handle pills, and range
-// label pills below the frame. None of that is a dataZoom capability. They are
-// raw zrender elements updated imperatively — routing them through setOption
-// re-renders the dataZoom component mid-drag, resetting its drag anchor (the
-// handle progressively lags the pointer).
-
 export type BrushRange = { start: number; end: number };
 export type BrushGeometry = { bottom: number; height: number };
 
@@ -56,6 +50,7 @@ export type BrushOverlayElements = {
   labelEnd: ZrText;
 };
 
+// The overlay is raw zrender elements; setOption mid-drag resets the dataZoom drag anchor.
 export function syncBrushOverlay(
   chart: EChartsInstance,
   store: { brushOverlay: BrushOverlayElements | null },
@@ -197,18 +192,14 @@ export function buildBrushDataZoom(params: {
       right: 8,
       bottom: brushBottom,
       height: brushHeight,
-      // Carry the live range through every rebuild — a notMerge push
-      // without start/end would reset the zoom to the full extent.
+      // A notMerge rebuild without start/end would reset the zoom to full extent.
       start: brushRange.start,
       end: brushRange.end,
       brushSelect: false,
-      // Range labels are overlay pills below the frame (see
-      // syncBrushOverlay) — the native detail text renders INSIDE the
-      // track, which is not the evil-brush look.
+      // Native detail text renders inside the track, so labels use overlay pills.
       showDetail: false,
       backgroundColor: "transparent",
-      // The visible frame is the graphic overlay riding the selection —
-      // the component's own static border stays hidden.
+      // The frame is the graphic overlay; the component's static border stays hidden.
       borderColor: "transparent",
       fillerColor,
       dataBackground: { lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 } },

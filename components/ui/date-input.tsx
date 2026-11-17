@@ -15,7 +15,7 @@ const toDateParts = (value?: Date): DateParts => {
   const d = value ? new Date(value) : new Date();
   return {
     day: d.getDate(),
-    month: d.getMonth() + 1, // JavaScript months are 0-indexed
+    month: d.getMonth() + 1,
     year: d.getFullYear(),
   };
 };

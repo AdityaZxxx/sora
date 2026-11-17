@@ -30,8 +30,6 @@ const InvitePage = async ({
   params: Promise<{ token: string }>;
 }) => {
   const { token } = await params;
-  // getSession reads headers(), which opts this route into dynamic
-  // rendering before any database query runs.
   const session = await getSession();
 
   const inviteLink = await prisma.inviteLink.findFirst({

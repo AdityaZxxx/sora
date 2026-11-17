@@ -38,23 +38,19 @@ export function tooltipIndicatorHtml(key: string, colorsCount: number): string {
   return `<div class="h-2.5 w-2.5 shrink-0 rounded-[2px]" style="background:${background}"></div>`;
 }
 
-// One tooltip row: indicator swatch + label/value pair. `dimmed` is a class
-// fragment (e.g. " opacity-30") appended to the row so the selection/hover dim
-// stays byte-identical to the inlined markup. `indicatorHtml` must be trusted
-// chart-generated markup; labelText and valueText are always treated as text.
 export function tooltipRow({
-  indicatorHtml,
+  trustedIndicatorHtml,
   labelText,
   valueText,
   dimmed,
 }: {
-  indicatorHtml: string;
+  trustedIndicatorHtml: string;
   labelText: string;
   valueText: string;
   dimmed: string;
 }): string {
   return `<div class="flex w-full flex-wrap items-center gap-2${escapeTooltipHtml(dimmed)}">
-          ${indicatorHtml}
+          ${trustedIndicatorHtml}
           <div class="flex flex-1 items-center justify-between gap-4 leading-none">
             <span class="text-muted-foreground">${escapeTooltipHtml(labelText)}</span>
             <span class="text-foreground font-mono font-medium tabular-nums">${escapeTooltipHtml(valueText)}</span>
@@ -62,23 +58,20 @@ export function tooltipRow({
         </div>`;
 }
 
-// The outer tooltip surface — border, padding, shadow, roundness + variant
-// classes — wrapping the axis label and the composed rows. `body` must be
-// trusted chart-generated markup (for example, composed tooltipRow results).
 export function tooltipShell({
   label,
-  body,
+  trustedBody,
   roundness,
   variant,
 }: {
   label: string;
-  body: string;
+  trustedBody: string;
   roundness: TooltipRoundness;
   variant: TooltipVariant;
 }): string {
   return `<div class="grid min-w-32 items-start gap-1.5 border border-border/50 px-2.5 py-1.5 text-xs shadow-xl ${roundnessClass[roundness]} ${tooltipVariantClass[variant]}">
       <div class="font-medium text-primary">${escapeTooltipHtml(label)}</div>
-      <div class="grid gap-1.5">${body}</div>
+      <div class="grid gap-1.5">${trustedBody}</div>
     </div>`;
 }
 

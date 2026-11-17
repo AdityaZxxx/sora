@@ -99,9 +99,8 @@ export function normalizeColor(value: string): string {
   return `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
 }
 
-// Scales the alpha of a normalized `rgba(r, g, b, a)` string. Multiplying (not
-// replacing) keeps translucent theme tokens honest: a border that is 10%-white
-// at `withAlpha(border, 0.5)` lands at 5%, matching Tailwind's `border/50`.
+// Multiply alpha so a 10%-white token at withAlpha(border, 0.5) lands at 5%,
+// matching Tailwind's border/50.
 export function withAlpha(color: string, alpha: number): string {
   const match = color.match(/rgba?\(([^)]+)\)/);
   if (!match) return color;
@@ -177,9 +176,7 @@ export function indicatorBackground(key: string, colorsCount: number): string {
   return `linear-gradient(to right, ${stops})`;
 }
 
-// Composites a translucent color over an opaque base into a FLAT color. The
-// tick dots need this: a translucent stroke double-paints where its round caps
-// overlap the line body, which reads as two stacked colors.
+// Flatten the stroke so its round caps do not double-paint over the line body.
 export function flattenColor(color: string, base: string): string {
   const parse = (value: string) =>
     value
