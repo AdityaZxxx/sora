@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, VIEW_ONLY_ROLE } from "@/lib/constants";
 
@@ -9,9 +10,7 @@ export function useMembers() {
   return useQuery({
     queryKey: ["householdMembers"],
     queryFn: async () => {
-      const res = await listMembers();
-      if (!res.ok) throw new Error(res.message);
-      return res.data ?? [];
+      return unwrapAction(await listMembers()) ?? [];
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,

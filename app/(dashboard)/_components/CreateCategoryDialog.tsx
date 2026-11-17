@@ -32,6 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
@@ -63,14 +64,13 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof CreateCategory>[0]) => {
-      const res = await CreateCategory(input);
-      if (!res.ok) throw new Error(res.message);
-      if (!res.data) {
+      const category = unwrapAction(await CreateCategory(input));
+      if (!category) {
         throw new Error(
           "Unable to create the category. Refresh the page and try again.",
         );
       }
-      return res.data;
+      return category;
     },
     onSuccess: async (category) => {
       form.reset(getDefaultValues());
@@ -89,9 +89,10 @@ const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to create the category. Refresh the page and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to create the category. Refresh the page and try again.",
+        ),
         {
           id: "create-category",
         },

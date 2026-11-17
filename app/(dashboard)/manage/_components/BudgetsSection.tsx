@@ -33,6 +33,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -65,9 +66,7 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
   } = useQuery({
     queryKey: ["budgets"],
     queryFn: async () => {
-      const res = await listBudgets();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listBudgets());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,

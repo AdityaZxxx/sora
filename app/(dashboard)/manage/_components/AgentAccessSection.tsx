@@ -48,6 +48,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import {
   POLL_INTERVAL,
   READ_ONLY_SCOPE,
@@ -92,9 +93,7 @@ const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {
 
   const accessMutation = useMutation({
     mutationFn: async (input: Parameters<typeof setAgentAccess>[0]) => {
-      const res = await setAgentAccess(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await setAgentAccess(input));
     },
     onSuccess: async (_data, variables) => {
       toast.success(
@@ -106,9 +105,7 @@ const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to change agent access. Try again.",
+        actionErrorMessage(error, "Unable to change agent access. Try again."),
         { id: "agent-access" },
       );
     },
@@ -157,18 +154,14 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
   const { data: tokens = [], isLoading } = useQuery<ApiTokenSummary[]>({
     queryKey: ["apiTokens"],
     queryFn: async () => {
-      const res = await listApiTokens();
-      if (!res.ok) throw new Error(res.message);
-      return res.data ?? [];
+      return unwrapAction(await listApiTokens()) ?? [];
     },
     staleTime: POLL_INTERVAL,
   });
 
   const revokeMutation = useMutation({
     mutationFn: async (input: Parameters<typeof revokeApiToken>[0]) => {
-      const res = await revokeApiToken(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await revokeApiToken(input));
     },
     onSuccess: async () => {
       toast.success("Token revoked", { id: "api-tokens" });
@@ -176,9 +169,7 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to revoke token. Try again.",
+        actionErrorMessage(error, "Unable to revoke token. Try again."),
         { id: "api-tokens" },
       );
     },
@@ -274,9 +265,7 @@ const CreateApiTokenDialog = ({
 
   const createMutation = useMutation({
     mutationFn: async (input: Parameters<typeof createApiToken>[0]) => {
-      const res = await createApiToken(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await createApiToken(input));
     },
     onSuccess: async (data) => {
       if (!data) return;

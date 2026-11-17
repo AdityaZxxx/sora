@@ -26,6 +26,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHouseholds } from "@/hooks/use-households";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { DEFAULT_HOUSEHOLD_NAME } from "@/lib/constants";
 
 import { renameHousehold } from "../_actions/households";
@@ -43,9 +44,7 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
 
   const { mutate: rename, isPending } = useMutation({
     mutationFn: async () => {
-      const res = await renameHousehold(name);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await renameHousehold(name));
     },
     onSuccess: () => {
       toast.success("Space renamed", {
@@ -59,9 +58,10 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to rename this space. Check the name and try again.",
+        actionErrorMessage(
+          error,
+          "Unable to rename this space. Check the name and try again.",
+        ),
         {
           id: "rename-household",
         },

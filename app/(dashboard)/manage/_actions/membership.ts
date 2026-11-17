@@ -9,220 +9,107 @@ import type { HouseholdMembership } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
-import { type ActionResult, fail, ok } from "@/lib/action-result";
+import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
-import { DomainError } from "@/lib/errors";
 import {
   clearActiveHouseholdCookie,
-  requireHousehold,
+  firstHouseholdIdForUser,
   setActiveHouseholdCookie,
 } from "@/lib/household";
-import { firstIssueMessage } from "@/lib/issue-message";
 import {
+  leaveHousehold as leaveHouseholdSeam,
   listMembers as listMembersSeam,
   removeMember as removeMemberSeam,
+  setEmailDigest as setEmailDigestSeam,
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyHouseholdExcept } from "@/lib/notifications";
-import prisma from "@/lib/prisma";
-import { SetEmailDigestSchema } from "@/schemas/membership";
 
 export async function listMembers() {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { household } = result;
-
-  return ok(await listMembersSeam(household.id));
+  return withHouseholdAction(
+    "Unable to load the members. Refresh the page and try again.",
+    ({ household }) => listMembersSeam(household.id),
+  );
 }
 
 export async function leaveHousehold(): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
+  return withHouseholdAction(
+    "Unable to leave this household. Refresh the page and try again.",
+    async ({ household, session }) => {
+      await leaveHouseholdSeam(
+        household.id,
+        session.user.id,
+        session.user.name,
+      );
 
-  const { session, household } = result;
+      const nextHouseholdId = await firstHouseholdIdForUser(session.user.id);
+      if (nextHouseholdId) {
+        await setActiveHouseholdCookie(nextHouseholdId);
+      } else {
+        await clearActiveHouseholdCookie();
+      }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.householdMembership.delete({
-      where: {
-        householdId_userId: {
-          householdId: household.id,
-          userId: session.user.id,
-        },
-      },
-    });
-
-    await tx.apiToken.updateMany({
-      where: {
-        householdId: household.id,
-        userId: session.user.id,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date() },
-    });
-
-    const remaining = await tx.householdMembership.count({
-      where: {
-        householdId: household.id,
-      },
-    });
-
-    if (remaining === 0) {
-      await tx.household.delete({
-        where: {
-          id: household.id,
-        },
-      });
-    }
-  });
-
-  const remainingMemberships = await prisma.householdMembership.findMany({
-    where: {
-      userId: session.user.id,
+      redirect("/");
     },
-    orderBy: {
-      joinedAt: "asc",
-    },
-    select: {
-      householdId: true,
-    },
-  });
-  if (remainingMemberships[0]) {
-    await setActiveHouseholdCookie(remainingMemberships[0].householdId);
-  } else {
-    await clearActiveHouseholdCookie();
-  }
-
-  await notifyHouseholdExcept(
-    household.id,
-    session.user.id,
-    "member_left",
-    `${session.user.name} left the household.`,
   );
-
-  redirect("/");
 }
 
 export async function removeMember(
   form: RemoveMemberSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-
-  let removedName: string;
-  try {
-    removedName = await removeMemberSeam(
-      household.id,
-      session.user.id,
-      result.membership.role,
-      form,
-    );
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to remove this member. Try again.",
-        ),
+  return withHouseholdAction(
+    "Unable to remove this member. Try again.",
+    async ({ household, session, membership }) => {
+      const removedName = await removeMemberSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
       );
-    }
-    throw cause;
-  }
 
-  // The removed member now belongs to a different household, so their bell
-  // would never show this; only the remaining members are notified.
-  await notifyHouseholdExcept(
-    household.id,
-    session.user.id,
-    "member_left",
-    `${removedName} was removed from the household.`,
+      // The removed member now belongs to a different household, so their bell
+      // would never show this; only the remaining members are notified.
+      await notifyHouseholdExcept(
+        household.id,
+        session.user.id,
+        "member_left",
+        `${removedName} was removed from the household.`,
+      );
+    },
   );
-
-  return ok();
 }
 
 export async function setMemberRole(
   form: SetMemberRoleSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-  const { userId } = form;
-
-  let nextRole: SetMemberRoleSchemaType["role"];
-  try {
-    ({ role: nextRole } = await setMemberRoleSeam(
-      household.id,
-      session.user.id,
-      result.membership.role,
-      form,
-    ));
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to change this member's access. Try again.",
-        ),
+  return withHouseholdAction(
+    "Unable to change this member's access. Try again.",
+    async ({ household, session, membership }) => {
+      const { role: nextRole } = await setMemberRoleSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
       );
-    }
-    throw cause;
-  }
 
-  await notify(
-    household.id,
-    userId,
-    "member_role",
-    nextRole === VIEW_ONLY_ROLE
-      ? `${session.user.name} set your access to view-only in this household.`
-      : `${session.user.name} gave you full edit access in this household.`,
+      await notify(
+        household.id,
+        form.userId,
+        "member_role",
+        nextRole === VIEW_ONLY_ROLE
+          ? `${session.user.name} set your access to view-only in this household.`
+          : `${session.user.name} gave you full edit access in this household.`,
+      );
+    },
   );
-
-  return ok();
 }
 
 export async function setEmailDigest(
   form: SetEmailDigestSchemaType,
 ): Promise<ActionResult<HouseholdMembership>> {
-  const parsedBody = SetEmailDigestSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error.issues[0]?.message,
-        "Unable to update the email digest. Try again.",
-      ),
-    );
-  }
-
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-
-  return ok(
-    await prisma.householdMembership.update({
-      where: {
-        householdId_userId: {
-          householdId: household.id,
-          userId: session.user.id,
-        },
-      },
-      data: {
-        emailDigest: parsedBody.data.emailDigest,
-      },
-    }),
+  return withHouseholdAction(
+    "Unable to update the email digest. Try again.",
+    ({ household, session }) =>
+      setEmailDigestSeam(household.id, session.user.id, form),
   );
 }

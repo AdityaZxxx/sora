@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { firstIssueMessage } from "@/lib/issue-message";
 import { cn } from "@/lib/utils";
@@ -73,9 +74,10 @@ interface Props {
 
 function handleSaveError(error: Error) {
   toast.error(
-    error instanceof Error && error.message
-      ? error.message
-      : "Unable to save the bill. Check the name, amount and category, then try again.",
+    actionErrorMessage(
+      error,
+      "Unable to save the bill. Check the name, amount and category, then try again.",
+    ),
     { id: "recurring-item" },
   );
 }
@@ -150,18 +152,14 @@ export default function RecurringItemDialog({
 
   const createMutation = useMutation({
     mutationFn: async (input: Parameters<typeof CreateRecurringItem>[0]) => {
-      const res = await CreateRecurringItem(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await CreateRecurringItem(input));
     },
     onSuccess: handleSaved,
     onError: handleSaveError,
   });
   const updateMutation = useMutation({
     mutationFn: async (input: Parameters<typeof UpdateRecurringItem>[0]) => {
-      const res = await UpdateRecurringItem(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await UpdateRecurringItem(input));
     },
     onSuccess: handleSaved,
     onError: handleSaveError,

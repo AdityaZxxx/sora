@@ -29,6 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import {
   FULL_MEMBER_ROLE,
@@ -52,9 +53,7 @@ const MembersSection = () => {
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["householdMembers"],
     queryFn: async () => {
-      const res = await listMembers();
-      if (!res.ok) throw new Error(res.message);
-      return res.data ?? [];
+      return unwrapAction(await listMembers()) ?? [];
     },
     staleTime: POLL_INTERVAL,
   });
@@ -66,9 +65,7 @@ const MembersSection = () => {
 
   const { mutate: toggleDigest, isPending: isTogglingDigest } = useMutation({
     mutationFn: async (input: Parameters<typeof setEmailDigest>[0]) => {
-      const res = await setEmailDigest(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await setEmailDigest(input));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -77,9 +74,10 @@ const MembersSection = () => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to update the email digest. Try again.",
+        actionErrorMessage(
+          error,
+          "Unable to update the email digest. Try again.",
+        ),
         {
           id: "email-digest",
         },
@@ -89,9 +87,7 @@ const MembersSection = () => {
 
   const { mutate: changeRole } = useMutation({
     mutationFn: async (input: Parameters<typeof setMemberRole>[0]) => {
-      const res = await setMemberRole(input);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await setMemberRole(input));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -100,9 +96,10 @@ const MembersSection = () => {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to change this member's access. Try again.",
+        actionErrorMessage(
+          error,
+          "Unable to change this member's access. Try again.",
+        ),
         {
           id: "member-role",
         },

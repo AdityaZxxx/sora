@@ -5,198 +5,60 @@ import type {
   RevokeApiTokenSchemaType,
   SetAgentAccessSchemaType,
 } from "@/schemas/api-tokens";
-import type { Prisma } from "@prisma/client";
 
-import { redirect } from "next/navigation";
-
-import { type ActionResult, fail, ok } from "@/lib/action-result";
+import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import {
-  generateApiToken,
+  createApiToken as createApiTokenSeam,
+  listApiTokens as listApiTokensSeam,
+  revokeApiToken as revokeApiTokenSeam,
   setAgentAccess as setAgentAccessSeam,
+  type ApiTokenSummary,
 } from "@/lib/api-token";
-import { FULL_MEMBER_ROLE, READ_WRITE_SCOPE } from "@/lib/constants";
-import { DomainError } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
-import { firstIssueMessage } from "@/lib/issue-message";
-import prisma from "@/lib/prisma";
-import {
-  CreateApiTokenSchema,
-  RevokeApiTokenSchema,
-} from "@/schemas/api-tokens";
+
+export type { ApiTokenSummary };
 
 export async function createApiToken(
   form: CreateApiTokenSchemaType,
 ): Promise<ActionResult<{ id: string; token: string }>> {
-  const parsedBody = CreateApiTokenSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error.issues[0]?.message,
-        "Unable to create the token. Check the details and try again.",
-      ),
-    );
-  }
-
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household, membership } = result;
-
-  if (!household.agentAccessEnabled) {
-    return fail(
-      "Agent access is off for this household. Turn it on and try again.",
-    );
-  }
-
-  if (
-    parsedBody.data.scope === READ_WRITE_SCOPE &&
-    membership.role !== FULL_MEMBER_ROLE
-  ) {
-    return fail(
-      "View-only members cannot create a read-write token. Choose read only instead.",
-    );
-  }
-
-  const { token, tokenHash } = generateApiToken();
-
-  const created = await prisma.apiToken.create({
-    data: {
-      householdId: household.id,
-      userId: session.user.id,
-      name: parsedBody.data.name,
-      scope: parsedBody.data.scope,
-      tokenHash,
-      expiresAt: parsedBody.data.expiresAt ?? null,
-    },
-  });
-
-  return ok({ id: created.id, token });
+  return withHouseholdAction(
+    "Unable to create the token. Check the details and try again.",
+    ({ household, session, membership }) =>
+      createApiTokenSeam(household.id, session.user.id, membership.role, form),
+  );
 }
-
-const apiTokenSelect = {
-  id: true,
-  name: true,
-  scope: true,
-  createdAt: true,
-  expiresAt: true,
-  user: {
-    select: {
-      id: true,
-      name: true,
-    },
-  },
-} as const;
-
-export type ApiTokenSummary = Prisma.ApiTokenGetPayload<{
-  select: typeof apiTokenSelect;
-}>;
 
 export async function listApiTokens(): Promise<
   ActionResult<ApiTokenSummary[]>
 > {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  return ok(
-    await prisma.apiToken.findMany({
-      where: {
-        householdId: result.household.id,
-        revokedAt: null,
-      },
-      select: apiTokenSelect,
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
+  return withHouseholdAction(
+    "Unable to load the tokens. Refresh the page and try again.",
+    ({ household }) => listApiTokensSeam(household.id),
   );
 }
 
 export async function revokeApiToken(
   form: RevokeApiTokenSchemaType,
 ): Promise<ActionResult> {
-  const parsedBody = RevokeApiTokenSchema.safeParse(form);
-  if (!parsedBody.success) {
-    return fail(
-      firstIssueMessage(
-        parsedBody.error.issues[0]?.message,
-        "Unable to revoke the token. Try again.",
-      ),
-    );
-  }
-
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household, membership } = result;
-
-  const token = await prisma.apiToken.findFirst({
-    where: {
-      id: parsedBody.data.id,
-      householdId: household.id,
+  return withHouseholdAction(
+    "Unable to revoke the token. Try again.",
+    async ({ household, session, membership }) => {
+      await revokeApiTokenSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
+      );
     },
-    select: {
-      id: true,
-      userId: true,
-    },
-  });
-
-  if (!token) {
-    return fail(
-      "Token not found. It may have been revoked. Refresh and try again.",
-    );
-  }
-
-  if (
-    membership.role !== FULL_MEMBER_ROLE &&
-    token.userId !== session.user.id
-  ) {
-    return fail(
-      "View-only members can only revoke their own tokens. Ask a full member to revoke it.",
-    );
-  }
-
-  await prisma.apiToken.updateMany({
-    where: {
-      id: token.id,
-      revokedAt: null,
-    },
-    data: { revokedAt: new Date() },
-  });
-
-  return ok();
+  );
 }
 
 export async function setAgentAccess(
   form: SetAgentAccessSchemaType,
 ): Promise<ActionResult> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  try {
-    await setAgentAccessSeam(
-      result.household.id,
-      form.enabled,
-      result.membership.role,
-    );
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to change agent access. Try again.",
-        ),
-      );
-    }
-    throw cause;
-  }
-
-  return ok();
+  return withHouseholdAction(
+    "Unable to change agent access. Try again.",
+    async ({ household, membership }) => {
+      await setAgentAccessSeam(household.id, form.enabled, membership.role);
+    },
+  );
 }

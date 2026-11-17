@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { actionErrorMessage } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 
 import { UpdateUserCurrency } from "../app/wizard/_actions/userSettings";
@@ -76,9 +77,7 @@ export function CurrencyComboBox() {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Unable to update currency. Try again.",
+        actionErrorMessage(error, "Unable to update currency. Try again."),
         {
           id: "update-currency",
         },

@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
+import { unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 
@@ -30,9 +31,7 @@ const SafeToSpend = ({ currency }: Props) => {
   const { data: budgets = [], isLoading } = useQuery({
     queryKey: ["budgets"],
     queryFn: async () => {
-      const res = await listBudgets();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listBudgets());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,

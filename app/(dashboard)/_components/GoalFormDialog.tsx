@@ -34,6 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { Currencies } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
 import { CreateGoalSchema } from "@/schemas/goals";
@@ -120,8 +121,7 @@ const GoalFormDialog = ({
             deadline: values.deadline ?? null,
           })
         : await createGoal(values);
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(res);
     },
     onSuccess: async () => {
       toast.success(copy.success, {
@@ -139,12 +139,9 @@ const GoalFormDialog = ({
       setOpen(false);
     },
     onError: (error) => {
-      toast.error(
-        error instanceof Error && error.message ? error.message : copy.error,
-        {
-          id: copy.toastId,
-        },
-      );
+      toast.error(actionErrorMessage(error, copy.error), {
+        id: copy.toastId,
+      });
     },
   });
 

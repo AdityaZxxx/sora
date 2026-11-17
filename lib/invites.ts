@@ -1,6 +1,9 @@
+import type { InviteLink } from "@prisma/client";
+
 import { z } from "zod";
 
 import { DomainError } from "@/lib/errors";
+import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 
@@ -22,6 +25,10 @@ export async function createInviteLink(
 
 const InviteIdSchema = z.object({
   id: z.string().min(1),
+});
+
+const InviteTokenSchema = z.object({
+  token: z.string().min(1),
 });
 
 export async function revokeInviteLink(
@@ -50,4 +57,89 @@ export async function revokeInviteLink(
   if (result.count === 0) {
     throw new DomainError("Invite link not found");
   }
+}
+
+export async function listInviteLinks(
+  householdId: string,
+): Promise<InviteLink[]> {
+  return await prisma.inviteLink.findMany({
+    where: {
+      householdId,
+      revokedAt: null,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+export async function joinHouseholdByInviteToken(
+  token: string,
+  userId: string,
+  userName: string,
+): Promise<string> {
+  const parsed = InviteTokenSchema.safeParse({ token });
+  if (!parsed.success) {
+    throw new DomainError(
+      "This invite link is invalid or has been revoked. Ask for a new one.",
+    );
+  }
+
+  const inviteLink = await prisma.inviteLink.findFirst({
+    where: {
+      token: parsed.data.token,
+      revokedAt: null,
+    },
+  });
+  if (!inviteLink) {
+    throw new DomainError(
+      "This invite link is invalid or has been revoked. Ask for a new one.",
+    );
+  }
+
+  const existingMembership = await prisma.householdMembership.findUnique({
+    where: {
+      householdId_userId: {
+        householdId: inviteLink.householdId,
+        userId,
+      },
+    },
+  });
+
+  if (!existingMembership) {
+    await prisma.householdMembership.create({
+      data: {
+        householdId: inviteLink.householdId,
+        userId,
+      },
+    });
+
+    const otherMembers = await prisma.householdMembership.findMany({
+      where: {
+        householdId: inviteLink.householdId,
+        userId: {
+          notIn: [userId, inviteLink.createdById],
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+    await notifyMembers(
+      inviteLink.householdId,
+      otherMembers.map((membership) => membership.userId),
+      "member_joined",
+      `${userName} joined the household.`,
+    );
+    if (inviteLink.createdById !== userId) {
+      await notify(
+        inviteLink.householdId,
+        inviteLink.createdById,
+        "invite_accepted",
+        `${userName} accepted your invite and joined the household.`,
+      );
+    }
+  }
+
+  return inviteLink.householdId;
 }

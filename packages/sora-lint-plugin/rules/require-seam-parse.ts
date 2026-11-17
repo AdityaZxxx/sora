@@ -6,8 +6,8 @@ const WRITE_PATTERN =
 const PARSE_PATTERN = /\.(?:safeParse|parse)\s*\(/;
 const EXEMPT_PATTERN = /seam-parse-exempt/;
 
-function isLibPath(filePath: string): boolean {
-  return /(?:^|\/)lib\//.test(filePath);
+function isWriterPath(filePath: string): boolean {
+  return /(?:^|\/)(?:lib|_actions)\//.test(filePath);
 }
 
 function exported(node: ESTree.Node): boolean {
@@ -36,17 +36,17 @@ export default defineRule({
     type: "problem",
     docs: {
       description:
-        "An exported lib/ writer that performs a database write must parse its own schema first, so the seam — not the transports — owns the rule.",
+        "An exported lib/ or _actions/ writer that performs a database write must parse its own schema first, so the seam, not the transport, owns the rule.",
     },
     messages: {
       missingParse:
-        "This lib/ writer performs a database write but never parses its schema. Every seam write begins with a safeParse of its own schema before it touches prisma.",
+        "This writer performs a database write but never parses its schema. Every seam write begins with a safeParse of its own schema before it touches prisma.",
     },
   },
   create(context) {
     const { sourceCode } = context;
     const filePath = context.physicalFilename ?? "";
-    if (!isLibPath(filePath) || !TS_FILE_PATTERN.test(filePath)) return {};
+    if (!isWriterPath(filePath) || !TS_FILE_PATTERN.test(filePath)) return {};
 
     return {
       FunctionDeclaration(node) {

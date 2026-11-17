@@ -2,79 +2,27 @@
 
 import type { Notification } from "@prisma/client";
 
-import { redirect } from "next/navigation";
-
-import { ok, fail } from "@/lib/action-result";
-import { DomainError } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
-import { firstIssueMessage } from "@/lib/issue-message";
-import prisma from "@/lib/prisma";
+import { withHouseholdAction } from "@/lib/action-result";
+import {
+  listNotifications as listNotificationsSeam,
+  markNotificationsRead,
+} from "@/lib/notifications";
 
 export async function listNotifications() {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-
-  try {
-    return ok(
-      await prisma.notification.findMany({
-        where: {
-          householdId: household.id,
-          userId: session.user.id,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 50,
-      }),
-    );
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to load the notifications. Refresh the page and try again.",
-        ),
-      );
-    }
-    throw cause;
-  }
+  return withHouseholdAction(
+    "Unable to load the notifications. Refresh the page and try again.",
+    ({ household, session }) =>
+      listNotificationsSeam(household.id, session.user.id),
+  );
 }
 
 export type NotificationItem = Notification;
 
 export async function markAllRead() {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  const { session, household } = result;
-
-  try {
-    await prisma.notification.updateMany({
-      where: {
-        householdId: household.id,
-        userId: session.user.id,
-        readAt: null,
-      },
-      data: {
-        readAt: new Date(),
-      },
-    });
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(
-        firstIssueMessage(
-          cause.message,
-          "Unable to mark the notifications as read. Refresh the page and try again.",
-        ),
-      );
-    }
-    throw cause;
-  }
-  return ok();
+  return withHouseholdAction(
+    "Unable to mark the notifications as read. Refresh the page and try again.",
+    async ({ household, session }) => {
+      await markNotificationsRead(household.id, session.user.id);
+    },
+  );
 }

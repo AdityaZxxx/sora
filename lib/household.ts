@@ -147,3 +147,70 @@ export async function clearActiveHouseholdCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(ACTIVE_HOUSEHOLD_COOKIE);
 }
+
+export async function countHouseholdMembers(householdId: string) {
+  return await prisma.householdMembership.count({
+    where: {
+      householdId,
+    },
+  });
+}
+
+export async function assertHouseholdMembership(
+  householdId: string,
+  userId: string,
+) {
+  const membership = await prisma.householdMembership.findUnique({
+    where: {
+      householdId_userId: {
+        householdId,
+        userId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new DomainError(
+      "You are not a member of that household. Ask for an invite link to join it.",
+    );
+  }
+}
+
+export async function createAdditionalHousehold(userId: string, name: string) {
+  const parsedName = HouseholdNameSchema.safeParse(name);
+  if (!parsedName.success) {
+    throw new DomainError(
+      parsedName.error.issues[0]?.message ?? "Check the household name",
+    );
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    const created = await tx.household.create({
+      data: {
+        name: parsedName.data || null,
+      },
+    });
+    await tx.householdMembership.create({
+      data: {
+        householdId: created.id,
+        userId,
+      },
+    });
+    return created;
+  });
+}
+
+export async function firstHouseholdIdForUser(userId: string) {
+  const membership = await prisma.householdMembership.findFirst({
+    where: {
+      userId,
+    },
+    orderBy: {
+      joinedAt: "asc",
+    },
+    select: {
+      householdId: true,
+    },
+  });
+  return membership?.householdId ?? null;
+}

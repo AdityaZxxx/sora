@@ -31,6 +31,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { type GoalWithProgress } from "@/lib/goals";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -52,9 +53,7 @@ const Goals = ({
   const goalsQuery = useQuery({
     queryKey: ["goals"],
     queryFn: async () => {
-      const res = await listGoals();
-      if (!res.ok) throw new Error(res.message);
-      return res.data;
+      return unwrapAction(await listGoals());
     },
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
