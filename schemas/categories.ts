@@ -96,6 +96,16 @@ export const UpdateCategorySchema = z
     ...withIconKindDefault(value.icon, value.iconKind, value.iconColor),
   }));
 
+export function categoryFields() {
+  return {
+    name: categoryNameSchema,
+    icon: categoryIconSchema,
+    iconKind: categoryIconKindSchema.optional(),
+    iconColor: categoryIconColorSchema.nullish(),
+    type: categoryTypeSchema,
+  };
+}
+
 export type CreateCategorySchemaType = z.infer<typeof CreateCategorySchema>;
 
 export type UpdateCategorySchemaType = z.infer<typeof UpdateCategorySchema>;

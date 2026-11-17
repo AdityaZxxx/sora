@@ -1,17 +1,8 @@
+import { monthOffsets } from "@/lib/dates";
 import prisma from "@/lib/prisma";
 
 export async function getMonthlyRollup(householdId: string) {
-  const now = new Date();
-  const months: { year: number; month: number }[] = [];
-  for (let offset = 5; offset >= 0; offset -= 1) {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1),
-    );
-    months.push({
-      year: date.getUTCFullYear(),
-      month: date.getUTCMonth(),
-    });
-  }
+  const months = monthOffsets(6);
 
   const rows = await prisma.monthHistory.groupBy({
     by: ["year", "month"],

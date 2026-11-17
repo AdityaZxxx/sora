@@ -54,6 +54,7 @@ import {
   READ_ONLY_SCOPE,
   READ_WRITE_SCOPE,
 } from "@/lib/constants";
+import { formatDateValue } from "@/lib/dates";
 
 import {
   type ApiTokenSummary,
@@ -63,12 +64,7 @@ import {
   setAgentAccess,
 } from "../_actions/api-tokens";
 
-const todayDateValue = () => {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-};
+const todayDateValue = () => formatDateValue(new Date());
 
 const isFutureDate = (value: string) => !value || value >= todayDateValue();
 

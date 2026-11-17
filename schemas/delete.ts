@@ -1,7 +1,5 @@
-import { z } from "zod";
+import { IdSchema, type IdSchemaType } from "@/schemas/id";
 
-export const DeleteIdSchema = z.object({
-  id: z.string().min(1, "Id is required"),
-});
+export const DeleteIdSchema = IdSchema;
 
-export type DeleteIdSchemaType = z.infer<typeof DeleteIdSchema>;
+export type DeleteIdSchemaType = IdSchemaType;

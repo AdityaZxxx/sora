@@ -3,8 +3,7 @@ import type { Period, Timeframe } from "@/lib/types";
 import { getDaysInMonth } from "date-fns";
 import { z } from "zod";
 
-import { unauthorized } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
+import { parseQueryParams, withHouseholdRoute } from "@/lib/api-route";
 import prisma from "@/lib/prisma";
 
 type HistoryData = {
@@ -22,36 +21,29 @@ const getHistoryDataSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const result = await requireHousehold();
-  if (!result) {
-    return unauthorized();
-  }
+  return withHouseholdRoute(async (result) => {
+    const { searchParams } = new URL(request.url);
+    const timeframe = searchParams.get("timeframe");
+    const year = searchParams.get("year");
+    const month = searchParams.get("month");
 
-  const { searchParams } = new URL(request.url);
-  const timeframe = searchParams.get("timeframe");
-  const year = searchParams.get("year");
-  const month = searchParams.get("month");
+    const queryParams = parseQueryParams(getHistoryDataSchema, {
+      timeframe,
+      month,
+      year,
+    });
 
-  const queryParams = getHistoryDataSchema.safeParse({
-    timeframe,
-    month,
-    year,
+    const data = await getHistoryData(
+      result.household.id,
+      queryParams.timeframe,
+      {
+        month: queryParams.month,
+        year: queryParams.year,
+      },
+    );
+
+    return Response.json(data);
   });
-
-  if (!queryParams.success) {
-    return Response.json(queryParams.error.message, { status: 400 });
-  }
-
-  const data = await getHistoryData(
-    result.household.id,
-    queryParams.data.timeframe,
-    {
-      month: queryParams.data.month,
-      year: queryParams.data.year,
-    },
-  );
-
-  return Response.json(data);
 }
 
 export type GetHistoryDataResponseType = Awaited<

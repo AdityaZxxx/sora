@@ -27,6 +27,16 @@ export function toolError(message: string): CallToolResult {
   };
 }
 
+export async function runWriteTool(
+  action: () => ToolPayload | Promise<ToolPayload>,
+): Promise<CallToolResult> {
+  try {
+    return toolResult(await action());
+  } catch (cause) {
+    return toolError(toolErrorMessage(cause));
+  }
+}
+
 export function toolErrorMessage(cause: unknown): string {
   return cause instanceof DomainError
     ? cause.message

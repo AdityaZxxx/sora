@@ -6,22 +6,17 @@ import {
   deleteHouseholdCategory,
   updateHouseholdCategory,
 } from "@/lib/categories";
-import {
-  categoryIconColorSchema,
-  categoryIconKindSchema,
-  categoryIconSchema,
-  categoryLookupNameSchema,
-  categoryNameSchema,
-  categoryTypeSchema,
-} from "@/schemas/categories";
+import { categoryFields, categoryLookupNameSchema } from "@/schemas/categories";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-import { toolError, toolErrorMessage, toolResult } from "./tools";
+import { runWriteTool } from "./tools";
 
 export function registerCategoryWriteTools(
   server: McpServer,
   context: McpContext,
 ) {
+  const fields = categoryFields();
+
   server.registerTool(
     "create_category",
     {
@@ -29,29 +24,23 @@ export function registerCategoryWriteTools(
       description:
         "Create a Category in the Household: a label for Transactions, of type expense or income. A Transaction's category must match one of the Household's Categories. The Settlement Category cannot be created.",
       inputSchema: {
-        name: categoryNameSchema.describe(
-          "Name of the Category, 3 to 20 characters.",
-        ),
-        icon: categoryIconSchema.describe(
+        name: fields.name.describe("Name of the Category, 3 to 20 characters."),
+        icon: fields.icon.describe(
           "Icon for the Category: an emoji glyph, or a Lucide icon name from the curated set when iconKind is lucide.",
         ),
-        iconKind: categoryIconKindSchema
-          .optional()
-          .describe(
-            "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
-          ),
-        iconColor: categoryIconColorSchema
-          .nullish()
-          .describe(
-            "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
-          ),
-        type: categoryTypeSchema.describe(
+        iconKind: fields.iconKind.describe(
+          "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
+        ),
+        iconColor: fields.iconColor.describe(
+          "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
+        ),
+        type: fields.type.describe(
           "Whether the Category labels income or expense Transactions.",
         ),
       },
     },
-    async ({ name, icon, iconKind, iconColor, type }) => {
-      try {
+    async ({ name, icon, iconKind, iconColor, type }) =>
+      runWriteTool(async () => {
         const category = await createHouseholdCategory(
           context.householdId,
           {
@@ -64,7 +53,7 @@ export function registerCategoryWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: category.id,
           name: category.name,
           icon: category.icon,
@@ -72,11 +61,8 @@ export function registerCategoryWriteTools(
           iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -89,29 +75,25 @@ export function registerCategoryWriteTools(
         originalName: categoryLookupNameSchema.describe(
           "Current name of the Category. Use list_categories to see them.",
         ),
-        name: categoryNameSchema.describe(
+        name: fields.name.describe(
           "New name for the Category, 3 to 20 characters.",
         ),
-        icon: categoryIconSchema.describe(
+        icon: fields.icon.describe(
           "New icon for the Category: an emoji glyph, or a Lucide icon name from the curated set when iconKind is lucide.",
         ),
-        iconKind: categoryIconKindSchema
-          .optional()
-          .describe(
-            "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
-          ),
-        iconColor: categoryIconColorSchema
-          .nullish()
-          .describe(
-            "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
-          ),
-        type: categoryTypeSchema.describe(
+        iconKind: fields.iconKind.describe(
+          "Icon kind. Defaults to emoji. Use lucide for a curated Lucide icon.",
+        ),
+        iconColor: fields.iconColor.describe(
+          "Hex color for a Lucide icon, such as #3b82f6. Omit for emoji icons.",
+        ),
+        type: fields.type.describe(
           "Whether the Category labels income or expense Transactions.",
         ),
       },
     },
-    async ({ originalName, name, icon, iconKind, iconColor, type }) => {
-      try {
+    async ({ originalName, name, icon, iconKind, iconColor, type }) =>
+      runWriteTool(async () => {
         const category = await updateHouseholdCategory(
           context.householdId,
           {
@@ -125,7 +107,7 @@ export function registerCategoryWriteTools(
           context.role,
         );
 
-        return toolResult({
+        return {
           id: category.id,
           name: category.name,
           icon: category.icon,
@@ -133,11 +115,8 @@ export function registerCategoryWriteTools(
           iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -152,15 +131,15 @@ export function registerCategoryWriteTools(
         ),
       },
     },
-    async ({ id }) => {
-      try {
+    async ({ id }) =>
+      runWriteTool(async () => {
         const category = await deleteHouseholdCategory(
           context.householdId,
           id,
           context.role,
         );
 
-        return toolResult({
+        return {
           id: category.id,
           name: category.name,
           icon: category.icon,
@@ -168,10 +147,7 @@ export function registerCategoryWriteTools(
           iconColor: category.iconColor,
           type: category.type,
           memberId: context.userId,
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 }
