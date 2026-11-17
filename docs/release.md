@@ -17,6 +17,8 @@ In the GitHub repo, create a `production` environment and put your approval on i
 3. Actions, Release workflow, Run workflow, pick `main`, enter the tag (`v2026.11.11` or semver). Approve the `production` environment when prompted.
 4. The workflow applies pending migrations, deploys, smoke tests, tags the commit, and drafts a GitHub release with generated notes. If any step fails, the release stops there; a failed migration or deploy leaves the previous app running, because migrations are additive within a release.
 
+A deploy step that fails with `Too many requests … api-upload-free` hit the Vercel free tier's upload ceiling. The deploy step therefore passes `--archive=tgz`, uploading one tarball instead of many files. If a rerun is still refused, wait for the quota window to reset (24 hours) rather than editing the deploy step again. Rerunning the Release workflow after a failed deploy is safe: `prisma migrate deploy` skips migrations already applied, and the tag check fails early if the tag was created.
+
 ## Rollback
 
 App rollback is a Vercel dashboard action: promote the previous production deployment. Migrations are not reversed automatically, so a schema fix ships as a new forward migration in the next release. If a release ships a bad additive migration, roll the app back only if the old code still reads the new schema correctly; otherwise ship the fix forward.

@@ -65,7 +65,7 @@ jobs:
         run: |
           pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
           pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
-          pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN" --archive=tgz
 
       - name: Smoke test production
         env:
