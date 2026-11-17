@@ -44,7 +44,6 @@ export default function SignUpForm({ next }: { next?: string }) {
       setIsLoading(false);
 
       if (error) {
-        // better-auth errors are plain objects, not Error instances.
         toast.error(
           error.message
             ? error.message

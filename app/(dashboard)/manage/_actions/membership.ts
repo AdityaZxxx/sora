@@ -67,8 +67,6 @@ export async function removeMember(
         form,
       );
 
-      // The removed member now belongs to a different household, so their bell
-      // would never show this; only the remaining members are notified.
       await notifyHouseholdExcept(
         household.id,
         session.user.id,

@@ -40,7 +40,6 @@ const formatDate = (date: Date, locale?: string): string => {
 const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
   if (typeof dateInput === "string") {
     const parts = dateInput.split("-").map((part) => parseInt(part, 10));
-    // Note: Month is 0-indexed, so subtract 1 from the month part
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     return date;
   } else {

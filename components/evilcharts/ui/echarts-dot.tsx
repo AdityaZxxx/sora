@@ -7,9 +7,7 @@ export type DotVariant =
   | "colored-border"
   | "ping";
 
-// Dot marker paint — structurally assignable to BOTH the series-level and the
-// per-datum itemStyle (the per-datum variant forbids callback color paints, so
-// the broader LineSeriesOption["itemStyle"] cannot be reused for it).
+// Per-datum itemStyle forbids callback paints, so the series-wide type cannot be reused.
 export type DotItemStyleOption = {
   color?: string | echarts.graphic.LinearGradient;
   borderColor?: string | echarts.graphic.LinearGradient;
@@ -49,11 +47,8 @@ export function dotItemStyle(
     case "colored-border":
       return { color: background, borderColor: paint, borderWidth: 1 };
     case "ping": {
-      // Solid core wrapped in a wide, translucent same-color ring — a static
-      // "ping". The ring is the symbol's BORDER (a stroke ~1.25× the core
-      // radius), which fills out to a soft halo disc; a genuinely large symbol
-      // would silently fail to render on a category-axis line, so we stroke a
-      // small one instead.
+      // Ping uses a wide border stroke on a small symbol; a large symbol fails
+      // to render on category-axis lines.
       const halo = typeof paint === "string" ? withAlpha(paint, 0.28) : paint;
       return { color: paint, borderColor: halo, borderWidth: 10 };
     }
@@ -83,10 +78,8 @@ export function dotStyle(
   };
 }
 
-// The color the horizontal series gradient shows at position t ∈ [0, 1]. ECharts
-// paints a gradient itemStyle relative to each symbol's own bounding box — a full
-// rainbow inside every dot — while the Recharts dots clip a chart-wide gradient,
-// so each takes the gradient's color at its x-position. Sampling reproduces that.
+// Sampling reproduces a chart-wide gradient: ECharts otherwise paints the full
+// rainbow inside each symbol's own bounding box.
 export function sampleGradient(slots: string[], t: number): string {
   if (slots.length <= 1) return slots[0] ?? "rgba(120, 120, 120, 1)";
 

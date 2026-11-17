@@ -50,7 +50,6 @@ export default function GoogleSignInButton({
     });
     if (error) {
       setIsLoading(false);
-      // better-auth errors are plain objects, not Error instances.
       toast.error(
         error.message
           ? error.message

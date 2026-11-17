@@ -25,8 +25,7 @@ export function legendFillStyle(
   return { background: indicatorBackground(key, colorsCount) };
 }
 
-// Punches out the centre with a mask-composite so only the "border" shows —
-// works with gradients and border-radius, unlike plain border-color.
+// Mask-composite leaves only the border and works with gradients and border-radius.
 export function legendOutlineStyle(
   key: string,
   colorsCount: number,

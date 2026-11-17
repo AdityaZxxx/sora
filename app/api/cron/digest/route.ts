@@ -68,8 +68,7 @@ export async function GET(request: NextRequest) {
       (notification) => `<li>${escapeHtml(notification.message)}</li>`,
     );
 
-    // Emails go out one at a time so the free provider tier is never hit
-    // with a burst.
+    // Sequential sends stay under the free email tier's rate limit.
     // oxlint-disable-next-line eslint/no-await-in-loop
     await sendEmail({
       to: membership.user.email,

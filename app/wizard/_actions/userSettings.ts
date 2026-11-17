@@ -19,8 +19,6 @@ export async function UpdateUserCurrency(
         membership.role,
       );
 
-      // The currency is passed to the dashboard as a server-rendered prop, so the
-      // pages that render it have to be re-rendered with the new value.
       revalidatePath("/", "layout");
 
       return updated;

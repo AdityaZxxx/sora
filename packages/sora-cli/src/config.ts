@@ -11,8 +11,6 @@ export type ResolvedConfig = {
   token: string | null;
 };
 
-// The environment wins over the stored file so a script can point the CLI at
-// another Sora without editing the file.
 export async function resolveConfig(): Promise<ResolvedConfig> {
   const stored = await readStoredConfig();
 
