@@ -1,3 +1,4 @@
+import type { TransactionType } from "@/lib/types";
 import type {
   CreateCategorySchemaType,
   UpdateCategorySchemaType,
@@ -60,6 +61,26 @@ export async function createHouseholdCategory(
       type,
     },
   });
+}
+
+export async function requireCategory(
+  householdId: string,
+  name: string,
+  type: TransactionType,
+) {
+  const category = await prisma.category.findFirst({
+    where: {
+      householdId,
+      name,
+      type,
+    },
+  });
+
+  if (!category) {
+    throw new DomainError("Category not found");
+  }
+
+  return category;
 }
 
 function assertNotSettlementCategory(name: string) {
@@ -138,6 +159,20 @@ export async function updateHouseholdCategory(
           category: originalName,
         },
         data: { category: name },
+      });
+    }
+
+    if (name !== originalName || iconChanged) {
+      await tx.recurringItem.updateMany({
+        where: {
+          householdId,
+          category: originalName,
+          type,
+        },
+        data: {
+          ...(name !== originalName && { category: name }),
+          ...(iconChanged && categoryIconSnapshot(updated)),
+        },
       });
     }
 

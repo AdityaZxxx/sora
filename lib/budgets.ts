@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { requireCategory } from "@/lib/categories";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
@@ -100,22 +101,6 @@ export type UpdateBudgetInput = CreateBudgetInput & {
   id: string;
 };
 
-async function findExpenseCategory(householdId: string, name: string) {
-  const category = await prisma.category.findFirst({
-    where: {
-      householdId,
-      name,
-      type: "expense",
-    },
-  });
-
-  if (!category) {
-    throw new DomainError("Category not found");
-  }
-
-  return category;
-}
-
 export async function createHouseholdBudget(
   householdId: string,
   input: CreateBudgetInput,
@@ -128,7 +113,11 @@ export async function createHouseholdBudget(
   }
 
   const { category, amount, mode } = parsed.data;
-  const expenseCategory = await findExpenseCategory(householdId, category);
+  const expenseCategory = await requireCategory(
+    householdId,
+    category,
+    "expense",
+  );
 
   const budget = await prisma.budget.create({
     data: {
@@ -154,7 +143,11 @@ export async function updateHouseholdBudget(
   }
 
   const { id, category, amount, mode } = parsed.data;
-  const expenseCategory = await findExpenseCategory(householdId, category);
+  const expenseCategory = await requireCategory(
+    householdId,
+    category,
+    "expense",
+  );
 
   const budget = await prisma.budget.update({
     where: {

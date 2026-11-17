@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { CATEGORY_ICON_KINDS, isLucideIconName } from "@/lib/category-icons";
+import {
+  CATEGORY_ICON_KINDS,
+  isLucideIconName,
+  withIconKindDefault,
+} from "@/lib/category-icons";
 import { freeText } from "@/schemas/text";
 
 export const categoryNameSchema = freeText({
@@ -76,7 +80,7 @@ export const CreateCategorySchema = z
   .superRefine(refineIcon)
   .transform((value) => ({
     ...value,
-    iconColor: value.iconKind === "lucide" ? (value.iconColor ?? null) : null,
+    ...withIconKindDefault(value.icon, value.iconKind, value.iconColor),
   }));
 
 export const UpdateCategorySchema = z
@@ -89,7 +93,7 @@ export const UpdateCategorySchema = z
   .superRefine(refineIcon)
   .transform((value) => ({
     ...value,
-    iconColor: value.iconKind === "lucide" ? (value.iconColor ?? null) : null,
+    ...withIconKindDefault(value.icon, value.iconKind, value.iconColor),
   }));
 
 export type CreateCategorySchemaType = z.infer<typeof CreateCategorySchema>;

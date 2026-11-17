@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
+import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
@@ -187,24 +188,6 @@ export async function listRecurringItems(householdId: string) {
   return items.map(toRow);
 }
 
-async function resolveCategory(
-  householdId: string,
-  type: string,
-  name: string,
-) {
-  const category = await prisma.category.findFirst({
-    where: {
-      householdId,
-      name,
-      type,
-    },
-  });
-  if (!category) {
-    throw new DomainError("Category not found");
-  }
-  return category;
-}
-
 type ParsedRecurringItem = z.output<typeof CreateRecurringItemSchema>;
 
 function scheduleFields(input: ParsedRecurringItem) {
@@ -224,10 +207,10 @@ export async function createRecurringItem(
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid bill");
   }
 
-  const category = await resolveCategory(
+  const category = await requireCategory(
     householdId,
-    parsed.data.type,
     parsed.data.category,
+    parsed.data.type,
   );
   return prisma.recurringItem.create({
     data: {
@@ -265,10 +248,10 @@ export async function updateRecurringItem(
   if (!existing) {
     throw new DomainError("Bill not found");
   }
-  const category = await resolveCategory(
+  const category = await requireCategory(
     householdId,
-    parsed.data.type,
     parsed.data.category,
+    parsed.data.type,
   );
   const data: Prisma.RecurringItemUpdateInput = {
     name: parsed.data.name,
