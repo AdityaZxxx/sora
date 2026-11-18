@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <ScrollArea
-      className="relative w-full"
+      className="relative w-full overflow-x-clip"
       viewportClassName="w-full overscroll-x-contain"
       fade="x"
     >
