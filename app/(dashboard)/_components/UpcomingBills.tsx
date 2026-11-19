@@ -1,7 +1,11 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import {
   CalendarClock,
   ChevronDown,
@@ -17,7 +21,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import CategoryIcon from "@/components/CategoryIcon";
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
   AlertDialog,
@@ -83,7 +86,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
   );
   const [editItem, setEditItem] = useState<RecurringItemDraft | null>(null);
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [] } = useSuspenseQuery({
     queryKey: queryKeys.recurringItems,
     queryFn: async () => {
       return unwrapAction(await listRecurringItemsAction());
@@ -155,102 +158,97 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
           </div>
         </CardHeader>
         <CardContent>
-          <SkeletonWrapper isLoading={isLoading}>
-            {items.length === 0 ? (
-              <CardContent>
-                <EmptyState
-                  icon={CalendarClock}
-                  hint={
-                    canEdit
-                      ? "Add your first recurring bill or paycheck to get started."
-                      : "No recurring bills have been added yet."
-                  }
-                />
-              </CardContent>
-            ) : visible.length === 0 ? (
-              <CardContent>
-                <EmptyState
-                  icon={CalendarClock}
-                  hint="Nothing due right now."
-                />
-              </CardContent>
-            ) : (
-              <div className="divide-y">
-                {visible.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0 sm:gap-y-2 sm:py-3"
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm sm:h-9 sm:w-9 sm:text-base">
-                        <CategoryIcon
-                          icon={item.categoryIcon}
-                          iconKind={item.categoryIconKind}
-                          iconColor={item.categoryIconColor}
-                          className="size-4 text-base"
+          {items.length === 0 ? (
+            <CardContent>
+              <EmptyState
+                icon={CalendarClock}
+                hint={
+                  canEdit
+                    ? "Add your first recurring bill or paycheck to get started."
+                    : "No recurring bills have been added yet."
+                }
+              />
+            </CardContent>
+          ) : visible.length === 0 ? (
+            <CardContent>
+              <EmptyState icon={CalendarClock} hint="Nothing due right now." />
+            </CardContent>
+          ) : (
+            <div className="divide-y">
+              {visible.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0 sm:gap-y-2 sm:py-3"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-sm sm:h-9 sm:w-9 sm:text-base">
+                      <CategoryIcon
+                        icon={item.categoryIcon}
+                        iconKind={item.categoryIconKind}
+                        iconColor={item.categoryIconColor}
+                        className="size-4 text-base"
+                      />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block max-w-32 truncate text-sm font-medium min-[380px]:max-w-44 sm:max-w-none">
+                        {item.name}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {item.paused
+                          ? "Paused"
+                          : showAll && !item.isDue
+                            ? nextLabel(item)
+                            : dueLabel(item)}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex w-full items-center justify-between gap-y-1 sm:ml-auto sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-x-2">
+                    <span
+                      className={
+                        item.type === "income"
+                          ? "text-sm font-medium text-income-foreground tabular-nums"
+                          : "text-sm font-medium text-expense-foreground tabular-nums"
+                      }
+                    >
+                      {formatter.format(item.amount)}
+                    </span>
+                    {canEdit && (
+                      <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                        <CreateTransactionDialog
+                          key={item.id}
+                          type={item.type as TransactionType}
+                          recurringItemId={item.id}
+                          initialValues={{
+                            description: item.name,
+                            category: item.category,
+                            amount: item.amount,
+                            type: item.type as TransactionType,
+                            shared: true,
+                          }}
+                          trigger={
+                            <Button size="sm" variant="secondary">
+                              Post
+                            </Button>
+                          }
+                        />
+                        <UpcomingBillActions
+                          item={item}
+                          onEdit={() => setEditItem(item)}
+                          onPause={() =>
+                            pauseMutation.mutate({
+                              id: item.id,
+                              paused: !item.paused,
+                            })
+                          }
+                          onDelete={() => setDeleteTarget(item)}
                         />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block max-w-32 truncate text-sm font-medium min-[380px]:max-w-44 sm:max-w-none">
-                          {item.name}
-                        </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {item.paused
-                            ? "Paused"
-                            : showAll && !item.isDue
-                              ? nextLabel(item)
-                              : dueLabel(item)}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex w-full items-center justify-between gap-y-1 sm:ml-auto sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-x-2">
-                      <span
-                        className={
-                          item.type === "income"
-                            ? "text-sm font-medium text-income-foreground tabular-nums"
-                            : "text-sm font-medium text-expense-foreground tabular-nums"
-                        }
-                      >
-                        {formatter.format(item.amount)}
-                      </span>
-                      {canEdit && (
-                        <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                          <CreateTransactionDialog
-                            key={item.id}
-                            type={item.type as TransactionType}
-                            recurringItemId={item.id}
-                            initialValues={{
-                              description: item.name,
-                              category: item.category,
-                              amount: item.amount,
-                              type: item.type as TransactionType,
-                              shared: true,
-                            }}
-                            trigger={
-                              <Button size="sm" variant="secondary">
-                                Post
-                              </Button>
-                            }
-                          />
-                          <UpcomingBillActions
-                            item={item}
-                            onEdit={() => setEditItem(item)}
-                            onPause={() =>
-                              pauseMutation.mutate({
-                                id: item.id,
-                                paused: !item.paused,
-                              })
-                            }
-                            onDelete={() => setDeleteTarget(item)}
-                          />
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SkeletonWrapper>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
         {items.length > due.length && (
           <CardFooter>

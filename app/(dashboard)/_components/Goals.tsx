@@ -1,10 +1,9 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { MoreHorizontal, Pencil, Target, TrashIcon } from "lucide-react";
 import { useState } from "react";
 
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +49,7 @@ const Goals = ({
 }) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
-  const goalsQuery = useQuery({
+  const { data: goals = [] } = useSuspenseQuery({
     queryKey: queryKeys.goals,
     queryFn: async () => {
       return unwrapAction(await listGoals());
@@ -59,8 +58,6 @@ const Goals = ({
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,
   });
-
-  const goals = goalsQuery.data ?? [];
 
   return (
     <Card className="h-full transition-all hover:shadow-md">
@@ -82,61 +79,54 @@ const Goals = ({
         </div>
       </CardHeader>
       <CardContent>
-        <SkeletonWrapper isLoading={goalsQuery.isLoading}>
-          {goals.length === 0 ? (
-            <CardContent>
-              <EmptyState
-                icon={Target}
-                hint="No goals yet. Add one to get started."
-              />
-            </CardContent>
-          ) : (
-            <div className="space-y-2">
-              {goals.map((goal) => {
-                const progress = Math.min(
-                  (goal.contributed / goal.target) * 100,
-                  100,
-                );
-                const reached = goal.contributed >= goal.target;
-                return (
-                  <div
-                    key={goal.id}
-                    className="space-y-2 rounded-lg border p-4"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-                        <span className="truncate text-sm font-medium">
-                          {goal.name}
+        {goals.length === 0 ? (
+          <CardContent>
+            <EmptyState
+              icon={Target}
+              hint="No goals yet. Add one to get started."
+            />
+          </CardContent>
+        ) : (
+          <div className="space-y-2">
+            {goals.map((goal) => {
+              const progress = Math.min(
+                (goal.contributed / goal.target) * 100,
+                100,
+              );
+              const reached = goal.contributed >= goal.target;
+              return (
+                <div key={goal.id} className="space-y-2 rounded-lg border p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                      <span className="truncate text-sm font-medium">
+                        {goal.name}
+                      </span>
+                      {goal.deadline && (
+                        <span className="text-xs text-muted-foreground">
+                          by {format(new Date(goal.deadline), "PPP")}
                         </span>
-                        {goal.deadline && (
-                          <span className="text-xs text-muted-foreground">
-                            by {format(new Date(goal.deadline), "PPP")}
-                          </span>
-                        )}
-                      </span>
-                      {canEdit && (
-                        <GoalActions goal={goal} currency={currency} />
                       )}
-                    </div>
-                    <Progress
-                      value={progress}
-                      indicatorClassName={reached ? "bg-income" : "bg-primary"}
-                      aria-label={`${goal.name} goal progress`}
-                    />
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      <span className="font-medium text-foreground">
-                        {Math.floor(progress)}%
-                      </span>
-                      {" · "}
-                      {formatter.format(goal.contributed)} of{" "}
-                      {formatter.format(goal.target)}
-                    </p>
+                    </span>
+                    {canEdit && <GoalActions goal={goal} currency={currency} />}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </SkeletonWrapper>
+                  <Progress
+                    value={progress}
+                    indicatorClassName={reached ? "bg-income" : "bg-primary"}
+                    aria-label={`${goal.name} goal progress`}
+                  />
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    <span className="font-medium text-foreground">
+                      {Math.floor(progress)}%
+                    </span>
+                    {" · "}
+                    {formatter.format(goal.contributed)} of{" "}
+                    {formatter.format(goal.target)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

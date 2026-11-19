@@ -13,6 +13,7 @@ import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
+import { settlementCategoryExclusion } from "@/lib/settlements";
 import {
   fromCents,
   sharesMatchExpense,
@@ -109,6 +110,51 @@ export async function getBalanceStats(
 
 export type GetBalanceStatsResponseType = Awaited<
   ReturnType<typeof getBalanceStats>
+>;
+
+export async function getCategoriesStats(
+  householdId: string,
+  from: Date,
+  to: Date,
+) {
+  const stats = await prisma.transaction.groupBy({
+    by: [
+      "type",
+      "category",
+      "categoryIcon",
+      "categoryIconKind",
+      "categoryIconColor",
+    ],
+    where: {
+      householdId,
+      shared: true,
+      category: settlementCategoryExclusion(),
+      date: {
+        gte: from,
+        lte: to,
+      },
+    },
+    _sum: {
+      amount: true,
+    },
+    orderBy: {
+      _sum: {
+        amount: "desc",
+      },
+    },
+  });
+
+  return stats.map((row) => ({
+    ...row,
+    _sum: {
+      ...row._sum,
+      amount: row._sum.amount?.toNumber() ?? 0,
+    },
+  }));
+}
+
+export type GetCategoriesStatsResponseType = Awaited<
+  ReturnType<typeof getCategoriesStats>
 >;
 
 export type CreateTransactionInput = {

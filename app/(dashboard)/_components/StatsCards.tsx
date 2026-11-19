@@ -1,13 +1,12 @@
 "use client";
 import type { ReactNode } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
@@ -21,7 +20,7 @@ interface Props {
 }
 
 const StatsCards = ({ from, to, currency }: Props) => {
-  const statsQuery = useQuery<GetBalanceStatsResponseType>({
+  const { data } = useSuspenseQuery<GetBalanceStatsResponseType>({
     queryKey: queryKeys.overview.stats(from, to),
     queryFn: async () => {
       try {
@@ -47,51 +46,46 @@ const StatsCards = ({ from, to, currency }: Props) => {
 
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
-  const { income = 0, expense = 0 } = statsQuery.data || {};
+  const { income = 0, expense = 0 } = data;
   const balance = income - expense;
 
   return (
     <div className="space-y-4">
-      <SkeletonWrapper isLoading={statsQuery.isLoading}>
-        <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            currencyFlow={currencyFlow}
-            value={income}
-            title="Income"
-            trend="up"
-            isLoading={statsQuery.isLoading}
-            icon={
-              <div className="flex items-center justify-center rounded-lg bg-income-soft p-3">
-                <TrendingUp className="h-6 w-6 text-income-foreground" />
-              </div>
-            }
-          />
-          <StatCard
-            currencyFlow={currencyFlow}
-            value={expense}
-            title="Expense"
-            trend="down"
-            isLoading={statsQuery.isLoading}
-            icon={
-              <div className="flex items-center justify-center rounded-lg bg-expense-soft p-3">
-                <TrendingDown className="h-6 w-6 text-expense-foreground" />
-              </div>
-            }
-          />
-          <StatCard
-            currencyFlow={currencyFlow}
-            value={balance}
-            title="Balance"
-            trend={balance >= 0 ? "up" : "down"}
-            isLoading={statsQuery.isLoading}
-            icon={
-              <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
-                <Wallet className="h-6 w-6 text-primary" />
-              </div>
-            }
-          />
-        </div>
-      </SkeletonWrapper>
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          currencyFlow={currencyFlow}
+          value={income}
+          title="Income"
+          trend="up"
+          icon={
+            <div className="flex items-center justify-center rounded-lg bg-income-soft p-3">
+              <TrendingUp className="h-6 w-6 text-income-foreground" />
+            </div>
+          }
+        />
+        <StatCard
+          currencyFlow={currencyFlow}
+          value={expense}
+          title="Expense"
+          trend="down"
+          icon={
+            <div className="flex items-center justify-center rounded-lg bg-expense-soft p-3">
+              <TrendingDown className="h-6 w-6 text-expense-foreground" />
+            </div>
+          }
+        />
+        <StatCard
+          currencyFlow={currencyFlow}
+          value={balance}
+          title="Balance"
+          trend={balance >= 0 ? "up" : "down"}
+          icon={
+            <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
+              <Wallet className="h-6 w-6 text-primary" />
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 };
@@ -104,17 +98,9 @@ interface StatCardProps {
   title: string;
   icon: ReactNode;
   trend?: "up" | "down";
-  isLoading?: boolean;
 }
 
-function StatCard({
-  currencyFlow,
-  value,
-  title,
-  icon,
-  trend,
-  isLoading = false,
-}: StatCardProps) {
+function StatCard({ currencyFlow, value, title, icon, trend }: StatCardProps) {
   const trendColor =
     trend === "up" ? "text-income-foreground" : "text-expense-foreground";
   const trendBg = trend === "up" ? "bg-income-soft" : "bg-expense-soft";
@@ -140,15 +126,11 @@ function StatCard({
       </div>
 
       <div className="mt-4">
-        {isLoading ? (
-          <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
-        ) : (
-          <AnimatedNumber
-            value={value}
-            {...currencyFlow}
-            className="text-xl font-bold text-foreground tabular-nums"
-          />
-        )}
+        <AnimatedNumber
+          value={value}
+          {...currencyFlow}
+          className="text-xl font-bold text-foreground tabular-nums"
+        />
       </div>
 
       <div className="mt-2 text-xs text-muted-foreground">

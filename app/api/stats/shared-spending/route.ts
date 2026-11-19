@@ -1,7 +1,5 @@
 import { withHouseholdRoute } from "@/lib/api-route";
-import { sharedSpendingFilter } from "@/lib/budgets";
-import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
-import prisma from "@/lib/prisma";
+import { getSharedSpending } from "@/lib/budgets";
 
 export async function GET() {
   return withHouseholdRoute(async (result) => {
@@ -11,30 +9,4 @@ export async function GET() {
   });
 }
 
-export type GetSharedSpendingResponseType = Awaited<
-  ReturnType<typeof getSharedSpending>
->;
-
-async function getSharedSpending(householdId: string) {
-  const now = new Date();
-  const thisMonth = utcMonthRangeFor(now);
-  const lastMonth = previousMonthRange(now);
-
-  const sumSharedExpenses = (range: { from: Date; to: Date }) =>
-    prisma.transaction.aggregate({
-      where: sharedSpendingFilter(householdId, range),
-      _sum: {
-        amount: true,
-      },
-    });
-
-  const [thisMonthTotal, lastMonthTotal] = await Promise.all([
-    sumSharedExpenses(thisMonth),
-    sumSharedExpenses(lastMonth),
-  ]);
-
-  return {
-    thisMonth: thisMonthTotal._sum.amount?.toNumber() ?? 0,
-    lastMonth: lastMonthTotal._sum.amount?.toNumber() ?? 0,
-  };
-}
+export type { GetSharedSpendingResponseType } from "@/lib/budgets";

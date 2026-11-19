@@ -1,9 +1,8 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
   Card,
@@ -28,7 +27,7 @@ interface Props {
 const SafeToSpend = ({ currency }: Props) => {
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
-  const { data: budgets = [], isLoading } = useQuery({
+  const { data: budgets = [] } = useSuspenseQuery({
     queryKey: queryKeys.budgets,
     queryFn: async () => {
       return unwrapAction(await listBudgets());
@@ -58,36 +57,34 @@ const SafeToSpend = ({ currency }: Props) => {
           ) : undefined}
         </div>
       </CardHeader>
-      <SkeletonWrapper isLoading={isLoading}>
-        {budgets.length === 0 ? (
-          <CardContent>
-            <EmptyState
-              icon={Wallet}
-              hint="Set your first budget and this figure tells you what is safe to spend."
-            />
-          </CardContent>
-        ) : (
-          <CardContent>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="rounded-full bg-income-soft p-3">
-                  <Wallet
-                    aria-hidden="true"
-                    className="h-6 w-6 text-income-foreground"
-                  />
-                </div>
-                <div>
-                  <AnimatedNumber
-                    value={remaining}
-                    {...currencyFlow}
-                    className="text-3xl font-bold tabular-nums"
-                  />
-                </div>
+      {budgets.length === 0 ? (
+        <CardContent>
+          <EmptyState
+            icon={Wallet}
+            hint="Set your first budget and this figure tells you what is safe to spend."
+          />
+        </CardContent>
+      ) : (
+        <CardContent>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-income-soft p-3">
+                <Wallet
+                  aria-hidden="true"
+                  className="h-6 w-6 text-income-foreground"
+                />
+              </div>
+              <div>
+                <AnimatedNumber
+                  value={remaining}
+                  {...currencyFlow}
+                  className="text-3xl font-bold tabular-nums"
+                />
               </div>
             </div>
-          </CardContent>
-        )}
-      </SkeletonWrapper>
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 };
