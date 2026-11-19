@@ -8,9 +8,23 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { POLL_INTERVAL, QUERY_GC_TIME } from "@/lib/constants";
 
 const RootProvider = ({ children }: { children: ReactNode }) => {
-  const [queryClient] = useState(() => new QueryClient({}));
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: POLL_INTERVAL,
+            gcTime: QUERY_GC_TIME,
+            retry: 1,
+            refetchOnWindowFocus: true,
+            refetchIntervalInBackground: false,
+          },
+        },
+      }),
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -22,7 +36,9 @@ const RootProvider = ({ children }: { children: ReactNode }) => {
       >
         <TooltipProvider>{children}</TooltipProvider>
       </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === "development" && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 };

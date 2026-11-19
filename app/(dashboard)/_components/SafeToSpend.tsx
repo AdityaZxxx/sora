@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 
@@ -17,6 +16,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import { listBudgets } from "../_actions/budgets";
 import BudgetDialog from "../manage/_components/BudgetDialog";
@@ -29,7 +29,7 @@ const SafeToSpend = ({ currency }: Props) => {
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
   const { data: budgets = [], isLoading } = useQuery({
-    queryKey: ["budgets"],
+    queryKey: queryKeys.budgets,
     queryFn: async () => {
       return unwrapAction(await listBudgets());
     },

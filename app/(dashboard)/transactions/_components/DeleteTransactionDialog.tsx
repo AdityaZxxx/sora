@@ -1,6 +1,6 @@
 "use client";
-
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { queryKeys } from "@/lib/query-keys";
 
 import { DeleteTransaction } from "../_actions/DeleteTransaction";
 
@@ -23,7 +23,7 @@ const DeleteTransactionDialog = ({ open, setOpen, transactionId }: Props) => (
     toastId={transactionId}
     input={{ id: transactionId }}
     action={DeleteTransaction}
-    queryKeys={[["transactions"]]}
+    queryKeys={[queryKeys.transactions.all]}
   />
 );
 

@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
 
@@ -11,6 +10,7 @@ import {
   getFormatterForCurrency,
   getNumberFlowCurrencyProps,
 } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { type GetSharedSpendingResponseType } from "../../api/stats/shared-spending/route";
@@ -21,7 +21,7 @@ interface Props {
 
 const SharedSpendingCard = ({ currency }: Props) => {
   const spendingQuery = useQuery<GetSharedSpendingResponseType>({
-    queryKey: ["shared-spending"],
+    queryKey: queryKeys.sharedSpending,
     queryFn: async () => {
       const response = await fetch("/api/stats/shared-spending");
       if (!response.ok) {

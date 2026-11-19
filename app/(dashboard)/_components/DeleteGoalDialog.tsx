@@ -1,9 +1,9 @@
 "use client";
-
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { type GoalWithProgress } from "@/lib/goals";
+import { queryKeys } from "@/lib/query-keys";
 
 import { deleteGoal } from "../_actions/goals";
 
@@ -41,7 +41,7 @@ const DeleteGoalDialog = ({
       toastId={goalIdentifier}
       input={{ id: goal.id }}
       action={deleteGoal}
-      queryKeys={[["goals"]]}
+      queryKeys={[queryKeys.goals]}
     />
   );
 };

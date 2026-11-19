@@ -1,5 +1,4 @@
 "use client";
-
 import type { HistoryChartRow, SeriesKey } from "./HistoryChart";
 import type { Period, Timeframe } from "@/lib/types";
 
@@ -15,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import HistoryPeriodSelector from "./HistoryPeriodSelector";
@@ -87,7 +87,7 @@ const History = ({ currency }: { currency: string | null }) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const historyDataQuery = useQuery({
-    queryKey: ["overview", "history", timeframe, period],
+    queryKey: queryKeys.overview.history(timeframe, period),
     queryFn: async () => {
       const response = await fetch(
         `/api/history-data?timeframe=${timeframe}&year=${period.year}&month=${period.month}`,

@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, VIEW_ONLY_ROLE } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 import { listMembers } from "../app/(dashboard)/manage/_actions/membership";
 
 export function useMembers() {
   return useQuery({
-    queryKey: ["householdMembers"],
+    queryKey: queryKeys.householdMembers,
     queryFn: async () => {
       return unwrapAction(await listMembers()) ?? [];
     },

@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { Handshake, Users } from "lucide-react";
 
@@ -16,6 +15,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema, type MemberBalance } from "@/schemas/balances";
 
 import RecordSettlementDialog from "./RecordSettlementDialog";
@@ -29,7 +29,7 @@ const Balances = ({ currency, canEdit = true }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const balancesQuery = useQuery<MemberBalance[]>({
-    queryKey: ["balances"],
+    queryKey: queryKeys.balances,
     queryFn: () =>
       fetchJson(
         "/api/balances",

@@ -1,10 +1,10 @@
 "use client";
-
 import type { ReactNode } from "react";
 
 import { useRouter } from "next/navigation";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { queryKeys } from "@/lib/query-keys";
 
 import { leaveHousehold } from "../_actions/membership";
 
@@ -35,7 +35,11 @@ const LeaveHouseholdDialog = ({ trigger, memberCount }: Props) => {
       }
       toastId="leave-household"
       action={leaveHousehold}
-      queryKeys={[["household"], ["households"], ["householdMembers"]]}
+      queryKeys={[
+        queryKeys.household,
+        queryKeys.households,
+        queryKeys.householdMembers,
+      ]}
       onSuccess={() => router.refresh()}
     />
   );

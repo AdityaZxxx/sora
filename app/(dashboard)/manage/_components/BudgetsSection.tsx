@@ -1,5 +1,4 @@
 "use client";
-
 import type { Household } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +36,7 @@ import { unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import { listBudgets } from "../../_actions/budgets";
@@ -45,7 +45,7 @@ import DeleteBudgetDialog from "./DeleteBudgetDialog";
 
 const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
   const household = useQuery<Household>({
-    queryKey: ["household"],
+    queryKey: queryKeys.household,
     queryFn: async () => {
       const res = await fetch("/api/user-settings");
       if (!res.ok) {
@@ -64,7 +64,7 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["budgets"],
+    queryKey: queryKeys.budgets,
     queryFn: async () => {
       return unwrapAction(await listBudgets());
     },

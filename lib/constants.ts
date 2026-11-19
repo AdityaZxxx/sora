@@ -1,6 +1,7 @@
 export const MAX_DATE_RANGE = 90;
 
 export const POLL_INTERVAL = 30_000;
+export const QUERY_GC_TIME = 5 * 60_000;
 
 export const ACTIVE_HOUSEHOLD_COOKIE = "sora_active_household";
 

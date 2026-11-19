@@ -1,5 +1,4 @@
 "use client";
-
 import type { InviteLink } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 import {
   createInviteLink,
@@ -55,7 +55,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
   const queryClient = useQueryClient();
 
   const { data: inviteLinks = [], isLoading } = useQuery<InviteLink[]>({
-    queryKey: ["inviteLinks"],
+    queryKey: queryKeys.inviteLinks,
     queryFn: async () => {
       return unwrapAction(await listInviteLinks()) ?? [];
     },
@@ -69,7 +69,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onSuccess: async () => {
       toast.success("Invite link created", { id: "invite-link" });
-      await queryClient.invalidateQueries({ queryKey: ["inviteLinks"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
     },
     onError: (error) => {
       toast.error(
@@ -90,7 +90,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onSuccess: async () => {
       toast.success("Invite link revoked", { id: "invite-link" });
-      await queryClient.invalidateQueries({ queryKey: ["inviteLinks"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
     },
     onError: (error) => {
       toast.error(

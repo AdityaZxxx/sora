@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +37,7 @@ import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { firstIssueMessage } from "@/lib/issue-message";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import {
   CreateRecurringItemSchema,
@@ -170,7 +170,7 @@ export default function RecurringItemDialog({
     toast.success(isEdit ? "Bill updated" : "Bill added", {
       id: "recurring-item",
     });
-    queryClient.invalidateQueries({ queryKey: ["recurringItems"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
     handleOpenChange(false);
   }
 

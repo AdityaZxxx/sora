@@ -1,5 +1,4 @@
 "use client";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { House, Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useHouseholds } from "@/hooks/use-households";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { DEFAULT_HOUSEHOLD_NAME } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 import { renameHousehold } from "../_actions/households";
 
@@ -52,7 +52,7 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["households"],
+        queryKey: queryKeys.households,
       });
       setOpen(false);
     },

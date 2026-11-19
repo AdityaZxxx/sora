@@ -1,9 +1,9 @@
 "use client";
-
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { type BudgetWithProgress } from "@/lib/budgets";
+import { queryKeys } from "@/lib/query-keys";
 
 import { deleteBudget } from "../../_actions/budgets";
 
@@ -34,7 +34,7 @@ const DeleteBudgetDialog = ({ trigger, budget, open, onOpenChange }: Props) => (
     toastId={`delete-budget-${budget.id}`}
     input={{ id: budget.id }}
     action={deleteBudget}
-    queryKeys={[["budgets"]]}
+    queryKeys={[queryKeys.budgets]}
   />
 );
 

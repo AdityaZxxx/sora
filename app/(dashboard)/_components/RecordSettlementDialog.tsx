@@ -1,5 +1,4 @@
 "use client";
-
 import type { ReactElement, ReactNode } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +29,7 @@ import {
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { Currencies } from "@/lib/currencies";
 import { hasTwoDecimals } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import { RecordSettlement } from "../_actions/balance";
 
@@ -63,16 +63,16 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
         id: "record-settlement",
       });
       queryClient.invalidateQueries({
-        queryKey: ["balances"],
+        queryKey: queryKeys.balances,
       });
       queryClient.invalidateQueries({
-        queryKey: ["transactions"],
+        queryKey: queryKeys.transactions.all,
       });
       queryClient.invalidateQueries({
-        queryKey: ["overview"],
+        queryKey: queryKeys.overview.all,
       });
       queryClient.invalidateQueries({
-        queryKey: ["simplified-debts"],
+        queryKey: queryKeys.simplifiedDebts,
       });
       setMemberId("");
       setAmount(0);

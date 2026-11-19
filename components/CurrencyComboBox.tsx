@@ -1,5 +1,4 @@
 "use client";
-
 import type { Currency } from "../lib/currencies";
 import type { Household } from "@prisma/client";
 
@@ -26,6 +25,7 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { actionErrorMessage } from "@/lib/action-client";
 import { POLL_INTERVAL } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 import { UpdateUserCurrency } from "../app/wizard/_actions/userSettings";
 import { Currencies } from "../lib/currencies";
@@ -37,7 +37,7 @@ export function CurrencyComboBox() {
   const queryClient = useQueryClient();
 
   const household = useQuery<Household>({
-    queryKey: ["household"],
+    queryKey: queryKeys.household,
     queryFn: async () => {
       const res = await fetch("/api/user-settings");
       if (!res.ok) {
@@ -71,7 +71,7 @@ export function CurrencyComboBox() {
       if (!saved) {
         return;
       }
-      queryClient.setQueryData<Household>(["household"], (previous) =>
+      queryClient.setQueryData<Household>(queryKeys.household, (previous) =>
         previous ? { ...previous, currency: saved.currency } : previous,
       );
     },

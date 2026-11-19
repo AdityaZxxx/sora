@@ -1,3 +1,4 @@
+"use client";
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { defaultCategoryIcon, withIconKindDefault } from "@/lib/category-icons";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { CreateCategorySchema } from "@/schemas/categories";
 
@@ -145,9 +147,9 @@ const CategoryFormDialog = ({
 
       successCallback?.(savedCategory);
 
-      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
       if (isEditing) {
-        await queryClient.invalidateQueries({ queryKey: ["budgets"] });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
       }
 
       setOpen(false);
