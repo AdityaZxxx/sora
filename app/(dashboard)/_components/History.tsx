@@ -2,12 +2,11 @@
 import type { HistoryChartRow, SeriesKey } from "./HistoryChart";
 import type { Period, Timeframe } from "@/lib/types";
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChartNoAxesColumn } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -71,42 +70,20 @@ function HistoryLegend({
   );
 }
 
-const History = ({ currency }: { currency: string | null }) => {
-  const [timeframe, setTimeframe] = useState<Timeframe>("month");
+interface Props {
+  currency: string | null;
+  initialTimeframe: Timeframe;
+  initialPeriod: Period;
+}
+
+const History = ({ currency, initialTimeframe, initialPeriod }: Props) => {
+  const [timeframe, setTimeframe] = useState<Timeframe>(initialTimeframe);
   const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<SeriesKey>>(
     () => new Set<SeriesKey>(),
   );
-  const [period, setPeriod] = useState<Period>(() => {
-    const now = new Date();
-    return {
-      month: now.getMonth(),
-      year: now.getFullYear(),
-    };
-  });
+  const [period, setPeriod] = useState<Period>(initialPeriod);
 
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
-
-  const historyDataQuery = useQuery({
-    queryKey: queryKeys.overview.history(timeframe, period),
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/history-data?timeframe=${timeframe}&year=${period.year}&month=${period.month}`,
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch history data: ${errorText}`);
-      }
-      return response.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-
-  const dataAvailable =
-    historyDataQuery.data &&
-    Array.isArray(historyDataQuery.data) &&
-    historyDataQuery.data.length > 0;
 
   return (
     <div className="section">
@@ -139,33 +116,71 @@ const History = ({ currency }: { currency: string | null }) => {
           </div>
         </CardHeader>
         <CardContent>
-          <SkeletonWrapper isLoading={historyDataQuery.isLoading}>
-            {dataAvailable ? (
-              <ScrollArea
-                className="h-[312px] w-full md:h-[300px]"
-                viewportClassName="w-full overscroll-x-contain pb-3 md:pb-0"
-                orientation="horizontal"
-              >
-                <div className="h-full min-w-180 pb-3 md:min-w-0 md:pb-0">
-                  <HistoryChart
-                    data={historyDataQuery.data as HistoryChartRow[]}
-                    timeframe={timeframe}
-                    formatter={formatter}
-                    hidden={hiddenSeries}
-                  />
-                </div>
-              </ScrollArea>
-            ) : (
-              <EmptyState
-                icon={ChartNoAxesColumn}
-                hint="No data for this period. Try a different period or add new transactions."
-                className="min-h-[300px]"
-              />
-            )}
-          </SkeletonWrapper>
+          <Suspense fallback={<Skeleton className="h-[300px] w-full" />}>
+            <HistoryResults
+              timeframe={timeframe}
+              period={period}
+              hidden={hiddenSeries}
+              formatter={formatter}
+            />
+          </Suspense>
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const HistoryResults = ({
+  timeframe,
+  period,
+  hidden,
+  formatter,
+}: {
+  timeframe: Timeframe;
+  period: Period;
+  hidden: ReadonlySet<SeriesKey>;
+  formatter: ReturnType<typeof getFormatterForCurrency>;
+}) => {
+  const { data } = useSuspenseQuery({
+    queryKey: queryKeys.overview.history(timeframe, period),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/history-data?timeframe=${timeframe}&year=${period.year}&month=${period.month}`,
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch history data: ${errorText}`);
+      }
+      return response.json();
+    },
+    staleTime: POLL_INTERVAL,
+    refetchInterval: POLL_INTERVAL,
+    refetchOnWindowFocus: true,
+  });
+
+  const dataAvailable = Array.isArray(data) && data.length > 0;
+
+  return dataAvailable ? (
+    <ScrollArea
+      className="h-[312px] w-full md:h-[300px]"
+      viewportClassName="w-full overscroll-x-contain pb-3 md:pb-0"
+      orientation="horizontal"
+    >
+      <div className="h-full min-w-180 pb-3 md:min-w-0 md:pb-0">
+        <HistoryChart
+          data={data as HistoryChartRow[]}
+          timeframe={timeframe}
+          formatter={formatter}
+          hidden={hidden}
+        />
+      </div>
+    </ScrollArea>
+  ) : (
+    <EmptyState
+      icon={ChartNoAxesColumn}
+      hint="No data for this period. Try a different period or add new transactions."
+      className="min-h-[300px]"
+    />
   );
 };
 

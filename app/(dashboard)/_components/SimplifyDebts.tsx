@@ -1,8 +1,7 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import {
   Card,
   CardContent,
@@ -27,7 +26,7 @@ interface Props {
 const SimplifyDebts = ({ currency }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
-  const debtsQuery = useQuery<SimplifiedTransfer[]>({
+  const { data: transfers = [] } = useSuspenseQuery<SimplifiedTransfer[]>({
     queryKey: queryKeys.simplifiedDebts,
     queryFn: () =>
       fetchJson(
@@ -40,8 +39,6 @@ const SimplifyDebts = ({ currency }: Props) => {
     refetchOnWindowFocus: true,
   });
 
-  const transfers = debtsQuery.data ?? [];
-
   return (
     <div className="section">
       <Card className="transition-all hover:shadow-md">
@@ -53,34 +50,32 @@ const SimplifyDebts = ({ currency }: Props) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SkeletonWrapper isLoading={debtsQuery.isLoading}>
-            {transfers.length === 0 ? (
-              <CardContent>
-                <EmptyState
-                  icon={CheckCircle2}
-                  hint="All settled up. No transfers needed right now."
-                />
-              </CardContent>
-            ) : (
-              <div className="space-y-2">
-                {transfers.map((transfer) => (
-                  <div
-                    key={`${transfer.fromUserId}-${transfer.toUserId}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border p-4"
-                  >
-                    <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                      <span className="truncate">{transfer.fromName}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{transfer.toName}</span>
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatter.format(transfer.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SkeletonWrapper>
+          {transfers.length === 0 ? (
+            <CardContent>
+              <EmptyState
+                icon={CheckCircle2}
+                hint="All settled up. No transfers needed right now."
+              />
+            </CardContent>
+          ) : (
+            <div className="space-y-2">
+              {transfers.map((transfer) => (
+                <div
+                  key={`${transfer.fromUserId}-${transfer.toUserId}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border p-4"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{transfer.fromName}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{transfer.toName}</span>
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {formatter.format(transfer.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

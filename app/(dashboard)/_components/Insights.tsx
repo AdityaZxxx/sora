@@ -1,12 +1,11 @@
 "use client";
 import type { GetInsightsResponseType } from "../../api/insights/route";
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { HandCoins } from "lucide-react";
 import dynamic from "next/dynamic";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import AddIconButton from "@/components/ui/add-icon-button";
 import {
   Card,
@@ -58,7 +57,7 @@ const rateFor = (bucket?: { income: number; expense: number }) =>
 const Insights = ({ currency }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
-  const { data: queryMonths, isLoading } = useQuery<GetInsightsResponseType>({
+  const { data: queryMonths } = useSuspenseQuery<GetInsightsResponseType>({
     queryKey: queryKeys.insights,
     queryFn: async () => {
       const response = await fetch("/api/insights");
@@ -78,7 +77,7 @@ const Insights = ({ currency }: Props) => {
     (bucket) => bucket.income > 0 || bucket.expense > 0,
   );
 
-  if (!isLoading && !hasAnyData) {
+  if (!hasAnyData) {
     return (
       <div className="section">
         <Card className="transition-all hover:shadow-md">
@@ -177,11 +176,9 @@ const Insights = ({ currency }: Props) => {
           <CardDescription>Last six months</CardDescription>
         </CardHeader>
         <CardContent>
-          <SkeletonWrapper isLoading={isLoading}>
-            <div className="h-44 w-full">
-              <TrendChart months={months} formatter={formatter} />
-            </div>
-          </SkeletonWrapper>
+          <div className="h-44 w-full">
+            <TrendChart months={months} formatter={formatter} />
+          </div>
         </CardContent>
       </Card>
     </div>
