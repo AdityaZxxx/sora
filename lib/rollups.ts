@@ -43,7 +43,7 @@ export async function incrementRollups(
 
   await tx.monthHistory.upsert({
     where: {
-      day_month_year_householdId: {
+      householdId_day_month_year: {
         householdId,
         ...monthBucket(date),
       },
@@ -66,7 +66,7 @@ export async function incrementRollups(
 
   await tx.yearHistory.upsert({
     where: {
-      month_year_householdId: {
+      householdId_month_year: {
         householdId,
         ...yearBucket(date),
       },
@@ -97,7 +97,7 @@ export async function decrementRollups(
 
   await tx.monthHistory.update({
     where: {
-      day_month_year_householdId: {
+      householdId_day_month_year: {
         householdId,
         ...monthBucket(date),
       },
@@ -118,7 +118,7 @@ export async function decrementRollups(
 
   await tx.yearHistory.update({
     where: {
-      month_year_householdId: {
+      householdId_month_year: {
         householdId,
         ...yearBucket(date),
       },
