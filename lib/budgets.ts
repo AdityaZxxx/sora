@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { requireCategory } from "@/lib/categories";
-import { utcMonthRangeFor } from "@/lib/dates";
+import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
@@ -25,6 +25,31 @@ export function sharedSpendingFilter(
     },
   };
 }
+
+export async function getSharedSpending(householdId: string) {
+  const now = new Date();
+  const ranges = [utcMonthRangeFor(now), previousMonthRange(now)];
+
+  const [thisMonth, lastMonth] = await Promise.all(
+    ranges.map((range) =>
+      prisma.transaction.aggregate({
+        where: sharedSpendingFilter(householdId, range),
+        _sum: {
+          amount: true,
+        },
+      }),
+    ),
+  );
+
+  return {
+    thisMonth: thisMonth._sum.amount?.toNumber() ?? 0,
+    lastMonth: lastMonth._sum.amount?.toNumber() ?? 0,
+  };
+}
+
+export type GetSharedSpendingResponseType = Awaited<
+  ReturnType<typeof getSharedSpending>
+>;
 
 export async function getMonthSpentByCategory(
   householdId: string,

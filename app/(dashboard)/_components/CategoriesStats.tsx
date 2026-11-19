@@ -1,12 +1,11 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
 
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 import CategoryIcon from "@/components/CategoryIcon";
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
@@ -31,7 +30,7 @@ interface Props {
 }
 
 const CategoriesStats = ({ from, to, currency }: Props) => {
-  const statsQuery = useQuery<GetCategoriesStatsResponseType>({
+  const { data: stats } = useSuspenseQuery<GetCategoriesStatsResponseType>({
     queryKey: queryKeys.overview.categories(from, to),
     queryFn: async () => {
       const response = await fetch(
@@ -52,7 +51,6 @@ const CategoriesStats = ({ from, to, currency }: Props) => {
 
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
-  const stats = statsQuery.data || [];
   const incomeData = stats.filter((d) => d.type === "income");
   const expenseData = stats.filter((d) => d.type === "expense");
 
@@ -70,22 +68,18 @@ const CategoriesStats = ({ from, to, currency }: Props) => {
 
   return (
     <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
-      <SkeletonWrapper isLoading={statsQuery.isLoading}>
-        <CategoriesCard
-          formatter={formatter}
-          type="income"
-          data={incomeStats.data}
-          total={incomeStats.total}
-        />
-      </SkeletonWrapper>
-      <SkeletonWrapper isLoading={statsQuery.isLoading}>
-        <CategoriesCard
-          formatter={formatter}
-          type="expense"
-          data={expenseStats.data}
-          total={expenseStats.total}
-        />
-      </SkeletonWrapper>
+      <CategoriesCard
+        formatter={formatter}
+        type="income"
+        data={incomeStats.data}
+        total={incomeStats.total}
+      />
+      <CategoriesCard
+        formatter={formatter}
+        type="expense"
+        data={expenseStats.data}
+        total={expenseStats.total}
+      />
     </div>
   );
 };
