@@ -7,7 +7,15 @@ export const getInviteByToken = cache(async (token: string) =>
     where: { token, revokedAt: null },
     select: {
       householdId: true,
-      household: { select: { name: true } },
+      household: {
+        select: {
+          name: true,
+          memberships: {
+            take: 4,
+            select: { user: { select: { name: true } } },
+          },
+        },
+      },
       createdBy: { select: { name: true } },
     },
   }),
