@@ -12,17 +12,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
+import { getInviteByToken } from "@/lib/invite-context";
 import prisma from "@/lib/prisma";
 
 import JoinHouseholdCard from "./JoinHouseholdCard";
 
-export const metadata: Metadata = {
-  title: "Household invite",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const invite = await getInviteByToken(token);
+
+  return {
+    title: invite ? `Join ${invite.household.name}` : "Household invite",
+    description: invite
+      ? `${invite.createdBy.name} invited you to track finances together in ${invite.household.name}.`
+      : "This invite link is invalid or has been revoked.",
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
 
 const InvitePage = async ({
   params,
@@ -32,14 +45,9 @@ const InvitePage = async ({
   const { token } = await params;
   const session = await getSession();
 
-  const inviteLink = await prisma.inviteLink.findFirst({
-    where: {
-      token,
-      revokedAt: null,
-    },
-  });
+  const invite = await getInviteByToken(token);
 
-  if (!inviteLink) {
+  if (!invite) {
     return <InvalidInviteLink />;
   }
 
@@ -50,7 +58,7 @@ const InvitePage = async ({
   const existingMembership = await prisma.householdMembership.findUnique({
     where: {
       householdId_userId: {
-        householdId: inviteLink.householdId,
+        householdId: invite.householdId,
         userId: session.user.id,
       },
     },
@@ -60,32 +68,13 @@ const InvitePage = async ({
     redirect("/");
   }
 
-  const [household, inviter] = await Promise.all([
-    prisma.household.findUnique({
-      where: {
-        id: inviteLink.householdId,
-      },
-      select: {
-        name: true,
-      },
-    }),
-    prisma.user.findUnique({
-      where: {
-        id: inviteLink.createdById,
-      },
-      select: {
-        name: true,
-      },
-    }),
-  ]);
-
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
       <Logo />
       <JoinHouseholdCard
         token={token}
-        householdName={household?.name ?? null}
-        inviterName={inviter?.name ?? null}
+        householdName={invite.household.name}
+        inviterName={invite.createdBy.name}
       />
     </div>
   );

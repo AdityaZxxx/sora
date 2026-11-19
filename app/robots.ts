@@ -1,0 +1,14 @@
+import type { MetadataRoute } from "next";
+
+import { siteUrl } from "@/app/layout";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/api/", "/invite/", "/manage/", "/transactions/", "/wizard/"],
+    },
+    sitemap: `${siteUrl}/sitemap.xml`,
+  };
+}
