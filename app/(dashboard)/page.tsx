@@ -63,6 +63,8 @@ const DashboardPage = async () => {
                       </Button>
                     }
                     type="income"
+                    currency={currency}
+                    memberCount={memberCount}
                   />
                   <CreateTransactionDialog
                     trigger={
@@ -74,6 +76,8 @@ const DashboardPage = async () => {
                       </Button>
                     }
                     type="expense"
+                    currency={currency}
+                    memberCount={memberCount}
                   />
                 </div>
               )}
@@ -82,11 +86,15 @@ const DashboardPage = async () => {
         </div>
         {canEdit && <AddMemberCta memberCount={memberCount} />}
         <Overview currency={currency} initialDateRange={dateRange} />
-        <Insights currency={currency} />
+        <Insights currency={currency} memberCount={memberCount} />
         <div className="section grid gap-4 lg:grid-cols-3">
           <SafeToSpend currency={currency} />
           <div className="lg:col-span-2">
-            <UpcomingBills currency={currency} canEdit={canEdit} />
+            <UpcomingBills
+              currency={currency}
+              canEdit={canEdit}
+              memberCount={memberCount}
+            />
           </div>
         </div>
         {memberCount > 1 && <SharedSpendingCard currency={currency} />}

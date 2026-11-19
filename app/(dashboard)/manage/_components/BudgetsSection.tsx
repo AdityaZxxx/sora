@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/tooltip";
 import { unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { DEFAULT_CURRENCY, POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
@@ -43,21 +43,13 @@ import { listBudgets } from "../../_actions/budgets";
 import BudgetDialog from "./BudgetDialog";
 import DeleteBudgetDialog from "./DeleteBudgetDialog";
 
-const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
-  const household = useQuery<Household>({
-    queryKey: queryKeys.household,
-    queryFn: async () => {
-      const res = await fetch("/api/user-settings");
-      if (!res.ok) {
-        throw new Error("Failed to fetch user settings");
-      }
-      return res.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-
+const BudgetsSection = ({
+  canEdit,
+  household,
+}: {
+  canEdit: boolean;
+  household: Household;
+}) => {
   const {
     data: budgets = [],
     isLoading,
@@ -73,9 +65,9 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
     refetchOnWindowFocus: true,
   });
 
-  const format = household.data?.currency
-    ? getFormatterForCurrency(household.data.currency).format
-    : (value: number) => value.toFixed(2);
+  const format = getFormatterForCurrency(
+    household.currency ?? DEFAULT_CURRENCY,
+  ).format;
 
   return (
     <section>
@@ -90,7 +82,7 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
             </div>
             {canEdit && (
               <BudgetDialog
-                household={household.data}
+                household={household}
                 trigger={<AddIconButton label="Create budget" />}
               />
             )}
@@ -123,7 +115,7 @@ const BudgetsSection = ({ canEdit }: { canEdit: boolean }) => {
                   <BudgetCard
                     key={budget.id}
                     budget={budget}
-                    household={household.data}
+                    household={household}
                     format={format}
                     canEdit={canEdit}
                   />

@@ -30,6 +30,7 @@ import CreateTransactionDialog from "./CreateTransactionDialog";
 
 interface Props {
   currency: string | null;
+  memberCount: number;
 }
 
 const monthLong = (year: number, month: number) =>
@@ -54,7 +55,7 @@ const rateFor = (bucket?: { income: number; expense: number }) =>
     ? (bucket.income - bucket.expense) / bucket.income
     : undefined;
 
-const Insights = ({ currency }: Props) => {
+const Insights = ({ currency, memberCount }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const { data: queryMonths } = useSuspenseQuery<GetInsightsResponseType>({
@@ -86,6 +87,8 @@ const Insights = ({ currency }: Props) => {
               <CardTitle className="text-lg">Savings rate</CardTitle>
               <CreateTransactionDialog
                 type="expense"
+                currency={currency ?? DEFAULT_CURRENCY}
+                memberCount={memberCount}
                 trigger={<AddIconButton label="Add a transaction" />}
               />
             </div>

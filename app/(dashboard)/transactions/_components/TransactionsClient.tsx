@@ -9,7 +9,7 @@ import { MAX_DATE_RANGE } from "@/lib/constants";
 
 import TransactionTable from "./TransactionTable";
 
-const TransactionsClient = () => {
+const TransactionsClient = ({ currency }: { currency: string }) => {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => ({
     from: startOfMonth(new Date()),
     to: new Date(),
@@ -48,7 +48,11 @@ const TransactionsClient = () => {
         </div>
       </header>
       <div className="container py-8">
-        <TransactionTable from={dateRange.from} to={dateRange.to} />
+        <TransactionTable
+          from={dateRange.from}
+          to={dateRange.to}
+          currency={currency}
+        />
       </div>
     </div>
   );

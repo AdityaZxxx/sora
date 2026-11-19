@@ -1,6 +1,6 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
-import type { Category } from "@prisma/client";
+import type { Category, Household } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -42,7 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { DEFAULT_CURRENCY, POLL_INTERVAL } from "@/lib/constants";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ import HouseholdSection from "./HouseholdSection";
 import InviteLinkDialog from "./InviteLinkDialog";
 import MembersSection from "./MembersSection";
 
-const ManagePageClient = () => {
+const ManagePageClient = ({ household }: { household: Household }) => {
   const { canEdit } = useCallerRole();
 
   return (
@@ -100,7 +100,11 @@ const ManagePageClient = () => {
             </section>
           )}
 
-          <AgentAccessSection canEdit={canEdit} />
+          <AgentAccessSection
+            key={household.id}
+            canEdit={canEdit}
+            agentAccessEnabled={household.agentAccessEnabled}
+          />
 
           <MembersSection />
 
@@ -114,7 +118,10 @@ const ManagePageClient = () => {
               </CardHeader>
               <CardContent>
                 <div className="max-w-xs">
-                  <CurrencyComboBox />
+                  <CurrencyComboBox
+                    key={household.id}
+                    currency={household.currency ?? DEFAULT_CURRENCY}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -130,7 +137,11 @@ const ManagePageClient = () => {
             </div>
           </section>
 
-          <BudgetsSection canEdit={canEdit} />
+          <BudgetsSection
+            key={household.id}
+            canEdit={canEdit}
+            household={household}
+          />
 
           <AccountSection />
         </div>

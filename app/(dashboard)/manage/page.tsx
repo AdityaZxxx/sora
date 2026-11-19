@@ -1,4 +1,7 @@
 import { type Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { requireHousehold } from "@/lib/household";
 
 import ManagePageClient from "./_components/ManagePageClient";
 
@@ -13,6 +16,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ManagePage() {
-  return <ManagePageClient />;
+export default async function ManagePage() {
+  const result = await requireHousehold();
+  if (!result) {
+    redirect("/wizard");
+  }
+
+  return <ManagePageClient household={result.household} />;
 }

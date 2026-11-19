@@ -1,6 +1,5 @@
 "use client";
 import type { TokenScope } from "@/lib/types";
-import type { Household } from "@prisma/client";
 import type { ReactElement } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,35 +67,26 @@ const todayDateValue = () => formatDateValue(new Date());
 
 const isFutureDate = (value: string) => !value || value >= todayDateValue();
 
-const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {
+const AgentAccessSection = ({
+  canEdit,
+  agentAccessEnabled,
+}: {
+  canEdit: boolean;
+  agentAccessEnabled: boolean;
+}) => {
   const queryClient = useQueryClient();
-
-  const { data: household } = useQuery<Household>({
-    queryKey: queryKeys.household,
-    queryFn: async () => {
-      const res = await fetch("/api/user-settings");
-      if (!res.ok) {
-        throw new Error("Failed to fetch user settings");
-      }
-      return res.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-
-  const enabled = household?.agentAccessEnabled ?? false;
+  const [enabled, setEnabled] = useState(agentAccessEnabled);
 
   const accessMutation = useMutation({
     mutationFn: async (input: Parameters<typeof setAgentAccess>[0]) => {
       return unwrapAction(await setAgentAccess(input));
     },
     onSuccess: async (_data, variables) => {
+      setEnabled(variables.enabled);
       toast.success(
         variables.enabled ? "Agent access enabled" : "Agent access turned off",
         { id: "agent-access" },
       );
-      await queryClient.invalidateQueries({ queryKey: queryKeys.household });
       await queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
     },
     onError: (error) => {
