@@ -1,4 +1,8 @@
 import { type Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { DEFAULT_CURRENCY } from "@/lib/constants";
+import { requireHousehold } from "@/lib/household";
 
 import TransactionsClient from "./_components/TransactionsClient";
 
@@ -24,6 +28,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TransactionsPage() {
-  return <TransactionsClient />;
+export default async function TransactionsPage() {
+  const result = await requireHousehold();
+  if (!result) {
+    redirect("/wizard");
+  }
+
+  return (
+    <TransactionsClient
+      currency={result.household.currency ?? DEFAULT_CURRENCY}
+    />
+  );
 }

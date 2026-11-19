@@ -1,5 +1,4 @@
 "use client";
-import type { Household } from "@prisma/client";
 import type {
   ColumnFiltersState,
   PaginationState,
@@ -66,7 +65,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { POLL_INTERVAL } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
@@ -82,6 +81,7 @@ import {
 interface Props {
   from: Date;
   to: Date;
+  currency: string;
 }
 
 type TransactionHistoryRow = GetTransactionsHistoryResponseType[0];
@@ -217,27 +217,13 @@ const buildColumns = (formatAmount: (value: number) => string) =>
     }),
   ]);
 
-const TransactionTable = ({ from, to }: Props) => {
+const TransactionTable = ({ from, to, currency }: Props) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
-  const householdQuery = useQuery<Household>({
-    queryKey: queryKeys.household,
-    queryFn: async () => {
-      const res = await fetch("/api/user-settings");
-      if (!res.ok) {
-        throw new Error("Failed to fetch user settings");
-      }
-      return res.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-  const currency = householdQuery.data?.currency ?? DEFAULT_CURRENCY;
   const formatAmount = getFormatterForCurrency(currency).format;
   const columns = buildColumns(formatAmount);
 
@@ -271,11 +257,7 @@ const TransactionTable = ({ from, to }: Props) => {
   const totalRows = table.getFilteredRowModel().rows.length;
   const pageCount = Math.max(table.getPageCount(), 1);
 
-  const csvData = getCsvData(
-    history.data,
-    formatAmount,
-    householdQuery.data?.currency ?? DEFAULT_CURRENCY,
-  );
+  const csvData = getCsvData(history.data, formatAmount, currency);
 
   const csvHeaders = [
     { label: "Date", key: "Date" },

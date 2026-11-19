@@ -1,6 +1,5 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
-import type { Household } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
 import { useStore, useForm, type StandardSchemaV1 } from "@tanstack/react-form";
@@ -11,7 +10,6 @@ import { useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
-import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,7 +43,7 @@ import {
 } from "@/components/ui/select";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { POLL_INTERVAL } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -59,7 +57,6 @@ import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
 import { listGoals } from "../_actions/goals";
-import { getHouseholdMemberCount } from "../_actions/household";
 import { CreateTransaction } from "../_actions/transaction";
 import { listMembers } from "../manage/_actions/membership";
 import CategoryPicker from "./CategoryPicker";
@@ -67,6 +64,8 @@ import CategoryPicker from "./CategoryPicker";
 interface Props {
   trigger: ReactNode;
   type: TransactionType;
+  currency: string;
+  memberCount: number;
   initialValues?: {
     description?: string;
     category?: string;
@@ -91,6 +90,8 @@ type CreateTransactionFormValues = {
 const CreateTransactionDialog = ({
   trigger,
   type,
+  currency,
+  memberCount,
   initialValues,
   recurringItemId,
 }: Props) => {
@@ -98,23 +99,9 @@ const CreateTransactionDialog = ({
   const dialogType = initialValues?.type ?? type;
   const [initialDate] = useState(() => new Date());
 
-  const household = useQuery<Household>({
-    queryKey: queryKeys.household,
-    queryFn: async () => {
-      const res = await fetch("/api/user-settings");
-      if (!res.ok) {
-        throw new Error("Failed to fetch user settings");
-      }
-      return res.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
+  const currencyOption = Currencies.find((c) => c.value === currency);
 
-  const currency = Currencies.find((c) => c.value === household.data?.currency);
-
-  const numberParts = new Intl.NumberFormat(currency?.locale, {
+  const numberParts = new Intl.NumberFormat(currencyOption?.locale, {
     style: "decimal",
   }).formatToParts(1234.5);
   const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
@@ -132,25 +119,14 @@ const CreateTransactionDialog = ({
 
   const goals = goalsQuery.data ?? [];
 
-  const memberCountQuery = useQuery({
-    queryKey: queryKeys.memberCount,
-    queryFn: async () => {
-      return unwrapAction(await getHouseholdMemberCount());
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-  const knownMemberCount = memberCountQuery.data;
-  const showSharedToggle =
-    knownMemberCount !== undefined && knownMemberCount > 1;
+  const showSharedToggle = memberCount > 1;
 
   const membersQuery = useQuery({
     queryKey: queryKeys.householdMembers,
     queryFn: async () => {
       return unwrapAction(await listMembers()) ?? [];
     },
-    enabled: knownMemberCount !== undefined && knownMemberCount > 1,
+    enabled: memberCount > 1,
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,
@@ -221,10 +197,7 @@ const CreateTransactionDialog = ({
       mutate({
         ...value,
         date: dateToUtcDate(value.date),
-        shared:
-          knownMemberCount !== undefined && knownMemberCount > 1
-            ? value.shared
-            : true,
+        shared: memberCount > 1 ? value.shared : true,
         shares: buildShares(value),
         recurringItemId,
       });
@@ -233,16 +206,11 @@ const CreateTransactionDialog = ({
 
   const sharedValue = useStore(form.store, (state) => state.values.shared);
   const amountValue = useStore(form.store, (state) => state.values.amount);
-  const formatter = getFormatterForCurrency(
-    household.data?.currency ?? DEFAULT_CURRENCY,
-  );
+  const formatter = getFormatterForCurrency(currency);
   const { data: session } = useSession();
 
   const showSplitOptions =
-    dialogType === "expense" &&
-    knownMemberCount !== undefined &&
-    knownMemberCount > 1 &&
-    sharedValue;
+    dialogType === "expense" && memberCount > 1 && sharedValue;
 
   const [splitMode, setSplitMode] = useState<SplitMode>("equal");
   const [splitAmounts, setSplitAmounts] = useState<Record<string, string>>({});
@@ -349,27 +317,25 @@ const CreateTransactionDialog = ({
               return (
                 <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
-                  <SkeletonWrapper isLoading={household.isLoading}>
-                    <NumericFormat
-                      customInput={Input}
-                      id={field.name}
-                      name={field.name}
-                      placeholder="0.00"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onValueChange={(values) => {
-                        field.handleChange(values.floatValue ?? 0);
-                      }}
-                      thousandSeparator={thousandSeparator}
-                      decimalSeparator={decimalSeparator}
-                      decimalScale={2}
-                      allowNegative={false}
-                      aria-invalid={isInvalid}
-                      aria-describedby={
-                        isInvalid ? `${field.name}-error` : undefined
-                      }
-                    />
-                  </SkeletonWrapper>
+                  <NumericFormat
+                    customInput={Input}
+                    id={field.name}
+                    name={field.name}
+                    placeholder="0.00"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onValueChange={(values) => {
+                      field.handleChange(values.floatValue ?? 0);
+                    }}
+                    thousandSeparator={thousandSeparator}
+                    decimalSeparator={decimalSeparator}
+                    decimalScale={2}
+                    allowNegative={false}
+                    aria-invalid={isInvalid}
+                    aria-describedby={
+                      isInvalid ? `${field.name}-error` : undefined
+                    }
+                  />
                   <FieldDescription className="text-xs sm:text-sm">
                     Transaction amount (required)
                   </FieldDescription>

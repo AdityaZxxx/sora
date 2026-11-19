@@ -1,8 +1,7 @@
 "use client";
 import type { Currency } from "../lib/currencies";
-import type { Household } from "@prisma/client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
@@ -24,41 +23,22 @@ import {
 } from "@/components/ui/popover";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { actionErrorMessage } from "@/lib/action-client";
-import { POLL_INTERVAL } from "@/lib/constants";
-import { queryKeys } from "@/lib/query-keys";
 
 import { UpdateUserCurrency } from "../app/wizard/_actions/userSettings";
 import { Currencies } from "../lib/currencies";
-import SkeletonWrapper from "./SkeletonWrapper";
 
-export function CurrencyComboBox() {
+export function CurrencyComboBox({ currency }: { currency: string }) {
   const [open, setOpen] = React.useState(false);
+  const [currencyValue, setCurrencyValue] = React.useState(currency);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const queryClient = useQueryClient();
 
-  const household = useQuery<Household>({
-    queryKey: queryKeys.household,
-    queryFn: async () => {
-      const res = await fetch("/api/user-settings");
-      if (!res.ok) {
-        throw new Error("Failed to fetch user settings");
-      }
-      return res.json();
-    },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
-    refetchOnWindowFocus: true,
-  });
-
-  const householdCurrency = household.data
-    ? Currencies.find(
-        (currency) => currency.value === household.data.currency,
-      ) || null
-    : null;
+  const householdCurrency = Currencies.find(
+    (option) => option.value === currencyValue,
+  );
 
   const mutation = useMutation({
-    mutationFn: async (currency: string) => {
-      const result = await UpdateUserCurrency(currency);
+    mutationFn: async (value: string) => {
+      const result = await UpdateUserCurrency(value);
       if (!result.ok) {
         throw new Error(result.message);
       }
@@ -71,9 +51,7 @@ export function CurrencyComboBox() {
       if (!saved) {
         return;
       }
-      queryClient.setQueryData<Household>(queryKeys.household, (previous) =>
-        previous ? { ...previous, currency: saved.currency } : previous,
-      );
+      setCurrencyValue(saved.currency ?? currency);
     },
     onError: (error) => {
       toast.error(
@@ -85,15 +63,15 @@ export function CurrencyComboBox() {
     },
   });
 
-  const selectOption = (currency: Currency | null) => {
-    if (!currency) {
+  const selectOption = (option: Currency | null) => {
+    if (!option) {
       toast.error("Select a currency to continue");
       return;
     }
     toast.loading("Updating currency…", {
       id: "update-currency",
     });
-    mutation.mutate(currency.value);
+    mutation.mutate(option.value);
   };
 
   const TriggerButton = (
@@ -113,34 +91,24 @@ export function CurrencyComboBox() {
 
   if (isDesktop) {
     return (
-      <SkeletonWrapper isLoading={household.isLoading}>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger render={TriggerButton} />
-          <PopoverContent className="w-full p-0" align="start">
-            <CurrencyList
-              setOpen={setOpen}
-              setSelectedCurrency={selectOption}
-            />
-          </PopoverContent>
-        </Popover>
-      </SkeletonWrapper>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger render={TriggerButton} />
+        <PopoverContent className="w-full p-0" align="start">
+          <CurrencyList setOpen={setOpen} setSelectedCurrency={selectOption} />
+        </PopoverContent>
+      </Popover>
     );
   }
 
   return (
-    <SkeletonWrapper isLoading={household.isLoading}>
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerTrigger asChild>{TriggerButton}</DrawerTrigger>
-        <DrawerContent>
-          <div className="mt-4 border-t">
-            <CurrencyList
-              setOpen={setOpen}
-              setSelectedCurrency={selectOption}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </SkeletonWrapper>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>{TriggerButton}</DrawerTrigger>
+      <DrawerContent>
+        <div className="mt-4 border-t">
+          <CurrencyList setOpen={setOpen} setSelectedCurrency={selectOption} />
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 

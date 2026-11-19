@@ -75,9 +75,10 @@ import { dueLabel, nextLabel } from "./upcoming-bills-data";
 interface Props {
   currency: string | null;
   canEdit: boolean;
+  memberCount: number;
 }
 
-const UpcomingBills = ({ currency, canEdit }: Props) => {
+const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
   const queryClient = useQueryClient();
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
   const [showAll, setShowAll] = useState(false);
@@ -217,6 +218,8 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
                         <CreateTransactionDialog
                           key={item.id}
                           type={item.type as TransactionType}
+                          currency={currency ?? DEFAULT_CURRENCY}
+                          memberCount={memberCount}
                           recurringItemId={item.id}
                           initialValues={{
                             description: item.name,

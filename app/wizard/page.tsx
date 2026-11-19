@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { createPersonalHousehold } from "@/lib/household";
 
 import { CurrencyComboBox } from "../../components/CurrencyComboBox";
@@ -21,7 +22,7 @@ const page = async () => {
   if (!session) {
     redirect("/sign-in");
   }
-  await createPersonalHousehold(session.user.id);
+  const membership = await createPersonalHousehold(session.user.id);
   return (
     <div className="container flex max-w-2xl flex-col items-center justify-between gap-4">
       <div>
@@ -47,7 +48,9 @@ const page = async () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CurrencyComboBox />
+          <CurrencyComboBox
+            currency={membership.household.currency ?? DEFAULT_CURRENCY}
+          />
         </CardContent>
       </Card>
       <Separator />
