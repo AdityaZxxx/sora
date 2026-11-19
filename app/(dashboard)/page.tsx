@@ -1,8 +1,10 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { type Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import AddMemberCta from "./_components/AddMemberCta";
 import Balances from "./_components/Balances";
@@ -87,19 +89,47 @@ const DashboardPage = async () => {
           </div>
         </div>
         {canEdit && <AddMemberCta memberCount={memberCount} />}
-        <Overview currency={currency} initialDateRange={dateRange} />
-        <Insights currency={currency} memberCount={memberCount} />
+        <Suspense
+          fallback={
+            <Skeleton className="section h-48 w-full" aria-hidden="true" />
+          }
+        >
+          <Overview currency={currency} initialDateRange={dateRange} />
+        </Suspense>
+        <Suspense
+          fallback={
+            <Skeleton className="section h-64 w-full" aria-hidden="true" />
+          }
+        >
+          <Insights currency={currency} memberCount={memberCount} />
+        </Suspense>
         <div className="section grid gap-4 lg:grid-cols-3">
-          <SafeToSpend currency={currency} />
+          <Suspense
+            fallback={<Skeleton className="h-52 w-full" aria-hidden="true" />}
+          >
+            <SafeToSpend currency={currency} />
+          </Suspense>
           <div className="lg:col-span-2">
-            <UpcomingBills
-              currency={currency}
-              canEdit={canEdit}
-              memberCount={memberCount}
-            />
+            <Suspense
+              fallback={<Skeleton className="h-52 w-full" aria-hidden="true" />}
+            >
+              <UpcomingBills
+                currency={currency}
+                canEdit={canEdit}
+                memberCount={memberCount}
+              />
+            </Suspense>
           </div>
         </div>
-        {memberCount > 1 && <SharedSpendingCard currency={currency} />}
+        {memberCount > 1 && (
+          <Suspense
+            fallback={
+              <Skeleton className="section h-40 w-full" aria-hidden="true" />
+            }
+          >
+            <SharedSpendingCard currency={currency} />
+          </Suspense>
+        )}
         <div
           className={
             memberCount > 1
@@ -108,16 +138,38 @@ const DashboardPage = async () => {
           }
         >
           {memberCount > 1 && (
-            <Balances currency={currency} canEdit={canEdit} />
+            <Suspense
+              fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
+            >
+              <Balances currency={currency} canEdit={canEdit} />
+            </Suspense>
           )}
-          <Goals currency={currency} canEdit={canEdit} />
+          <Suspense
+            fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
+          >
+            <Goals currency={currency} canEdit={canEdit} />
+          </Suspense>
         </div>
-        {memberCount > 2 && <SimplifyDebts currency={currency} />}
-        <History
-          currency={currency}
-          initialTimeframe={historyView.timeframe}
-          initialPeriod={historyView.period}
-        />
+        {memberCount > 2 && (
+          <Suspense
+            fallback={
+              <Skeleton className="section h-40 w-full" aria-hidden="true" />
+            }
+          >
+            <SimplifyDebts currency={currency} />
+          </Suspense>
+        )}
+        <Suspense
+          fallback={
+            <Skeleton className="section h-80 w-full" aria-hidden="true" />
+          }
+        >
+          <History
+            currency={currency}
+            initialTimeframe={historyView.timeframe}
+            initialPeriod={historyView.period}
+          />
+        </Suspense>
       </div>
     </HydrationBoundary>
   );
