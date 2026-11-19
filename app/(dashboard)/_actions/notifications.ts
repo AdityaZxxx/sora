@@ -3,6 +3,7 @@
 import type { Notification } from "@prisma/client";
 
 import { withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   listNotifications as listNotificationsSeam,
   markNotificationsRead,
@@ -23,6 +24,7 @@ export async function markAllRead() {
     "Unable to mark the notifications as read. Refresh the page and try again.",
     async ({ household, session }) => {
       await markNotificationsRead(household.id, session.user.id);
+      revalidateHousehold(household.id, [CACHE_RESOURCE.notifications]);
     },
   );
 }

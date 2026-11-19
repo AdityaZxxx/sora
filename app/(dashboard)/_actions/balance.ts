@@ -3,6 +3,7 @@
 import type { RecordSettlementSchemaType } from "@/schemas/settlement";
 
 import { withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { recordSettlement } from "@/lib/settlements";
 
 export async function RecordSettlement(form: RecordSettlementSchemaType) {
@@ -15,6 +16,10 @@ export async function RecordSettlement(form: RecordSettlementSchemaType) {
         { memberId: form.memberId, amount: form.amount },
         membership.role,
       );
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.balances,
+        CACHE_RESOURCE.transactions,
+      ]);
     },
   );
 }

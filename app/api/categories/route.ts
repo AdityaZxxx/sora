@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
 import { getCategories } from "@/lib/categories";
 
 export async function GET(request: NextRequest) {
@@ -27,6 +27,6 @@ export async function GET(request: NextRequest) {
       result.household.id,
       queryParams.data,
     );
-    return Response.json(categories);
+    return jsonReadResponse(request, categories);
   });
 }

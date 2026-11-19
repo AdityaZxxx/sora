@@ -1,6 +1,9 @@
 import type { Prisma } from "@prisma/client";
 import type { z } from "zod";
 
+import { cacheLife, cacheTag } from "next/cache";
+
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
@@ -166,6 +169,10 @@ function toRow(item: {
 }
 
 export async function listRecurringItems(householdId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.recurring));
+
   const items = await prisma.recurringItem.findMany({
     where: { householdId },
     orderBy: [{ createdAt: "asc" }],

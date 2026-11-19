@@ -1,10 +1,10 @@
-import { withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
 import { getMonthlyRollup } from "@/lib/insights";
 
-export async function GET() {
+export async function GET(request: Request) {
   return withHouseholdRoute(async (result) => {
     const months = await getMonthlyRollup(result.household.id);
-    return Response.json(months);
+    return jsonReadResponse(request, months);
   });
 }
 

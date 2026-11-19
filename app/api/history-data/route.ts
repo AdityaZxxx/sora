@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { parseQueryParams, withHouseholdRoute } from "@/lib/api-route";
+import {
+  jsonReadResponse,
+  parseQueryParams,
+  withHouseholdRoute,
+} from "@/lib/api-route";
 import { getHistoryData } from "@/lib/history";
 
 const getHistoryDataSchema = z.object({
@@ -31,7 +35,7 @@ export async function GET(request: Request) {
       },
     );
 
-    return Response.json(data);
+    return jsonReadResponse(request, data);
   });
 }
 

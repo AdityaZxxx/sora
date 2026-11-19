@@ -1,7 +1,9 @@
 import type { InviteLink } from "@prisma/client";
 
+import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
@@ -62,6 +64,10 @@ export async function revokeInviteLink(
 export async function listInviteLinks(
   householdId: string,
 ): Promise<InviteLink[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.invites));
+
   return await prisma.inviteLink.findMany({
     where: {
       householdId,

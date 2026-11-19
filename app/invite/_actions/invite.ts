@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { type ActionResult, fail } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import { setActiveHouseholdCookie } from "@/lib/household";
 import { joinHouseholdByInviteToken } from "@/lib/invites";
@@ -25,6 +26,12 @@ export async function joinHouseholdByToken(
       session.user.name,
     );
     await setActiveHouseholdCookie(householdId);
+    revalidateHousehold(householdId, [
+      CACHE_RESOURCE.members,
+      CACHE_RESOURCE.household,
+      CACHE_RESOURCE.notifications,
+      CACHE_RESOURCE.invites,
+    ]);
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(cause.message);

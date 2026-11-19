@@ -17,6 +17,8 @@ import prisma from "@/lib/prisma";
 
 import JoinHouseholdCard from "./JoinHouseholdCard";
 
+export const instant = false;
+
 export async function generateMetadata({
   params,
 }: {

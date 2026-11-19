@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: "Sign in",
 };
 
+export const instant = false;
+
 const SignInPage = async ({
   searchParams,
 }: {

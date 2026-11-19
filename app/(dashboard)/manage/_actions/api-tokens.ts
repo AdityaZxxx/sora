@@ -14,6 +14,7 @@ import {
   setAgentAccess as setAgentAccessSeam,
   type ApiTokenSummary,
 } from "@/lib/api-token";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 
 export type { ApiTokenSummary };
 
@@ -22,8 +23,16 @@ export async function createApiToken(
 ): Promise<ActionResult<{ id: string; token: string }>> {
   return withHouseholdAction(
     "Unable to create the token. Check the details and try again.",
-    ({ household, session, membership }) =>
-      createApiTokenSeam(household.id, session.user.id, membership.role, form),
+    async ({ household, session, membership }) => {
+      const created = await createApiTokenSeam(
+        household.id,
+        session.user.id,
+        membership.role,
+        form,
+      );
+      revalidateHousehold(household.id, [CACHE_RESOURCE.apiTokens]);
+      return created;
+    },
   );
 }
 
@@ -48,6 +57,7 @@ export async function revokeApiToken(
         membership.role,
         form,
       );
+      revalidateHousehold(household.id, [CACHE_RESOURCE.apiTokens]);
     },
   );
 }
@@ -59,6 +69,10 @@ export async function setAgentAccess(
     "Unable to change agent access. Try again.",
     async ({ household, membership }) => {
       await setAgentAccessSeam(household.id, form.enabled, membership.role);
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.household,
+        CACHE_RESOURCE.apiTokens,
+      ]);
     },
   );
 }

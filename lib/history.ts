@@ -1,7 +1,9 @@
 import type { Period, Timeframe } from "@/lib/types";
 
 import { getDaysInMonth } from "date-fns";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 
 type HistoryData = {
@@ -17,6 +19,10 @@ export async function getHistoryData(
   timeframe: Timeframe,
   period: Period,
 ) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.history));
+
   switch (timeframe) {
     case "year":
       return await getYearHistoryData(householdId, period.year);

@@ -1,7 +1,9 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { getSession } from "@/lib/auth";
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { ACTIVE_HOUSEHOLD_COOKIE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
@@ -149,6 +151,10 @@ export async function clearActiveHouseholdCookie() {
 }
 
 export async function countHouseholdMembers(householdId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.household));
+
   return await prisma.householdMembership.count({
     where: {
       householdId,

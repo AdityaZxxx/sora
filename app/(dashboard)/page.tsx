@@ -31,6 +31,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const instant = false;
+
 const DashboardPage = async () => {
   const payload = await loadDashboard();
   if (!payload) {

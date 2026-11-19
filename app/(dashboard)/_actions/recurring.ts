@@ -7,6 +7,7 @@ import type {
 } from "@/schemas/recurring";
 
 import { withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   createRecurringItem,
   deleteRecurringItem,
@@ -27,6 +28,7 @@ export async function CreateRecurringItem(form: CreateRecurringItemType) {
     "Unable to add the bill. Check the name, amount and category, then try again.",
     async ({ household, membership }) => {
       await createRecurringItem(household.id, form, membership.role);
+      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -36,6 +38,7 @@ export async function UpdateRecurringItem(form: UpdateRecurringItemType) {
     "Unable to update the bill. Check the name, amount and category, then try again.",
     async ({ household, membership }) => {
       await updateRecurringItem(household.id, form, membership.role);
+      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -53,6 +56,7 @@ export async function SetRecurringItemPaused(form: {
         form.paused,
         membership.role,
       );
+      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -62,6 +66,7 @@ export async function DeleteRecurringItem(form: DeleteIdSchemaType) {
     "Unable to delete the bill. Check the bill and try again.",
     async ({ household, membership }) => {
       await deleteRecurringItem(household.id, form.id, membership.role);
+      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
     },
   );
 }

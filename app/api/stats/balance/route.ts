@@ -1,4 +1,8 @@
-import { dateRangeFromParams, withHouseholdRoute } from "@/lib/api-route";
+import {
+  dateRangeFromParams,
+  jsonReadResponse,
+  withHouseholdRoute,
+} from "@/lib/api-route";
 import { getBalanceStats } from "@/lib/transactions";
 
 export async function GET(request: Request): Promise<Response> {
@@ -12,6 +16,6 @@ export async function GET(request: Request): Promise<Response> {
       range.to,
     );
 
-    return Response.json(stats);
+    return jsonReadResponse(request, stats);
   });
 }

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   assertHouseholdMembership,
   createAdditionalHousehold,
@@ -22,6 +23,7 @@ export async function switchHousehold(householdId: string) {
 
   await assertHouseholdMembership(householdId, session.user.id);
   await setActiveHouseholdCookie(householdId);
+  revalidateHousehold(householdId, [CACHE_RESOURCE.household]);
   revalidatePath("/", "layout");
 }
 
@@ -36,6 +38,7 @@ export async function renameHousehold(
         name,
         membership.role,
       );
+      revalidateHousehold(household.id, [CACHE_RESOURCE.household]);
       revalidatePath("/", "layout");
       return renamed;
     },
@@ -51,6 +54,7 @@ export async function createHousehold(name: string) {
   const household = await createAdditionalHousehold(session.user.id, name);
 
   await setActiveHouseholdCookie(household.id);
+  revalidateHousehold(household.id, [CACHE_RESOURCE.household]);
   revalidatePath("/", "layout");
   return household;
 }

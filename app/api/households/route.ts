@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server";
-
-import { withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   return withHouseholdRoute(async (result) => {
     const userId = result.session.user.id;
 
@@ -40,7 +38,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({
+    return jsonReadResponse(request, {
       active: {
         id: result.household.id,
       },

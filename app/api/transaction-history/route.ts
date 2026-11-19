@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 
-import { dateRangeFromParams, withHouseholdRoute } from "@/lib/api-route";
+import {
+  dateRangeFromParams,
+  jsonReadResponse,
+  withHouseholdRoute,
+} from "@/lib/api-route";
 import { getTransactionsHistory } from "@/lib/transactions";
 
 export async function GET(request: NextRequest) {
@@ -16,6 +20,6 @@ export async function GET(request: NextRequest) {
       range.to,
     );
 
-    return Response.json(transactions);
+    return jsonReadResponse(request, transactions);
   });
 }

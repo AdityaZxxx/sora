@@ -1,9 +1,11 @@
 import type { TransactionType } from "@/lib/types";
 
 import { Prisma } from "@prisma/client";
+import { cacheLife, cacheTag } from "next/cache";
 import { after } from "next/server";
 
 import { assertBudgetAllows } from "@/lib/budgets";
+import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
@@ -33,6 +35,10 @@ export async function getTransactionsHistory(
     shared?: boolean;
   },
 ) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+
   const transactions = await prisma.transaction.findMany({
     where: {
       householdId,
@@ -84,6 +90,10 @@ export async function getBalanceStats(
   from: Date,
   to: Date,
 ) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+
   const totals = await prisma.transaction.groupBy({
     by: ["type"],
     where: {
@@ -117,6 +127,10 @@ export async function getCategoriesStats(
   from: Date,
   to: Date,
 ) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+
   const stats = await prisma.transaction.groupBy({
     by: [
       "type",
@@ -335,16 +349,23 @@ export async function createTransaction(
 
   if (thresholdMessage) {
     const message = thresholdMessage;
-    after(() =>
-      notifyHouseholdExcept(householdId, userId, "budget_threshold", message),
-    );
+    after(async () => {
+      await notifyHouseholdExcept(
+        householdId,
+        userId,
+        "budget_threshold",
+        message,
+      );
+      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+    });
   }
 
   if (shared) {
     const message = `${actor?.name ?? "A member"} added a shared ${type} of ${formatAmount(amount)} (${description || categoryRow.name}).`;
-    after(() =>
-      notifyHouseholdExcept(householdId, userId, "transaction", message),
-    );
+    after(async () => {
+      await notifyHouseholdExcept(householdId, userId, "transaction", message);
+      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+    });
   }
 
   if (goal && shared) {
@@ -382,11 +403,12 @@ export async function createTransaction(
         "goal_reached",
         `${goal.name} reached its target: ${formatAmount(contributedTotal.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
       );
+      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
     });
   }
 
-  after(() =>
-    evaluateUnusualSpending({
+  after(async () => {
+    const result = await evaluateUnusualSpending({
       amount,
       category: categoryRow.name,
       description: description ?? "",
@@ -394,8 +416,11 @@ export async function createTransaction(
       shared,
       householdId,
       userId,
-    }),
-  );
+    });
+    if (result.notified > 0) {
+      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+    }
+  });
 
   return created;
 }
