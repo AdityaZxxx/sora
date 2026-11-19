@@ -70,6 +70,7 @@ model HouseholdMembership {
   role        String    @default("member")
 
   @@id([householdId, userId])
+  @@index([userId])
 }
 
 model InviteLink {
@@ -159,6 +160,7 @@ model Category {
   type String @default("income")
 
   @@unique([name, householdId, type])
+  @@index([householdId, type])
 }
 
 model Transaction {
@@ -260,7 +262,7 @@ model MonthHistory {
   income Decimal
   expense Decimal
 
-  @@id([day, month, year, householdId])
+  @@id([householdId, day, month, year])
 }
 
 model YearHistory {
@@ -271,7 +273,7 @@ model YearHistory {
   income Decimal
   expense Decimal
 
-  @@id([month, year, householdId])
+  @@id([householdId, month, year])
 }
 
 // Monthly spending limit on one category. "soft" warns at 80%/100% via
@@ -299,4 +301,6 @@ model Notification {
   message     String
   readAt      DateTime?
   createdAt   DateTime  @default(now())
+
+  @@index([householdId, userId, createdAt])
 }
