@@ -42,7 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
-import { DEFAULT_CURRENCY, POLL_INTERVAL } from "@/lib/constants";
+import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -180,8 +180,7 @@ function CategoryList({
         return res.json();
       }),
     retry: 1,
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

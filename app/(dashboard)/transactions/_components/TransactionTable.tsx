@@ -65,7 +65,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { QUERY_STALE_TIME } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
@@ -239,8 +239,7 @@ const TransactionTable = ({ from, to, currency }: Props) => {
       if (!response.ok) throw new Error("Failed to fetch transaction history");
       return response.json();
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

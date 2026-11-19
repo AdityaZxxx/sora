@@ -8,7 +8,7 @@ import { useState } from "react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { type GetBalanceStatsResponseType } from "@/lib/transactions";
@@ -39,8 +39,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
         throw error;
       }
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

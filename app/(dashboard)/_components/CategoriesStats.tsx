@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -44,8 +44,7 @@ const CategoriesStats = ({ from, to, currency }: Props) => {
       }
       return response.json();
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

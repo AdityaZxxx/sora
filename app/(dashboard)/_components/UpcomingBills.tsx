@@ -57,7 +57,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -92,8 +92,7 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
     queryFn: async () => {
       return unwrapAction(await listRecurringItemsAction());
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

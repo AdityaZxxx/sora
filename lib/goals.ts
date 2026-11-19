@@ -4,6 +4,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
@@ -94,6 +95,12 @@ export async function updateHouseholdGoal(
     data,
   });
 
+  await publishHouseholdChange({
+    householdId,
+    resource: "goals",
+    message: `changed the ${goal.name} goal`,
+  });
+
   return { ...goal, target: goal.target.toNumber() };
 }
 
@@ -123,6 +130,12 @@ export async function createHouseholdGoal(
       target,
       deadline: deadline ?? null,
     },
+  });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "goals",
+    message: `added the ${goal.name} goal`,
   });
 
   return { ...goal, target: goal.target.toNumber() };
@@ -161,6 +174,12 @@ export async function deleteHouseholdGoal(
   if (deleted.count === 0) {
     throw new DomainError("Goal not found");
   }
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "goals",
+    message: `removed the ${goal.name} goal`,
+  });
 
   return { ...goal, target: goal.target.toNumber() };
 }

@@ -4,7 +4,7 @@ import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import {
   getFormatterForCurrency,
   getNumberFlowCurrencyProps,
@@ -28,8 +28,7 @@ const SharedSpendingCard = ({ currency }: Props) => {
       }
       return response.json();
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

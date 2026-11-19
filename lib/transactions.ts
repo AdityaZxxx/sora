@@ -13,6 +13,7 @@ import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
@@ -343,6 +344,12 @@ export async function createTransaction(
     }
 
     await incrementRollups(tx, { householdId, date, type, amount });
+    await publishHouseholdChange({
+      householdId,
+      resource: "transactions",
+      message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
+      executor: tx,
+    });
 
     return transaction;
   });
@@ -470,6 +477,12 @@ export async function deleteTransaction(
       date: transaction.date,
       type: transaction.type,
       amount: transaction.amount.toNumber(),
+    });
+    await publishHouseholdChange({
+      householdId,
+      resource: "transactions",
+      message: `removed ${transaction.description || transaction.category}`,
+      executor: tx,
     });
   });
 }

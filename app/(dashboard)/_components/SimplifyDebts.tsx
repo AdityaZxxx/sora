@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -34,8 +34,7 @@ const SimplifyDebts = ({ currency }: Props) => {
         SimplifiedTransfersSchema,
         "Failed to fetch simplified debts",
       ),
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

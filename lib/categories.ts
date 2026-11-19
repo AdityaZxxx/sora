@@ -10,6 +10,7 @@ import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import {
   isSettlementCategory,
@@ -58,7 +59,7 @@ export async function createHouseholdCategory(
 
   assertNotSettlementCategory(name);
 
-  return await prisma.category.create({
+  const category = await prisma.category.create({
     data: {
       householdId,
       name,
@@ -68,6 +69,14 @@ export async function createHouseholdCategory(
       type,
     },
   });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "categories",
+    message: `added the ${category.name} category`,
+  });
+
+  return category;
 }
 
 export async function requireCategory(
@@ -183,6 +192,13 @@ export async function updateHouseholdCategory(
       });
     }
 
+    await publishHouseholdChange({
+      householdId,
+      resource: "categories",
+      message: `changed the ${updated.name} category`,
+      executor: tx,
+    });
+
     return updated;
   });
 }
@@ -222,6 +238,12 @@ export async function deleteHouseholdCategory(
   if (deleted.count === 0) {
     throw new DomainError("Category not found");
   }
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "categories",
+    message: `removed the ${category.name} category`,
+  });
 
   return category;
 }

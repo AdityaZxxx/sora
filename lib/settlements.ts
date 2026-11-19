@@ -7,6 +7,7 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { RecordSettlementSchema } from "@/schemas/settlement";
 
@@ -123,6 +124,11 @@ async function runSettlement(
     throw new DomainError("Member not found");
   }
 
+  const amountText = getFormatterForCurrency(
+    household?.currency ?? DEFAULT_CURRENCY,
+  ).format(amount);
+  const payerName = payer?.name ?? "A member";
+
   const settlement = await prisma.$transaction(async (tx) => {
     const category = await tx.category.upsert({
       where: {
@@ -143,7 +149,7 @@ async function runSettlement(
       update: {},
     });
 
-    return tx.transaction.create({
+    const created = await tx.transaction.create({
       data: {
         householdId,
         addedById: userId,
@@ -158,6 +164,15 @@ async function runSettlement(
         addedVia: input.addedVia ?? null,
       },
     });
+
+    await publishHouseholdChange({
+      householdId,
+      resource: "transactions",
+      message: `recorded a settlement of ${amountText} with ${membership.user.name}`,
+      executor: tx,
+    });
+
+    return created;
   });
 
   log("info", "settlement.recorded", {
@@ -166,11 +181,6 @@ async function runSettlement(
     outcome: "ok",
     durationMs: Date.now() - startedAt,
   });
-
-  const amountText = getFormatterForCurrency(
-    household?.currency ?? DEFAULT_CURRENCY,
-  ).format(amount);
-  const payerName = payer?.name ?? "A member";
 
   after(async () => {
     const otherMembers = await prisma.householdMembership.findMany({

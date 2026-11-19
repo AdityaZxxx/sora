@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import {
-  POLL_INTERVAL,
+  QUERY_STALE_TIME,
   READ_ONLY_SCOPE,
   READ_WRITE_SCOPE,
 } from "@/lib/constants";
@@ -142,7 +142,7 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
     queryFn: async () => {
       return unwrapAction(await listApiTokens()) ?? [];
     },
-    staleTime: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
   });
 
   const revokeMutation = useMutation({

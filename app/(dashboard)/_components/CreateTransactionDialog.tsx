@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { QUERY_STALE_TIME } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -112,8 +112,7 @@ const CreateTransactionDialog = ({
     queryFn: async () => {
       return unwrapAction(await listGoals());
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 
@@ -127,8 +126,7 @@ const CreateTransactionDialog = ({
       return unwrapAction(await listMembers()) ?? [];
     },
     enabled: memberCount > 1,
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
   const members = membersQuery.data ?? [];

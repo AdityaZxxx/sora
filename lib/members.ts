@@ -5,6 +5,7 @@ import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notifyHouseholdExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import {
   RemoveMemberSchema,
@@ -86,6 +87,12 @@ export async function leaveHousehold(
     "member_left",
     `${userName} left the household.`,
   );
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "members",
+    message: "left the household",
+  });
 }
 
 export async function setEmailDigest(
@@ -182,6 +189,12 @@ export async function removeMember(
     }
   });
 
+  await publishHouseholdChange({
+    householdId,
+    resource: "members",
+    message: `removed ${removed.user.name} from the household`,
+  });
+
   return removed.user.name;
 }
 
@@ -240,6 +253,12 @@ export async function setMemberRole(
     data: {
       role: nextRole,
     },
+  });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "members",
+    message: "changed a member's role",
   });
 
   return { userId, role: nextRole };
