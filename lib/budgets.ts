@@ -7,6 +7,7 @@ import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
@@ -149,6 +150,12 @@ export async function createHouseholdBudget(
     },
   });
 
+  await publishHouseholdChange({
+    householdId,
+    resource: "budgets",
+    message: `added a ${expenseCategory.name} budget`,
+  });
+
   return { ...budget, amount: budget.amount.toNumber() };
 }
 
@@ -180,6 +187,12 @@ export async function updateHouseholdBudget(
       amount,
       mode,
     },
+  });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "budgets",
+    message: `changed the ${expenseCategory.name} budget`,
   });
 
   return { ...budget, amount: budget.amount.toNumber() };
@@ -246,6 +259,12 @@ export async function deleteHouseholdBudget(
   if (deleted.count === 0) {
     throw new DomainError("Budget not found");
   }
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "budgets",
+    message: `removed the ${budget.category} budget`,
+  });
 
   return { ...budget, amount: budget.amount.toNumber() };
 }

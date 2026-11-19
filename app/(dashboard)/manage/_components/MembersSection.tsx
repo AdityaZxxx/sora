@@ -32,7 +32,7 @@ import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import {
   FULL_MEMBER_ROLE,
-  POLL_INTERVAL,
+  QUERY_STALE_TIME,
   VIEW_ONLY_ROLE,
 } from "@/lib/constants";
 import { queryKeys } from "@/lib/query-keys";
@@ -55,7 +55,7 @@ const MembersSection = () => {
     queryFn: async () => {
       return unwrapAction(await listMembers()) ?? [];
     },
-    staleTime: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
   });
 
   const callerRole = members.find(

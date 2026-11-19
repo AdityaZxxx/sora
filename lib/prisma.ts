@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 // pg v8 warns that `sslmode` values like `require` will change meaning in
 // pg v9, so drop the param from the URL; TLS is configured via `ssl` below.
-const stripSslMode = (url: string | undefined) => {
+export const stripSslMode = (url: string | undefined) => {
   if (!url) return url;
   const parsed = new URL(url);
   parsed.searchParams.delete("sslmode");

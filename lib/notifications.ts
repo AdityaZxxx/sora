@@ -4,6 +4,7 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
 export async function notify(
@@ -19,6 +20,12 @@ export async function notify(
       type,
       message,
     },
+  });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "notifications",
+    message: "has a new notification",
   });
 }
 
@@ -37,6 +44,12 @@ export async function notifyMembers(
       type,
       message,
     })),
+  });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "notifications",
+    message: "has a new notification",
   });
 }
 

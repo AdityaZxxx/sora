@@ -8,7 +8,13 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { POLL_INTERVAL, QUERY_GC_TIME } from "@/lib/constants";
+import { useHouseholdEvents } from "@/hooks/use-household-events";
+import { QUERY_GC_TIME, QUERY_STALE_TIME } from "@/lib/constants";
+
+const HouseholdEvents = () => {
+  useHouseholdEvents();
+  return null;
+};
 
 const RootProvider = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(
@@ -16,7 +22,7 @@ const RootProvider = ({ children }: { children: ReactNode }) => {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: POLL_INTERVAL,
+            staleTime: QUERY_STALE_TIME,
             gcTime: QUERY_GC_TIME,
             retry: 1,
             refetchOnWindowFocus: true,
@@ -35,6 +41,7 @@ const RootProvider = ({ children }: { children: ReactNode }) => {
         disableTransitionOnChange
       >
         <TooltipProvider>{children}</TooltipProvider>
+        <HouseholdEvents />
       </ThemeProvider>
       {process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />

@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { QUERY_STALE_TIME } from "@/lib/constants";
 import { queryKeys } from "@/lib/query-keys";
 
 import {
@@ -60,7 +60,7 @@ const InviteLinkDialog = ({ trigger }: Props) => {
       return unwrapAction(await listInviteLinks()) ?? [];
     },
     enabled: open,
-    staleTime: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
   });
 
   const createMutation = useMutation({

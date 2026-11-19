@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/tooltip";
 import { unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
-import { DEFAULT_CURRENCY, POLL_INTERVAL } from "@/lib/constants";
+import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
@@ -60,8 +60,7 @@ const BudgetsSection = ({
     queryFn: async () => {
       return unwrapAction(await listBudgets());
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

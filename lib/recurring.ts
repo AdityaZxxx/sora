@@ -9,6 +9,7 @@ import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
@@ -204,7 +205,7 @@ export async function createRecurringItem(
     parsed.data.category,
     parsed.data.type,
   );
-  return prisma.recurringItem.create({
+  const item = await prisma.recurringItem.create({
     data: {
       householdId,
       name: parsed.data.name,
@@ -218,6 +219,14 @@ export async function createRecurringItem(
       endDate: parsed.data.endDate ?? null,
     },
   });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "recurring",
+    message: `added the ${item.name} bill`,
+  });
+
+  return item;
 }
 
 export async function updateRecurringItem(
@@ -259,12 +268,20 @@ export async function updateRecurringItem(
   if (parsed.data.paused !== undefined) {
     data.paused = parsed.data.paused;
   }
-  return prisma.recurringItem.update({
+  const item = await prisma.recurringItem.update({
     where: {
       id: existing.id,
     },
     data,
   });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "recurring",
+    message: `changed the ${item.name} bill`,
+  });
+
+  return item;
 }
 
 export async function setRecurringItemPaused(
@@ -293,6 +310,12 @@ export async function setRecurringItemPaused(
   if (result.count === 0) {
     throw new DomainError("Bill not found");
   }
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "recurring",
+    message: "changed a bill",
+  });
 }
 
 export async function deleteRecurringItem(
@@ -317,4 +340,10 @@ export async function deleteRecurringItem(
   if (result.count === 0) {
     throw new DomainError("Bill not found");
   }
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "recurring",
+    message: "removed a bill",
+  });
 }

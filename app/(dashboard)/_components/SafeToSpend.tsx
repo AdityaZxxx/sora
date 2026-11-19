@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { unwrapAction } from "@/lib/action-client";
-import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
+import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -32,8 +32,7 @@ const SafeToSpend = ({ currency }: Props) => {
     queryFn: async () => {
       return unwrapAction(await listBudgets());
     },
-    staleTime: POLL_INTERVAL,
-    refetchInterval: POLL_INTERVAL,
+    staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 

@@ -7,6 +7,7 @@ import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { ACTIVE_HOUSEHOLD_COOKIE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import {
   assertFullMemberRole,
   parseMemberRole,
@@ -109,10 +110,18 @@ export async function renameHousehold(
       parsed.error.issues[0]?.message ?? "Check the household name",
     );
   }
-  return await prisma.household.update({
+  const household = await prisma.household.update({
     where: { id: householdId },
     data: { name: parsed.data || null },
   });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "household",
+    message: "renamed the household",
+  });
+
+  return household;
 }
 
 export async function updateHouseholdCurrency(
@@ -127,10 +136,18 @@ export async function updateHouseholdCurrency(
       parsed.error.issues[0]?.message ?? "Check the currency",
     );
   }
-  return await prisma.household.update({
+  const household = await prisma.household.update({
     where: { id: householdId },
     data: { currency: parsed.data.currency },
   });
+
+  await publishHouseholdChange({
+    householdId,
+    resource: "household",
+    message: "changed the household currency",
+  });
+
+  return household;
 }
 
 // Only call from a Server Action or Route Handler: cookies cannot be written
