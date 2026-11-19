@@ -4,6 +4,9 @@ import type {
   UpdateCategorySchemaType,
 } from "@/schemas/categories";
 
+import { cacheLife, cacheTag } from "next/cache";
+
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
@@ -22,6 +25,10 @@ export async function getCategories(
   householdId: string,
   type?: "expense" | "income" | null,
 ) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.categories));
+
   return await prisma.category.findMany({
     where: {
       householdId,

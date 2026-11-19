@@ -1,11 +1,11 @@
-import { withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
 import { getSharedSpending } from "@/lib/budgets";
 
-export async function GET() {
+export async function GET(request: Request) {
   return withHouseholdRoute(async (result) => {
     const stats = await getSharedSpending(result.household.id);
 
-    return Response.json(stats);
+    return jsonReadResponse(request, stats);
   });
 }
 

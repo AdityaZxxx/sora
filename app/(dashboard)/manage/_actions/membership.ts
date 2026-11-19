@@ -10,6 +10,7 @@ import type { HouseholdMembership } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import {
   clearActiveHouseholdCookie,
@@ -41,6 +42,11 @@ export async function leaveHousehold(): Promise<ActionResult> {
         session.user.id,
         session.user.name,
       );
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.members,
+        CACHE_RESOURCE.household,
+        CACHE_RESOURCE.balances,
+      ]);
 
       const nextHouseholdId = await firstHouseholdIdForUser(session.user.id);
       if (nextHouseholdId) {
@@ -73,6 +79,12 @@ export async function removeMember(
         "member_left",
         `${removedName} was removed from the household.`,
       );
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.members,
+        CACHE_RESOURCE.household,
+        CACHE_RESOURCE.balances,
+        CACHE_RESOURCE.notifications,
+      ]);
     },
   );
 }
@@ -98,6 +110,10 @@ export async function setMemberRole(
           ? `${session.user.name} set your access to view-only in this household.`
           : `${session.user.name} gave you full edit access in this household.`,
       );
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.members,
+        CACHE_RESOURCE.notifications,
+      ]);
     },
   );
 }
@@ -107,7 +123,14 @@ export async function setEmailDigest(
 ): Promise<ActionResult<HouseholdMembership>> {
   return withHouseholdAction(
     "Unable to update the email digest. Try again.",
-    ({ household, session }) =>
-      setEmailDigestSeam(household.id, session.user.id, form),
+    async ({ household, session }) => {
+      const updated = await setEmailDigestSeam(
+        household.id,
+        session.user.id,
+        form,
+      );
+      revalidateHousehold(household.id, [CACHE_RESOURCE.members]);
+      return updated;
+    },
   );
 }

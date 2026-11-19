@@ -17,6 +17,8 @@ import {
 } from "../../components/ui/card";
 import { Separator } from "../../components/ui/separator";
 
+export const instant = false;
+
 const page = async () => {
   const session = await getSession();
   if (!session) {

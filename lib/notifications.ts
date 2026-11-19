@@ -1,5 +1,8 @@
 import type { Notification } from "@prisma/client";
 
+import { cacheLife, cacheTag } from "next/cache";
+
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
@@ -41,6 +44,10 @@ export async function listNotifications(
   householdId: string,
   userId: string,
 ): Promise<Notification[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.notifications));
+
   return await prisma.notification.findMany({
     where: {
       householdId,

@@ -7,9 +7,11 @@ import type {
   User,
 } from "@prisma/client";
 
+import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import {
   FULL_MEMBER_ROLE,
   READ_WRITE_SCOPE,
@@ -182,6 +184,10 @@ export async function createApiToken(
 export async function listApiTokens(
   householdId: string,
 ): Promise<ApiTokenSummary[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.apiTokens));
+
   return await prisma.apiToken.findMany({
     where: {
       householdId,

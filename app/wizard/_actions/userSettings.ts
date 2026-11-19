@@ -5,6 +5,7 @@ import type { Household } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { updateHouseholdCurrency } from "@/lib/household";
 
 export async function UpdateUserCurrency(
@@ -19,6 +20,7 @@ export async function UpdateUserCurrency(
         membership.role,
       );
 
+      revalidateHousehold(household.id, [CACHE_RESOURCE.household]);
       revalidatePath("/", "layout");
 
       return updated;

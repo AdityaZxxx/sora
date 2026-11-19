@@ -1,3 +1,6 @@
+import { cacheLife, cacheTag } from "next/cache";
+
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notifyHouseholdExcept } from "@/lib/notifications";
@@ -13,6 +16,10 @@ import {
 } from "@/schemas/membership";
 
 export async function listMembers(householdId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.members));
+
   return prisma.householdMembership.findMany({
     where: {
       householdId,

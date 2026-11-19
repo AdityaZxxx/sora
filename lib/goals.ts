@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -11,6 +13,10 @@ import {
 } from "@/schemas/goals";
 
 export async function getGoalsWithProgress(householdId: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.goals));
+
   const [goals, contributionSums] = await Promise.all([
     prisma.goal.findMany({
       where: {

@@ -1,7 +1,9 @@
 import type { MemberBalance, SimplifiedTransfer } from "@/schemas/balances";
 
 import { Prisma } from "@prisma/client";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 import { settlementCategoryEquals } from "@/lib/settlements";
 
@@ -119,6 +121,10 @@ export async function getMemberBalances(
   householdId: string,
   callerId: string,
 ): Promise<MemberBalance[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
+
   const { memberships, sharedExpenses, settlements, sharesByTransactionId } =
     await loadBalanceInputs(householdId);
 
@@ -172,6 +178,10 @@ export async function getMemberBalances(
 export async function getSimplifiedTransfers(
   householdId: string,
 ): Promise<SimplifiedTransfer[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
+
   const { memberships, sharedExpenses, settlements, sharesByTransactionId } =
     await loadBalanceInputs(householdId);
 

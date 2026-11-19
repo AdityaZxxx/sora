@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server";
+import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
 
-import { withHouseholdRoute } from "@/lib/api-route";
-
-export async function GET() {
+export async function GET(request: Request) {
   return withHouseholdRoute(async (result) => {
-    return NextResponse.json(result.household);
+    return jsonReadResponse(request, result.household);
   });
 }

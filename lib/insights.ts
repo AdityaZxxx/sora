@@ -1,7 +1,14 @@
+import { cacheLife, cacheTag } from "next/cache";
+
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { monthOffsets } from "@/lib/dates";
 import prisma from "@/lib/prisma";
 
 export async function getMonthlyRollup(householdId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.insights));
+
   const months = monthOffsets(6);
 
   const rows = await prisma.monthHistory.groupBy({

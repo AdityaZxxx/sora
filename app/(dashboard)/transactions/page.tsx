@@ -28,6 +28,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const instant = false;
+
 export default async function TransactionsPage() {
   const result = await requireHousehold();
   if (!result) {

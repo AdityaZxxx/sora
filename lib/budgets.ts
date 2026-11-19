@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
+import { cacheLife, cacheTag } from "next/cache";
 
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { requireCategory } from "@/lib/categories";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
@@ -27,6 +29,10 @@ export function sharedSpendingFilter(
 }
 
 export async function getSharedSpending(householdId: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.budgets));
+
   const now = new Date();
   const ranges = [utcMonthRangeFor(now), previousMonthRange(now)];
 
@@ -69,6 +75,10 @@ export async function getMonthSpentByCategory(
 }
 
 export async function getBudgetsWithProgress(householdId: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(householdTag(householdId, CACHE_RESOURCE.budgets));
+
   const [budgets, spentByCategory] = await Promise.all([
     prisma.budget.findMany({
       where: {

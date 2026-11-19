@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { z } from "zod";
 
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { parseDate, todayAtUtcMidnight } from "@/lib/dates";
 import { recordSettlement } from "@/lib/settlements";
 import { createTransaction, deleteTransaction } from "@/lib/transactions";
@@ -85,6 +86,14 @@ export function registerTransactionWriteTools(
           },
           context.role,
         );
+        revalidateHousehold(context.householdId, [
+          CACHE_RESOURCE.transactions,
+          CACHE_RESOURCE.balances,
+          CACHE_RESOURCE.budgets,
+          CACHE_RESOURCE.goals,
+          CACHE_RESOURCE.insights,
+          CACHE_RESOURCE.history,
+        ]);
 
         return {
           id: transaction.id,
@@ -115,6 +124,14 @@ export function registerTransactionWriteTools(
     async ({ id }) =>
       runWriteTool(async () => {
         await deleteTransaction(context.householdId, id, context.role);
+        revalidateHousehold(context.householdId, [
+          CACHE_RESOURCE.transactions,
+          CACHE_RESOURCE.balances,
+          CACHE_RESOURCE.budgets,
+          CACHE_RESOURCE.goals,
+          CACHE_RESOURCE.insights,
+          CACHE_RESOURCE.history,
+        ]);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -147,6 +164,10 @@ export function registerTransactionWriteTools(
           },
           context.role,
         );
+        revalidateHousehold(context.householdId, [
+          CACHE_RESOURCE.balances,
+          CACHE_RESOURCE.transactions,
+        ]);
 
         return {
           id: settlement.id,

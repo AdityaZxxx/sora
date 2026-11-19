@@ -3,6 +3,7 @@
 import type { CreateTransactionSchemaType } from "@/schemas/transaction";
 
 import { withHouseholdAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { createTransaction } from "@/lib/transactions";
 
 export async function CreateTransaction(form: CreateTransactionSchemaType) {
@@ -25,6 +26,14 @@ export async function CreateTransaction(form: CreateTransactionSchemaType) {
         },
         membership.role,
       );
+      revalidateHousehold(household.id, [
+        CACHE_RESOURCE.transactions,
+        CACHE_RESOURCE.balances,
+        CACHE_RESOURCE.budgets,
+        CACHE_RESOURCE.goals,
+        CACHE_RESOURCE.insights,
+        CACHE_RESOURCE.history,
+      ]);
     },
   );
 }
