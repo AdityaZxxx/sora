@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +56,7 @@ import {
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import {
   DeleteRecurringItem,
@@ -84,7 +84,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
   const [editItem, setEditItem] = useState<RecurringItemDraft | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["recurringItems"],
+    queryKey: queryKeys.recurringItems,
     queryFn: async () => {
       return unwrapAction(await listRecurringItemsAction());
     },
@@ -98,7 +98,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
       return unwrapAction(await SetRecurringItemPaused(input));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recurringItems"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
     },
     onError: (error) => {
       toast.error(
@@ -118,7 +118,7 @@ const UpcomingBills = ({ currency, canEdit }: Props) => {
     onSuccess: () => {
       toast.success("Bill deleted", { id: "delete-recurring-item" });
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ["recurringItems"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
     },
     onError: (error) => {
       toast.error(

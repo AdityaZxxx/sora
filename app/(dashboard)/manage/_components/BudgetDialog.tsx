@@ -1,5 +1,4 @@
 "use client";
-
 import type { Household } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
@@ -37,6 +36,7 @@ import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { Currencies } from "@/lib/currencies";
 import { hasTwoDecimals } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import { createBudget, updateBudget } from "../../_actions/budgets";
 import CategoryPicker from "../../_components/CategoryPicker";
@@ -106,7 +106,7 @@ const BudgetDialog = ({
         id: "budget-dialog",
       });
       queryClient.invalidateQueries({
-        queryKey: ["budgets"],
+        queryKey: queryKeys.budgets,
       });
       if (!isEditing) {
         setCategory("");

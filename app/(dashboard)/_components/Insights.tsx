@@ -1,5 +1,4 @@
 "use client";
-
 import type { GetInsightsResponseType } from "../../api/insights/route";
 
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +19,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 const TrendChart = dynamic(() => import("./InsightsTrendChart"), {
@@ -59,7 +59,7 @@ const Insights = ({ currency }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const { data: queryMonths, isLoading } = useQuery<GetInsightsResponseType>({
-    queryKey: ["insights"],
+    queryKey: queryKeys.insights,
     queryFn: async () => {
       const response = await fetch("/api/insights");
       if (!response.ok) {

@@ -1,5 +1,4 @@
 "use client";
-
 import type { TokenScope } from "@/lib/types";
 import type { Household } from "@prisma/client";
 import type { ReactElement } from "react";
@@ -55,6 +54,7 @@ import {
   READ_WRITE_SCOPE,
 } from "@/lib/constants";
 import { formatDateValue } from "@/lib/dates";
+import { queryKeys } from "@/lib/query-keys";
 
 import {
   type ApiTokenSummary,
@@ -72,7 +72,7 @@ const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {
   const queryClient = useQueryClient();
 
   const { data: household } = useQuery<Household>({
-    queryKey: ["household"],
+    queryKey: queryKeys.household,
     queryFn: async () => {
       const res = await fetch("/api/user-settings");
       if (!res.ok) {
@@ -96,8 +96,8 @@ const AgentAccessSection = ({ canEdit }: { canEdit: boolean }) => {
         variables.enabled ? "Agent access enabled" : "Agent access turned off",
         { id: "agent-access" },
       );
-      await queryClient.invalidateQueries({ queryKey: ["household"] });
-      await queryClient.invalidateQueries({ queryKey: ["apiTokens"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.household });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
     },
     onError: (error) => {
       toast.error(
@@ -148,7 +148,7 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
   const queryClient = useQueryClient();
 
   const { data: tokens = [], isLoading } = useQuery<ApiTokenSummary[]>({
-    queryKey: ["apiTokens"],
+    queryKey: queryKeys.apiTokens,
     queryFn: async () => {
       return unwrapAction(await listApiTokens()) ?? [];
     },
@@ -161,7 +161,7 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
     },
     onSuccess: async () => {
       toast.success("Token revoked", { id: "api-tokens" });
-      await queryClient.invalidateQueries({ queryKey: ["apiTokens"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
     },
     onError: (error) => {
       toast.error(
@@ -270,7 +270,7 @@ const CreateApiTokenDialog = ({
       setScope(READ_ONLY_SCOPE);
       setExpiresAt("");
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: ["apiTokens"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.apiTokens });
     },
     onError: (mutationError) => {
       setError(

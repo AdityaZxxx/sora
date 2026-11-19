@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { MoreHorizontal, Pencil, Target, TrashIcon } from "lucide-react";
@@ -35,6 +34,7 @@ import { unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { type GoalWithProgress } from "@/lib/goals";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import { listGoals } from "../_actions/goals";
 import CreateGoalDialog from "./CreateGoalDialog";
@@ -51,7 +51,7 @@ const Goals = ({
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const goalsQuery = useQuery({
-    queryKey: ["goals"],
+    queryKey: queryKeys.goals,
     queryFn: async () => {
       return unwrapAction(await listGoals());
     },

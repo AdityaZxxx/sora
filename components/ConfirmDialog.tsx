@@ -1,6 +1,7 @@
 "use client";
 
 import type { ActionResult } from "@/lib/action-result";
+import type { QueryKey } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,7 @@ interface Props<TInput> {
   toastId: string;
   input?: TInput;
   action: (input: TInput) => Promise<ActionResult<unknown>>;
-  queryKeys: string[][];
+  queryKeys: QueryKey[];
   trigger?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;

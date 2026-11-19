@@ -1,5 +1,4 @@
 "use client";
-
 import type { GoalWithProgress } from "@/lib/goals";
 import type { ReactElement, ReactNode } from "react";
 
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/popover";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { Currencies } from "@/lib/currencies";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { CreateGoalSchema } from "@/schemas/goals";
 
@@ -129,7 +129,7 @@ const GoalFormDialog = ({
       });
 
       await queryClient.invalidateQueries({
-        queryKey: ["goals"],
+        queryKey: queryKeys.goals,
       });
 
       if (!goal) {

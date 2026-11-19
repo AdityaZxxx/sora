@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 
 import { type GetCategoriesStatsResponseType } from "../../api/stats/categories/route";
 
@@ -32,7 +32,7 @@ interface Props {
 
 const CategoriesStats = ({ from, to, currency }: Props) => {
   const statsQuery = useQuery<GetCategoriesStatsResponseType>({
-    queryKey: ["overview", "stats", "categories", from, to],
+    queryKey: queryKeys.overview.categories(from, to),
     queryFn: async () => {
       const response = await fetch(
         `/api/stats/categories?from=${format(from, "yyyy-MM-dd")}&to=${format(

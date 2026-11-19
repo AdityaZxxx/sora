@@ -1,5 +1,4 @@
 "use client";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +35,7 @@ import {
   POLL_INTERVAL,
   VIEW_ONLY_ROLE,
 } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 import {
   listMembers,
@@ -51,7 +51,7 @@ const MembersSection = () => {
   const queryClient = useQueryClient();
 
   const { data: members = [], isLoading } = useQuery({
-    queryKey: ["householdMembers"],
+    queryKey: queryKeys.householdMembers,
     queryFn: async () => {
       return unwrapAction(await listMembers()) ?? [];
     },
@@ -69,7 +69,7 @@ const MembersSection = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["householdMembers"],
+        queryKey: queryKeys.householdMembers,
       });
     },
     onError: (error) => {
@@ -91,7 +91,7 @@ const MembersSection = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["householdMembers"],
+        queryKey: queryKeys.householdMembers,
       });
     },
     onError: (error) => {

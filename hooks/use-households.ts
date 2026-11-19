@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { POLL_INTERVAL } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 
 export type HouseholdsResponse = {
   active: { id: string };
@@ -15,7 +16,7 @@ export type HouseholdsResponse = {
 
 export function useHouseholds() {
   return useQuery<HouseholdsResponse>({
-    queryKey: ["households"],
+    queryKey: queryKeys.households,
     queryFn: async () => {
       const response = await fetch("/api/households");
       if (!response.ok) {

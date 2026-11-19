@@ -1,5 +1,4 @@
 "use client";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, CheckCheck, TriangleAlert } from "lucide-react";
@@ -27,13 +26,14 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 const NotificationBell = () => {
   const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ["notifications"],
+    queryKey: queryKeys.notifications,
     queryFn: async () => {
       return unwrapAction(await listNotifications());
     },
@@ -56,7 +56,7 @@ const NotificationBell = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["notifications"],
+        queryKey: queryKeys.notifications,
       });
     },
     onError: (error) => {

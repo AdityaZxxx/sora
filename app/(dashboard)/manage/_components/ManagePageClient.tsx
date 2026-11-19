@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { POLL_INTERVAL } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import CreateCategoryDialog from "../../_components/CreateCategoryDialog";
@@ -157,7 +157,7 @@ function CategoryList({
     isError,
     refetch,
   } = useQuery<Category[]>({
-    queryKey: ["categories", type],
+    queryKey: queryKeys.categories(type),
     queryFn: () =>
       fetch(`/api/categories?type=${type}`).then(async (res) => {
         if (!res.ok) {

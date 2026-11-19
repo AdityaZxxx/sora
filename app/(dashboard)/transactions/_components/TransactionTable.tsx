@@ -1,5 +1,4 @@
 "use client";
-
 import type { Household } from "@prisma/client";
 import type {
   ColumnFiltersState,
@@ -69,6 +68,7 @@ import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
 import { cn } from "@/lib/utils";
 
@@ -225,7 +225,7 @@ const TransactionTable = ({ from, to }: Props) => {
     pageSize: 10,
   });
   const householdQuery = useQuery<Household>({
-    queryKey: ["household"],
+    queryKey: queryKeys.household,
     queryFn: async () => {
       const res = await fetch("/api/user-settings");
       if (!res.ok) {
@@ -242,7 +242,7 @@ const TransactionTable = ({ from, to }: Props) => {
   const columns = buildColumns(formatAmount);
 
   const history = useQuery<GetTransactionsHistoryResponseType>({
-    queryKey: ["transactions", "history", from, to],
+    queryKey: queryKeys.transactions.history(from, to),
     queryFn: async () => {
       const response = await fetch(
         `/api/transaction-history?from=${format(

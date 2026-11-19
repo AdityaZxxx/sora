@@ -1,3 +1,5 @@
+"use client";
+
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 import type { ReactNode } from "react";

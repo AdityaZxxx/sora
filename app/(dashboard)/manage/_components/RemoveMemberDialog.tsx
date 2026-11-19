@@ -1,9 +1,9 @@
 "use client";
-
 import type { listMembers } from "../_actions/membership";
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { queryKeys } from "@/lib/query-keys";
 
 import { removeMember } from "../_actions/membership";
 
@@ -28,7 +28,7 @@ const RemoveMemberDialog = ({ trigger, member }: Props) => (
     toastId={`remove-member-${member.userId}`}
     input={{ userId: member.userId }}
     action={removeMember}
-    queryKeys={[["householdMembers"]]}
+    queryKeys={[queryKeys.householdMembers]}
   />
 );
 

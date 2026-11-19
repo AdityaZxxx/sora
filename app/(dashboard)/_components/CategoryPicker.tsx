@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 
@@ -23,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { POLL_INTERVAL } from "@/lib/constants";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 import CreateCategoryDialog from "./CreateCategoryDialog";
@@ -53,7 +53,7 @@ const CategoryPicker = ({
   };
 
   const categoriesQuery = useQuery({
-    queryKey: ["categories", type],
+    queryKey: queryKeys.categories(type),
     queryFn: async () => {
       const res = await fetch(`api/categories?type=${type}`);
       if (!res.ok) {

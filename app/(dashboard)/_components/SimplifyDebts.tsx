@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -15,6 +14,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import {
   SimplifiedTransfersSchema,
   type SimplifiedTransfer,
@@ -28,7 +28,7 @@ const SimplifyDebts = ({ currency }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const debtsQuery = useQuery<SimplifiedTransfer[]>({
-    queryKey: ["simplified-debts"],
+    queryKey: queryKeys.simplifiedDebts,
     queryFn: () =>
       fetchJson(
         "/api/simplified-debts",

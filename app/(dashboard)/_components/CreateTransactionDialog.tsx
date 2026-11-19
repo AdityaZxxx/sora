@@ -1,5 +1,4 @@
 "use client";
-
 import type { TransactionType } from "@/lib/types";
 import type { Household } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
@@ -49,6 +48,7 @@ import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import {
   finalizeShares,
   sharesTotalCents,
@@ -99,7 +99,7 @@ const CreateTransactionDialog = ({
   const [initialDate] = useState(() => new Date());
 
   const household = useQuery<Household>({
-    queryKey: ["household"],
+    queryKey: queryKeys.household,
     queryFn: async () => {
       const res = await fetch("/api/user-settings");
       if (!res.ok) {
@@ -121,7 +121,7 @@ const CreateTransactionDialog = ({
   const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
 
   const goalsQuery = useQuery({
-    queryKey: ["goals"],
+    queryKey: queryKeys.goals,
     queryFn: async () => {
       return unwrapAction(await listGoals());
     },
@@ -133,7 +133,7 @@ const CreateTransactionDialog = ({
   const goals = goalsQuery.data ?? [];
 
   const memberCountQuery = useQuery({
-    queryKey: ["memberCount"],
+    queryKey: queryKeys.memberCount,
     queryFn: async () => {
       return unwrapAction(await getHouseholdMemberCount());
     },
@@ -146,7 +146,7 @@ const CreateTransactionDialog = ({
     knownMemberCount !== undefined && knownMemberCount > 1;
 
   const membersQuery = useQuery({
-    queryKey: ["householdMembers"],
+    queryKey: queryKeys.householdMembers,
     queryFn: async () => {
       return unwrapAction(await listMembers()) ?? [];
     },
@@ -171,13 +171,13 @@ const CreateTransactionDialog = ({
       resetSplitInputs();
 
       queryClient.invalidateQueries({
-        queryKey: ["overview"],
+        queryKey: queryKeys.overview.all,
       });
       queryClient.invalidateQueries({
-        queryKey: ["goals"],
+        queryKey: queryKeys.goals,
       });
       queryClient.invalidateQueries({
-        queryKey: ["recurringItems"],
+        queryKey: queryKeys.recurringItems,
       });
 
       setOpen(false);

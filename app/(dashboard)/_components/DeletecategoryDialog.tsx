@@ -1,9 +1,9 @@
 "use client";
-
 import type { Category } from "@prisma/client";
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { queryKeys } from "@/lib/query-keys";
 
 import { DeleteCategory } from "../_actions/categories";
 
@@ -38,7 +38,7 @@ const DeleteCategoryDialog = ({
     toastId={`${category.name}-${category.type}`}
     input={{ id: category.id }}
     action={DeleteCategory}
-    queryKeys={[["categories"]]}
+    queryKeys={[queryKeys.categories()]}
   />
 );
 

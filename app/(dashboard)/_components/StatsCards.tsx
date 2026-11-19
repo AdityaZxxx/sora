@@ -1,5 +1,4 @@
 "use client";
-
 import type { ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import SkeletonWrapper from "@/components/SkeletonWrapper";
 import { Card } from "@/components/ui/card";
 import { POLL_INTERVAL, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
+import { queryKeys } from "@/lib/query-keys";
 import { type GetBalanceStatsResponseType } from "@/lib/transactions";
 
 interface Props {
@@ -22,7 +22,7 @@ interface Props {
 
 const StatsCards = ({ from, to, currency }: Props) => {
   const statsQuery = useQuery<GetBalanceStatsResponseType>({
-    queryKey: ["overview", "stats", from, to],
+    queryKey: queryKeys.overview.stats(from, to),
     queryFn: async () => {
       try {
         const response = await fetch(
