@@ -4,6 +4,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import Navbar from "@/components/Navbar";
 import NewExpenseShortcut from "@/components/NewExpenseShortcut";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import PendingSyncIndicator from "@/components/PendingSyncIndicator";
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -15,6 +16,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         Skip to content
       </a>
       <OfflineIndicator />
+      <PendingSyncIndicator />
       <NewExpenseShortcut />
       <Navbar />
       <main id="main-content" className="w-full flex-1">
