@@ -36,6 +36,14 @@ export async function getCategories(
       name: settlementCategoryExclusion(),
       ...(type && { type }),
     },
+    select: {
+      id: true,
+      name: true,
+      icon: true,
+      iconKind: true,
+      iconColor: true,
+      type: true,
+    },
     orderBy: {
       name: "asc",
     },

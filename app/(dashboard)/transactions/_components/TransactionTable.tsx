@@ -1,11 +1,12 @@
 "use client";
 import type {
   ColumnFiltersState,
+  OnChangeFn,
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   createColumnHelper,
   flexRender,
@@ -68,7 +69,10 @@ import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
-import { type GetTransactionsHistoryResponseType } from "@/lib/transactions";
+import {
+  type GetTransactionsHistoryResponseType,
+  type TransactionHistoryRow,
+} from "@/lib/transactions";
 import { cn } from "@/lib/utils";
 
 import DeleteTransactionDialog from "./DeleteTransactionDialog";
@@ -84,10 +88,37 @@ interface Props {
   currency: string;
 }
 
-type TransactionHistoryRow = GetTransactionsHistoryResponseType[0];
-
 const emptyData: TransactionHistoryRow[] = [];
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+async function fetchHistoryPage(
+  from: Date,
+  to: Date,
+  cursor: string | null,
+  limit: number,
+): Promise<GetTransactionsHistoryResponseType> {
+  const params = new URLSearchParams({
+    from: format(from, "yyyy-MM-dd"),
+    to: format(to, "yyyy-MM-dd"),
+    limit: String(limit),
+  });
+  if (cursor) params.set("cursor", cursor);
+
+  const response = await fetch(`/api/transaction-history?${params}`);
+  if (!response.ok) throw new Error("Failed to fetch transaction history");
+  return response.json();
+}
+
+async function fetchAllHistory(from: Date, to: Date, limit: number) {
+  const rows: TransactionHistoryRow[] = [];
+  let cursor: string | null = null;
+  do {
+    const page = await fetchHistoryPage(from, to, cursor, limit);
+    rows.push(...page.transactions);
+    cursor = page.nextCursor;
+  } while (cursor);
+  return rows;
+}
 
 const columnHelper = createColumnHelper<
   AppTableFeatures,
@@ -227,36 +258,52 @@ const TransactionTable = ({ from, to, currency }: Props) => {
   const formatAmount = getFormatterForCurrency(currency).format;
   const columns = buildColumns(formatAmount);
 
-  const history = useQuery<GetTransactionsHistoryResponseType>({
-    queryKey: queryKeys.transactions.history(from, to),
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/transaction-history?from=${format(
-          from,
-          "yyyy-MM-dd",
-        )}&to=${format(to, "yyyy-MM-dd")}`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch transaction history");
-      return response.json();
-    },
+  const history = useInfiniteQuery({
+    queryKey: queryKeys.transactions.history(from, to, pagination.pageSize),
+    queryFn: ({ pageParam }) =>
+      fetchHistoryPage(from, to, pageParam ?? null, pagination.pageSize),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
 
+  const rows = history.data?.pages.flatMap((page) => page.transactions) ?? [];
+  const loadedPages = history.data?.pages.length ?? 0;
+  const pageCount = Math.max(loadedPages + (history.hasNextPage ? 1 : 0), 1);
+
+  const handlePaginationChange: OnChangeFn<PaginationState> = (updater) => {
+    const next = typeof updater === "function" ? updater(pagination) : updater;
+    if (next.pageSize !== pagination.pageSize) {
+      setPagination({ pageIndex: 0, pageSize: next.pageSize });
+      return;
+    }
+
+    setPagination(next);
+    if (
+      next.pageIndex >= loadedPages &&
+      history.hasNextPage &&
+      !history.isFetchingNextPage
+    ) {
+      void history.fetchNextPage();
+    }
+  };
+
   const table = useTable({
-    data: history.data || emptyData,
+    data: rows.length > 0 ? rows : emptyData,
     columns,
     features: appTableFeatures,
     state: { sorting, columnFilters, pagination },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
+    autoResetPageIndex: false,
+    pageCount,
   });
 
   const totalRows = table.getFilteredRowModel().rows.length;
-  const pageCount = Math.max(table.getPageCount(), 1);
 
-  const csvData = getCsvData(history.data, formatAmount, currency);
+  const csvData = getCsvData(rows, formatAmount, currency);
 
   const csvHeaders = [
     { label: "Date", key: "Date" },
@@ -267,18 +314,21 @@ const TransactionTable = ({ from, to, currency }: Props) => {
     { label: "Currency", key: "Currency" },
   ];
 
-  const categoriesOptions = getCategoryOptions(history.data ?? []);
+  const categoriesOptions = getCategoryOptions(rows);
 
   const typeOptions = [
     { label: "Income", value: "income" },
     { label: "Expense", value: "expense" },
   ];
 
-  const downloadCsv = () => {
+  const downloadCsv = async () => {
     if (csvData.length === 0) return;
+
+    const allRows = await fetchAllHistory(from, to, pagination.pageSize);
+    const allCsvData = getCsvData(allRows, formatAmount, currency);
     const lines = [
       csvHeaders.map((h) => escapeCell(h.label)).join(","),
-      ...csvData.map((row) =>
+      ...allCsvData.map((row) =>
         csvHeaders
           .map((h) => escapeCell((row as Record<string, string>)[h.key]))
           .join(","),
@@ -428,7 +478,8 @@ const TransactionTable = ({ from, to, currency }: Props) => {
               </SelectContent>
             </Select>
             <p className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-              Page {pagination.pageIndex + 1} of {pageCount}
+              Page {pagination.pageIndex + 1} of{" "}
+              {history.hasNextPage ? `${loadedPages}+` : pageCount}
               <span className="hidden sm:inline">
                 : {totalRows} {totalRows === 1 ? "row" : "rows"}
               </span>
@@ -453,7 +504,7 @@ const TransactionTable = ({ from, to, currency }: Props) => {
             <PageButton
               label="Go to next page"
               onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              disabled={!table.getCanNextPage() || history.isFetchingNextPage}
             >
               <ChevronRight />
             </PageButton>
@@ -463,7 +514,11 @@ const TransactionTable = ({ from, to, currency }: Props) => {
               onClick={() =>
                 table.setPageIndex(Math.max(table.getPageCount() - 1, 0))
               }
-              disabled={!table.getCanNextPage()}
+              disabled={
+                !table.getCanNextPage() ||
+                history.hasNextPage ||
+                history.isFetchingNextPage
+              }
             >
               <ChevronsRight />
             </PageButton>

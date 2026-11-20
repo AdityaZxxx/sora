@@ -22,7 +22,6 @@ import {
 
 export type RecurringItemRow = {
   id: string;
-  householdId: string;
   name: string;
   amount: number;
   category: string;
@@ -141,7 +140,6 @@ export function isRecurringItemDue(
 
 function toRow(item: {
   id: string;
-  householdId: string;
   name: string;
   amount: { toNumber(): number };
   category: string;
@@ -176,6 +174,24 @@ export async function listRecurringItems(householdId: string) {
 
   const items = await prisma.recurringItem.findMany({
     where: { householdId },
+    select: {
+      id: true,
+      name: true,
+      amount: true,
+      category: true,
+      categoryIcon: true,
+      categoryIconKind: true,
+      categoryIconColor: true,
+      type: true,
+      frequency: true,
+      weekday: true,
+      dayOfMonth: true,
+      startDate: true,
+      endDate: true,
+      paused: true,
+      lastPostedAt: true,
+      createdAt: true,
+    },
     orderBy: [{ createdAt: "asc" }],
   });
   return items.map(toRow);

@@ -10,7 +10,11 @@ import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
-import { getBalanceStats, getTransactionsHistory } from "@/lib/transactions";
+import {
+  getBalanceStats,
+  getTransactionsHistory,
+  type GetTransactionsHistoryResponseType,
+} from "@/lib/transactions";
 
 import {
   dateRangeSchema,
@@ -75,13 +79,20 @@ export function registerReadTools(server: McpServer, context: McpContext) {
       try {
         const range = resolveDateRange(from, to);
         const currency = context.currency ?? DEFAULT_CURRENCY;
-        const transactions = await getTransactionsHistory(
-          context.householdId,
-          context.userId,
-          range.from,
-          range.to,
-          { category, shared },
-        );
+        const transactions: GetTransactionsHistoryResponseType["transactions"] =
+          [];
+        let cursor: string | null = null;
+        do {
+          const page = await getTransactionsHistory(
+            context.householdId,
+            context.userId,
+            range.from,
+            range.to,
+            { category, shared, cursor },
+          );
+          transactions.push(...page.transactions);
+          cursor = page.nextCursor;
+        } while (cursor);
 
         return toolResult({
           from: range.from.toISOString(),

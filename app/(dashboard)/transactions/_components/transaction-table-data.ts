@@ -1,9 +1,9 @@
-import type { GetTransactionsHistoryResponseType } from "@/lib/transactions";
+import type { TransactionHistoryRow } from "@/lib/transactions";
 
 import { categoryIconLabel } from "@/lib/category-icons";
 
 export function getCsvData(
-  transactions: GetTransactionsHistoryResponseType | undefined,
+  transactions: TransactionHistoryRow[],
   formatAmount: (value: number) => string,
   currency: string,
 ) {
@@ -22,9 +22,7 @@ export function getCsvData(
   }));
 }
 
-export function getCategoryOptions(
-  transactions: GetTransactionsHistoryResponseType,
-) {
+export function getCategoryOptions(transactions: TransactionHistoryRow[]) {
   const categories = new Map<string, { value: string; label: string }>();
   for (const transaction of transactions) {
     categories.set(transaction.category, {

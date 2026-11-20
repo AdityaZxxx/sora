@@ -8,113 +8,125 @@ import prisma from "@/lib/prisma";
 import { settlementCategoryEquals } from "@/lib/settlements";
 
 const { Decimal } = Prisma;
+const ZERO = new Decimal(0);
 
-async function loadBalanceInputs(householdId: string) {
-  const [memberships, sharedExpenses, settlements, expenseShares] =
-    await Promise.all([
-      prisma.householdMembership.findMany({
-        where: {
-          householdId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
+type BalanceEdgeRow = {
+  creditorId: string;
+  debtorId: string;
+  amount: string;
+};
+
+type NetEdges = Map<string, Map<string, Prisma.Decimal>>;
+
+async function loadBalanceEdges(householdId: string) {
+  const settlementCategory = settlementCategoryEquals().equals;
+
+  const [memberships, rows] = await Promise.all([
+    prisma.householdMembership.findMany({
+      where: {
+        householdId,
+      },
+      select: {
+        user: {
+          select: {
+            id: true,
+            name: true,
           },
         },
-        orderBy: {
-          joinedAt: "asc",
-        },
-      }),
-      prisma.transaction.findMany({
-        where: {
-          householdId,
-          shared: true,
-          type: "expense",
-        },
-        select: {
-          id: true,
-          addedById: true,
-          amount: true,
-        },
-      }),
-      prisma.transaction.findMany({
-        where: {
-          householdId,
-          shared: false,
-          type: "expense",
-          category: settlementCategoryEquals(),
-        },
-        select: {
-          addedById: true,
-          amount: true,
-          counterpartyId: true,
-        },
-      }),
-      prisma.transactionShare.findMany({
-        where: {
-          transaction: {
-            householdId,
-            shared: true,
-            type: "expense",
-          },
-        },
-        select: {
-          transactionId: true,
-          userId: true,
-          amount: true,
-        },
-      }),
-    ]);
+      },
+      orderBy: {
+        joinedAt: "asc",
+      },
+    }),
+    prisma.$queryRaw<BalanceEdgeRow[]>`
+      WITH member_ids AS (
+        SELECT "userId" AS id
+        FROM "HouseholdMembership"
+        WHERE "householdId" = ${householdId}
+      ),
+      member_count AS (
+        SELECT COUNT(*)::integer AS n FROM member_ids
+      ),
+      shared_expenses AS (
+        SELECT
+          t.id,
+          t."addedById" AS payer,
+          t.amount,
+          (
+            SELECT COUNT(*)
+            FROM "TransactionShare" s
+            WHERE s."transactionId" = t.id
+          ) AS share_count
+        FROM "Transaction" t
+        WHERE t."householdId" = ${householdId}
+          AND t.shared = TRUE
+          AND t.type = 'expense'
+      ),
+      share_edges AS (
+        SELECT e.payer AS creditor, s."userId" AS debtor, s.amount AS amount
+        FROM shared_expenses e
+        JOIN "TransactionShare" s ON s."transactionId" = e.id
+        WHERE s."userId" <> e.payer
+      ),
+      even_edges AS (
+        SELECT e.payer AS creditor, m.id AS debtor, e.amount / mc.n AS amount
+        FROM shared_expenses e
+        CROSS JOIN member_ids m
+        CROSS JOIN member_count mc
+        WHERE e.share_count = 0 AND mc.n > 0 AND m.id <> e.payer
+      ),
+      settlement_edges AS (
+        SELECT
+          t."addedById" AS creditor,
+          t."counterpartyId" AS debtor,
+          t.amount AS amount
+        FROM "Transaction" t
+        WHERE t."householdId" = ${householdId}
+          AND t.shared = FALSE
+          AND t.type = 'expense'
+          AND t.category = ${settlementCategory}
+          AND t."counterpartyId" IS NOT NULL
+      ),
+      edges AS (
+        SELECT * FROM share_edges
+        UNION ALL
+        SELECT * FROM even_edges
+        UNION ALL
+        SELECT * FROM settlement_edges
+      )
+      SELECT
+        e.creditor AS "creditorId",
+        e.debtor AS "debtorId",
+        SUM(e.amount)::text AS amount
+      FROM edges e
+      JOIN member_ids c ON c.id = e.creditor
+      JOIN member_ids d ON d.id = e.debtor
+      GROUP BY e.creditor, e.debtor
+    `,
+  ]);
 
-  const sharesByTransactionId = new Map<
-    string,
-    { userId: string; amount: Prisma.Decimal }[]
-  >();
-  for (const share of expenseShares) {
-    const shares = sharesByTransactionId.get(share.transactionId);
-    if (shares) {
-      shares.push({ userId: share.userId, amount: share.amount });
-    } else {
-      sharesByTransactionId.set(share.transactionId, [
-        { userId: share.userId, amount: share.amount },
-      ]);
+  const edges: NetEdges = new Map();
+  for (const row of rows) {
+    const amount = new Decimal(row.amount);
+    if (amount.isZero()) continue;
+
+    let debtors = edges.get(row.creditorId);
+    if (!debtors) {
+      debtors = new Map();
+      edges.set(row.creditorId, debtors);
     }
+    debtors.set(row.debtorId, amount);
   }
 
-  return {
-    memberships,
-    sharedExpenses,
-    settlements,
-    sharesByTransactionId,
-  };
+  return { memberships, edges };
 }
 
-function sharesOwedForExpense(
-  expense: { id: string; amount: Prisma.Decimal },
-  memberships: { user: { id: string } }[],
-  sharesByTransactionId: Map<
-    string,
-    { userId: string; amount: Prisma.Decimal }[]
-  >,
-  memberCount: number,
-) {
-  const owed = new Map<string, Prisma.Decimal>();
-  const shares = sharesByTransactionId.get(expense.id);
-  if (shares) {
-    for (const share of shares) {
-      owed.set(share.userId, share.amount);
-    }
-    return owed;
-  }
-
-  const even = expense.amount.div(memberCount);
-  for (const membership of memberships) {
-    owed.set(membership.user.id, even);
-  }
-  return owed;
+function edgeAmount(
+  edges: NetEdges,
+  creditorId: string,
+  debtorId: string,
+): Prisma.Decimal {
+  return edges.get(creditorId)?.get(debtorId) ?? ZERO;
 }
 
 export async function getMemberBalances(
@@ -125,47 +137,15 @@ export async function getMemberBalances(
   cacheLife("minutes");
   cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
 
-  const { memberships, sharedExpenses, settlements, sharesByTransactionId } =
-    await loadBalanceInputs(householdId);
-
-  const memberCount = memberships.length;
+  const { memberships, edges } = await loadBalanceEdges(householdId);
 
   return memberships
     .filter((membership) => membership.user.id !== callerId)
     .map((membership) => {
       const otherId = membership.user.id;
-      let balance = new Decimal(0);
-
-      for (const expense of sharedExpenses) {
-        const owed = sharesOwedForExpense(
-          expense,
-          memberships,
-          sharesByTransactionId,
-          memberCount,
-        );
-        const callerShare = owed.get(callerId) ?? new Decimal(0);
-        const otherShare = owed.get(otherId) ?? new Decimal(0);
-
-        if (expense.addedById === otherId) {
-          balance = balance.plus(callerShare);
-        } else if (expense.addedById === callerId) {
-          balance = balance.minus(otherShare);
-        }
-      }
-
-      for (const settlement of settlements) {
-        const counterpartyId = settlement.counterpartyId;
-        if (!counterpartyId) continue;
-
-        if (settlement.addedById === callerId && counterpartyId === otherId) {
-          balance = balance.minus(settlement.amount);
-        } else if (
-          settlement.addedById === otherId &&
-          counterpartyId === callerId
-        ) {
-          balance = balance.plus(settlement.amount);
-        }
-      }
+      const balance = edgeAmount(edges, otherId, callerId).minus(
+        edgeAmount(edges, callerId, otherId),
+      );
 
       return {
         userId: otherId,
@@ -182,58 +162,26 @@ export async function getSimplifiedTransfers(
   cacheLife("minutes");
   cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
 
-  const { memberships, sharedExpenses, settlements, sharesByTransactionId } =
-    await loadBalanceInputs(householdId);
-
-  const memberCount = memberships.length;
+  const { memberships, edges } = await loadBalanceEdges(householdId);
 
   const netReceivableByUserId = new Map<string, Prisma.Decimal>(
     memberships.map((membership) => [membership.user.id, new Decimal(0)]),
   );
 
-  for (const expense of sharedExpenses) {
-    const owed = sharesOwedForExpense(
-      expense,
-      memberships,
-      sharesByTransactionId,
-      memberCount,
-    );
-    for (const [userId, amount] of owed) {
-      if (userId === expense.addedById || amount.isZero()) continue;
-      netReceivableByUserId.set(
-        expense.addedById,
-        (netReceivableByUserId.get(expense.addedById) ?? new Decimal(0)).plus(
-          amount,
-        ),
-      );
-      netReceivableByUserId.set(
-        userId,
-        (netReceivableByUserId.get(userId) ?? new Decimal(0)).minus(amount),
-      );
-    }
-  }
+  for (const [creditorId, debtors] of edges) {
+    if (!netReceivableByUserId.has(creditorId)) continue;
 
-  for (const settlement of settlements) {
-    const counterpartyId = settlement.counterpartyId;
-    if (
-      !counterpartyId ||
-      !netReceivableByUserId.has(settlement.addedById) ||
-      !netReceivableByUserId.has(counterpartyId)
-    ) {
-      continue;
+    let creditorTotal = netReceivableByUserId.get(creditorId) ?? ZERO;
+    for (const [debtorId, amount] of debtors) {
+      if (!netReceivableByUserId.has(debtorId)) continue;
+
+      creditorTotal = creditorTotal.plus(amount);
+      netReceivableByUserId.set(
+        debtorId,
+        (netReceivableByUserId.get(debtorId) ?? ZERO).minus(amount),
+      );
     }
-    netReceivableByUserId.set(
-      settlement.addedById,
-      (netReceivableByUserId.get(settlement.addedById) ?? new Decimal(0)).plus(
-        settlement.amount,
-      ),
-    );
-    netReceivableByUserId.set(
-      counterpartyId,
-      (netReceivableByUserId.get(counterpartyId) ?? new Decimal(0)).minus(
-        settlement.amount,
-      ),
-    );
+    netReceivableByUserId.set(creditorId, creditorTotal);
   }
 
   const EPSILON = new Decimal("0.005");
@@ -241,7 +189,7 @@ export async function getSimplifiedTransfers(
     .map((membership) => ({
       id: membership.user.id,
       name: membership.user.name,
-      amount: netReceivableByUserId.get(membership.user.id) ?? new Decimal(0),
+      amount: netReceivableByUserId.get(membership.user.id) ?? ZERO,
     }))
     .filter((member) => member.amount.gt(EPSILON))
     .toSorted((a, b) => b.amount.cmp(a.amount));
@@ -249,7 +197,7 @@ export async function getSimplifiedTransfers(
     .map((membership) => ({
       id: membership.user.id,
       name: membership.user.name,
-      amount: netReceivableByUserId.get(membership.user.id) ?? new Decimal(0),
+      amount: netReceivableByUserId.get(membership.user.id) ?? ZERO,
     }))
     .filter((member) => member.amount.lt(-EPSILON))
     .toSorted((a, b) => a.amount.cmp(b.amount));
