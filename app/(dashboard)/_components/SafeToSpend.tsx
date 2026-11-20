@@ -1,4 +1,6 @@
 "use client";
+import type { BudgetWithProgress } from "@/lib/budgets";
+
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 
@@ -12,12 +14,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
-import { unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
-import { listBudgets } from "../_actions/budgets";
 import BudgetDialog from "../manage/_components/BudgetDialog";
 
 interface Props {
@@ -29,9 +30,11 @@ const SafeToSpend = ({ currency }: Props) => {
 
   const { data: budgets = [] } = useSuspenseQuery({
     queryKey: queryKeys.budgets,
-    queryFn: async () => {
-      return unwrapAction(await listBudgets());
-    },
+    queryFn: () =>
+      fetchReadJson<BudgetWithProgress[]>(
+        "/api/budgets",
+        "Unable to load the budgets. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });

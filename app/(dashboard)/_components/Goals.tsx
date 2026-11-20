@@ -29,13 +29,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { type GoalWithProgress } from "@/lib/goals";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
-import { listGoals } from "../_actions/goals";
 import CreateGoalDialog from "./CreateGoalDialog";
 import DeleteGoalDialog from "./DeleteGoalDialog";
 import EditGoalDialog from "./EditGoalDialog";
@@ -51,9 +50,11 @@ const Goals = ({
 
   const { data: goals = [] } = useSuspenseQuery({
     queryKey: queryKeys.goals,
-    queryFn: async () => {
-      return unwrapAction(await listGoals());
-    },
+    queryFn: () =>
+      fetchReadJson<GoalWithProgress[]>(
+        "/api/goals",
+        "Unable to load the goals. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });

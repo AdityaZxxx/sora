@@ -7,7 +7,6 @@ import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   createInviteLink as createInviteLinkSeam,
-  listInviteLinks as listInviteLinksSeam,
   revokeInviteLink as revokeInviteLinkSeam,
 } from "@/lib/invites";
 
@@ -35,12 +34,5 @@ export async function revokeInviteLink(
       await revokeInviteLinkSeam(household.id, form.id, membership.role);
       revalidateHousehold(household.id, [CACHE_RESOURCE.invites]);
     },
-  );
-}
-
-export async function listInviteLinks(): Promise<ActionResult<InviteLink[]>> {
-  return withHouseholdAction(
-    "Unable to load the invite links. Refresh the page and try again.",
-    ({ household }) => listInviteLinksSeam(household.id),
   );
 }

@@ -58,12 +58,13 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
+import { type RecurringItemRow } from "@/lib/recurring";
 
 import {
   DeleteRecurringItem,
-  listRecurringItemsAction,
   SetRecurringItemPaused,
 } from "../_actions/recurring";
 import CreateTransactionDialog from "./CreateTransactionDialog";
@@ -89,9 +90,11 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
 
   const { data: items = [] } = useSuspenseQuery({
     queryKey: queryKeys.recurringItems,
-    queryFn: async () => {
-      return unwrapAction(await listRecurringItemsAction());
-    },
+    queryFn: () =>
+      fetchReadJson<RecurringItemRow[]>(
+        "/api/recurring-items",
+        "Unable to load the bills. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });

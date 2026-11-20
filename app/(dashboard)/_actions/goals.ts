@@ -11,16 +11,8 @@ import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   createHouseholdGoal,
   deleteHouseholdGoal,
-  getGoalsWithProgress,
   updateHouseholdGoal,
 } from "@/lib/goals";
-
-export async function listGoals() {
-  return withHouseholdAction(
-    "Unable to load the goals. Refresh the page and try again.",
-    ({ household }) => getGoalsWithProgress(household.id),
-  );
-}
 
 export async function createGoal(form: CreateGoalSchemaType) {
   return withHouseholdAction(

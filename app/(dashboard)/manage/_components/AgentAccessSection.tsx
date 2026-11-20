@@ -1,4 +1,5 @@
 "use client";
+import type { ApiTokenSummary } from "@/lib/api-token";
 import type { TokenScope } from "@/lib/types";
 import type { ReactElement } from "react";
 
@@ -53,12 +54,11 @@ import {
   READ_WRITE_SCOPE,
 } from "@/lib/constants";
 import { formatDateValue } from "@/lib/dates";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
 import {
-  type ApiTokenSummary,
   createApiToken,
-  listApiTokens,
   revokeApiToken,
   setAgentAccess,
 } from "../_actions/api-tokens";
@@ -139,9 +139,11 @@ const ApiTokenList = ({ canEdit }: { canEdit: boolean }) => {
 
   const { data: tokens = [], isLoading } = useQuery<ApiTokenSummary[]>({
     queryKey: queryKeys.apiTokens,
-    queryFn: async () => {
-      return unwrapAction(await listApiTokens()) ?? [];
-    },
+    queryFn: () =>
+      fetchReadJson<ApiTokenSummary[]>(
+        "/api/api-tokens",
+        "Unable to load the tokens. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
   });
 

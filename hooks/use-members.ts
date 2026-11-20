@@ -1,18 +1,20 @@
+import type { listMembers } from "@/lib/members";
+
 import { useQuery } from "@tanstack/react-query";
 
-import { unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, VIEW_ONLY_ROLE } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
-
-import { listMembers } from "../app/(dashboard)/manage/_actions/membership";
 
 export function useMembers() {
   return useQuery({
     queryKey: queryKeys.householdMembers,
-    queryFn: async () => {
-      return unwrapAction(await listMembers()) ?? [];
-    },
+    queryFn: () =>
+      fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
+        "/api/members",
+        "Unable to load the members. Refresh the page and try again.",
+      ),
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,

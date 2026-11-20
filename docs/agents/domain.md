@@ -20,7 +20,7 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 │   ├── 0001-household-scoped-data-model.md
 │   ├── 0002-free-forever-zero-cost.md
 │   └── 0003-invite-by-revocable-link.md
-├── app/          routes, server actions, and API routes
+├── app/          pages, GET read routes, and write actions
 ├── components/   React components
 ├── hooks/        client hooks
 ├── lib/          the domain functions every surface reaches
@@ -29,6 +29,12 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 ├── schemas/      the zod contracts the transports validate with
 └── proxy.ts
 ```
+
+## Canonical read path
+
+Initial page data comes from the RSC loader `loadDashboard` in `app/(dashboard)/_lib/dashboard-loader.ts`, hydrated into TanStack Query. Every client-side read and refetch goes through a `GET` route under `app/api/*`, including refetches triggered by SSE invalidation. Server Actions are for writes only. `/api/*` also serves external clients: MCP, CLI, export, cron and auth.
+
+The route wrappers are thin. Each one calls the same tagged `lib/` seam the loader and external clients call, and returns through `jsonReadResponse` in `lib/api-route.ts` so ETag and Cache-Control stay centralised. Query keys in `lib/query-keys.ts` stay unchanged, so writes invalidate the same keys the hydrated state and SSE stream use.
 
 ## Use the glossary's vocabulary
 
