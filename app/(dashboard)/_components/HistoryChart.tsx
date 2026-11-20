@@ -118,6 +118,9 @@ export default function HistoryChart({
       barGap={1}
       className="h-full w-full"
       xDataKey="key"
+      ariaLabel={`Income and expense by ${timeframe === "year" ? "month" : "day"}`}
+      categoryLabel={timeframe === "year" ? "Month" : "Day"}
+      valueFormatter={(value) => formatter.format(value)}
       chartOptions={{
         tooltip: {
           ...MONEY_TOOLTIP_OPTIONS,

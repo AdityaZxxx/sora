@@ -15,7 +15,12 @@ const SkeletonWrapper = ({
   if (!isLoading) return children;
   return (
     <Skeleton className={cn(fullWidth && "w-full")}>
-      <div className="opacity-0">{children}</div>
+      <span role="status" className="sr-only">
+        Loading
+      </span>
+      <div aria-hidden="true" aria-busy="true" inert className="opacity-0">
+        {children}
+      </div>
     </Skeleton>
   );
 };
