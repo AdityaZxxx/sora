@@ -49,6 +49,7 @@ const TransactionsClient = ({ currency }: { currency: string }) => {
       </header>
       <div className="container py-8">
         <TransactionTable
+          key={`${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`}
           from={dateRange.from}
           to={dateRange.to}
           currency={currency}

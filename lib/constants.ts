@@ -1,5 +1,9 @@
 export const MAX_DATE_RANGE = 90;
 
+export const TRANSACTION_HISTORY_PAGE_SIZE = 20;
+
+export const TRANSACTION_HISTORY_MAX_PAGE_SIZE = 50;
+
 export const QUERY_STALE_TIME = 30_000;
 // Zero keeps the hooks that still read this constant from polling (sora#125).
 export const POLL_INTERVAL = 0;

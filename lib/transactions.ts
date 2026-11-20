@@ -8,7 +8,10 @@ import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
-import { DEFAULT_CURRENCY } from "@/lib/constants";
+import {
+  DEFAULT_CURRENCY,
+  TRANSACTION_HISTORY_PAGE_SIZE,
+} from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
@@ -26,19 +29,67 @@ import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
+type TransactionCursor = { date: string; id: string };
+
+function encodeCursor(date: Date, id: string) {
+  return Buffer.from(
+    JSON.stringify({
+      date: date.toISOString(),
+      id,
+    } satisfies TransactionCursor),
+  ).toString("base64url");
+}
+
+function decodeCursor(
+  cursor: string | null | undefined,
+): TransactionCursor | null {
+  if (!cursor) return null;
+  try {
+    const parsed: unknown = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8"),
+    );
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "date" in parsed &&
+      "id" in parsed &&
+      typeof parsed.date === "string" &&
+      typeof parsed.id === "string"
+    ) {
+      return { date: parsed.date, id: parsed.id };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getTransactionsHistory(
   householdId: string,
   userId: string,
   from: Date,
   to: Date,
-  filters?: {
+  options: {
     category?: string;
     shared?: boolean;
-  },
+    cursor?: string | null;
+    limit?: number;
+  } = {},
 ) {
   "use cache";
   cacheLife("minutes");
   cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+
+  const cursor = decodeCursor(options.cursor);
+  const limit = options.limit ?? TRANSACTION_HISTORY_PAGE_SIZE;
+  const cursorFilter = cursor
+    ? {
+        OR: [
+          { date: { gt: new Date(cursor.date) } },
+          { date: new Date(cursor.date), id: { gt: cursor.id } },
+        ],
+      }
+    : null;
 
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -48,12 +99,19 @@ export async function getTransactionsHistory(
         lte: to,
       },
       OR: [{ shared: true }, { addedById: userId }],
-      ...(filters?.category && { category: filters.category }),
-      ...(filters?.shared !== undefined && { shared: filters.shared }),
+      ...(options.category && { category: options.category }),
+      ...(options.shared !== undefined && { shared: options.shared }),
+      ...(cursorFilter && { AND: [cursorFilter] }),
     },
-    orderBy: {
-      date: "asc",
-    },
+    orderBy: [
+      {
+        date: "asc",
+      },
+      {
+        id: "asc",
+      },
+    ],
+    take: limit + 1,
     select: {
       id: true,
       date: true,
@@ -75,16 +133,26 @@ export async function getTransactionsHistory(
     },
   });
 
-  return transactions.map(({ addedBy, amount, ...transaction }) => ({
-    ...transaction,
-    amount: amount.toNumber(),
-    addedByName: addedBy.name,
-  }));
+  const hasMore = transactions.length > limit;
+  const page = hasMore ? transactions.slice(0, limit) : transactions;
+  const last = page.at(-1);
+
+  return {
+    transactions: page.map(({ addedBy, amount, ...transaction }) => ({
+      ...transaction,
+      amount: amount.toNumber(),
+      addedByName: addedBy.name,
+    })),
+    nextCursor: hasMore && last ? encodeCursor(last.date, last.id) : null,
+  };
 }
 
 export type GetTransactionsHistoryResponseType = Awaited<
   ReturnType<typeof getTransactionsHistory>
 >;
+
+export type TransactionHistoryRow =
+  GetTransactionsHistoryResponseType["transactions"][number];
 
 export async function getBalanceStats(
   householdId: string,

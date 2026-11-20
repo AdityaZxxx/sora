@@ -85,6 +85,12 @@ export async function getBudgetsWithProgress(householdId: string) {
       where: {
         householdId,
       },
+      select: {
+        id: true,
+        category: true,
+        amount: true,
+        mode: true,
+      },
       orderBy: {
         createdAt: "asc",
       },

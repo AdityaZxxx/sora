@@ -23,6 +23,12 @@ export async function getGoalsWithProgress(householdId: string) {
       where: {
         householdId,
       },
+      select: {
+        id: true,
+        name: true,
+        target: true,
+        deadline: true,
+      },
       orderBy: {
         createdAt: "asc",
       },
