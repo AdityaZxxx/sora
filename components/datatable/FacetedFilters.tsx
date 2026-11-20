@@ -1,3 +1,4 @@
+"use client";
 import type { AppTableFeatures } from "./table-features";
 import type { Column, RowData } from "@tanstack/react-table";
 
@@ -8,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -40,6 +40,12 @@ export function DataTableFacetedFilter<TData extends RowData, TValue>({
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues();
   const selectedValues = new Set(column?.getFilterValue() as string[]);
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
+  const needle = deferredSearch.trim().toLowerCase();
+  const visibleOptions = needle
+    ? options.filter((option) => option.label.toLowerCase().includes(needle))
+    : options;
 
   return (
     <Popover>
@@ -85,12 +91,18 @@ export function DataTableFacetedFilter<TData extends RowData, TValue>({
         )}
       </PopoverTrigger>
       <PopoverContent className="w-max max-w-72 min-w-56 p-0" align="start">
-        <Command>
-          <CommandInput placeholder={title} />
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder={title}
+          />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            {visibleOptions.length === 0 && (
+              <p className="py-6 text-center text-sm">No results found.</p>
+            )}
             <CommandGroup>
-              {options.map((option) => {
+              {visibleOptions.map((option) => {
                 const isSelected = selectedValues.has(option.value);
                 return (
                   <CommandItem

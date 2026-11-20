@@ -1,6 +1,7 @@
 "use client";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { listMembers } from "@/lib/members";
+import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { TransactionType } from "@/lib/types";
 import type { ReactElement, ReactNode } from "react";
 
@@ -142,26 +143,55 @@ const CreateTransactionDialog = ({
     mutationFn: async (input: Parameters<typeof CreateTransaction>[0]) => {
       return unwrapAction(await CreateTransaction(input));
     },
+    onMutate: async (input) => {
+      toast.loading("Adding transaction…", {
+        id: "create-transaction",
+      });
+      await queryClient.cancelQueries({ queryKey: queryKeys.overview.all });
+      const previousStats =
+        queryClient.getQueriesData<GetBalanceStatsResponseType>({
+          queryKey: ["overview", "stats"],
+        });
+
+      for (const [key, stats] of previousStats) {
+        if (
+          !stats ||
+          typeof stats.income !== "number" ||
+          typeof stats.expense !== "number" ||
+          !(key[2] instanceof Date) ||
+          !(key[3] instanceof Date) ||
+          input.date < key[2] ||
+          input.date > key[3] ||
+          !input.shared
+        ) {
+          continue;
+        }
+        queryClient.setQueryData<GetBalanceStatsResponseType>(
+          key,
+          (current) => {
+            if (!current) return current;
+            return input.type === "income"
+              ? { ...current, income: current.income + input.amount }
+              : { ...current, expense: current.expense + input.amount };
+          },
+        );
+      }
+
+      setOpen(false);
+      return { previousStats };
+    },
     onSuccess: () => {
       toast.success("Transaction added", {
         id: "create-transaction",
       });
       form.reset();
       resetSplitInputs();
-
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.overview.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.goals,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recurringItems,
-      });
-
-      setOpen(false);
     },
-    onError: (error) => {
+    onError: (error, _input, context) => {
+      for (const [key, stats] of context?.previousStats ?? []) {
+        queryClient.setQueryData(key, stats);
+      }
+      setOpen(true);
       toast.error(
         actionErrorMessage(
           error,
@@ -171,6 +201,17 @@ const CreateTransactionDialog = ({
           id: "create-transaction",
         },
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.overview.all,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.goals,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.recurringItems,
+      });
     },
   });
 
@@ -193,10 +234,6 @@ const CreateTransactionDialog = ({
       document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
     },
     onSubmit: ({ value }) => {
-      toast.loading("Adding transaction…", {
-        id: "create-transaction",
-      });
-
       mutate({
         ...value,
         date: dateToUtcDate(value.date),

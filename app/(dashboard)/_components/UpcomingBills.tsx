@@ -103,10 +103,24 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
     mutationFn: async (input: { id: string; paused: boolean }) => {
       return unwrapAction(await SetRecurringItemPaused(input));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.recurringItems });
+      const previous = queryClient.getQueryData<RecurringItemRow[]>(
+        queryKeys.recurringItems,
+      );
+      queryClient.setQueryData<RecurringItemRow[]>(
+        queryKeys.recurringItems,
+        (current) =>
+          current?.map((item) =>
+            item.id === input.id ? { ...item, paused: input.paused } : item,
+          ),
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _input, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.recurringItems, context.previous);
+      }
       toast.error(
         actionErrorMessage(
           error,
@@ -114,6 +128,11 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
         ),
         { id: "pause-recurring-item" },
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.recurringItems,
+      });
     },
   });
 

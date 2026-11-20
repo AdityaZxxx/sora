@@ -1,7 +1,10 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import type { ActionResult } from "@/lib/action-result";
+
 import { Loader2, Users } from "lucide-react";
+import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { actionErrorMessage } from "@/lib/action-client";
 
 import { joinHouseholdByToken } from "../_actions/invite";
 
@@ -22,24 +24,33 @@ interface Props {
   inviterName: string | null;
 }
 
+const initialState: ActionResult = { ok: true };
+
+function JoinButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button className="w-full gap-2" type="submit" disabled={pending}>
+      {pending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Users className="h-4 w-4" />
+      )}
+      Join household
+    </Button>
+  );
+}
+
 const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
-  const { mutate: join, isPending } = useMutation({
-    mutationFn: async () => {
-      const result = await joinHouseholdByToken(token);
-      if (!result.ok) {
-        throw new Error(result.message);
-      }
-      return result.data;
-    },
-    onError: (error) => {
-      toast.error(
-        actionErrorMessage(error, "Unable to join the household. Try again."),
-        {
-          id: "join-household",
-        },
-      );
-    },
-  });
+  const [state, formAction] = useActionState(
+    joinHouseholdByToken.bind(null, token),
+    initialState,
+  );
+
+  useEffect(() => {
+    if (!state.ok) {
+      toast.error(state.message, { id: "join-household" });
+    }
+  }, [state]);
 
   return (
     <Card className="mt-12 w-[min(400px,calc(100vw-2rem))]">
@@ -54,18 +65,9 @@ const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button
-          className="w-full gap-2"
-          disabled={isPending}
-          onClick={() => join()}
-        >
-          {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Users className="h-4 w-4" />
-          )}
-          Join household
-        </Button>
+        <form action={formAction}>
+          <JoinButton />
+        </form>
       </CardContent>
     </Card>
   );

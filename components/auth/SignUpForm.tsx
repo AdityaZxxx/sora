@@ -1,8 +1,7 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -18,45 +17,55 @@ const signUpSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+type SignUpState = {
+  error: string | null;
+  fieldErrors: Partial<Record<"name" | "email" | "password", string>>;
+};
+
+const initialState: SignUpState = { error: null, fieldErrors: {} };
+
 export default function SignUpForm({ next }: { next?: string }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [values, setValues] = useState({ name: "", email: "", password: "" });
 
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
-    validators: {
-      onSubmit: signUpSchema,
-    },
-    onSubmitInvalid: () => {
-      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-    },
-    onSubmit: async ({ value }) => {
-      setIsLoading(true);
-      const { error } = await authClient.signUp.email({
-        name: value.name,
-        email: value.email,
-        password: value.password,
-      });
-      setIsLoading(false);
+  const signUp = async (
+    _previous: SignUpState,
+    formData: FormData,
+  ): Promise<SignUpState> => {
+    const parsed = signUpSchema.safeParse({
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    });
 
-      if (error) {
-        toast.error(
-          error.message
-            ? error.message
-            : "Unable to create your account. Check your details and try again.",
-        );
-        return;
+    if (!parsed.success) {
+      const fieldErrors: SignUpState["fieldErrors"] = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (field === "name" || field === "email" || field === "password") {
+          fieldErrors[field] ??= issue.message;
+        }
       }
+      return { error: null, fieldErrors };
+    }
 
-      toast.success("Account created");
-      router.push(next ?? "/wizard");
-      router.refresh();
-    },
-  });
+    const { error } = await authClient.signUp.email(parsed.data);
+    if (error) {
+      const message =
+        error.message ||
+        "Unable to create your account. Check your details and try again.";
+      toast.error(message);
+      return { error: message, fieldErrors: {} };
+    }
+
+    toast.success("Account created");
+    const destination = String(formData.get("next") ?? "") || next || "/wizard";
+    router.push(destination);
+    router.refresh();
+    return initialState;
+  };
+
+  const [state, formAction] = useActionState(signUp, initialState);
 
   return (
     <AuthCard
@@ -69,81 +78,77 @@ export default function SignUpForm({ next }: { next?: string }) {
         href: "/sign-in",
       }}
     >
-      <form
-        method="post"
-        onSubmit={(e) => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-        className="flex flex-col gap-4"
-        aria-busy={isLoading}
-      >
-        <form.Field name="name">
-          {(field) => (
-            <AuthField
-              name="name"
-              label="Name"
-              autoComplete="name"
-              autoCapitalize="words"
-              enterKeyHint="next"
-              required
-              placeholder="Your name"
-              value={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              isInvalid={
-                field.state.meta.isTouched && !field.state.meta.isValid
-              }
-              errors={field.state.meta.errors}
-            />
-          )}
-        </form.Field>
-        <form.Field name="email">
-          {(field) => (
-            <AuthField
-              name="email"
-              label="Email"
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="next"
-              required
-              placeholder="you@example.com"
-              value={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              isInvalid={
-                field.state.meta.isTouched && !field.state.meta.isValid
-              }
-              errors={field.state.meta.errors}
-            />
-          )}
-        </form.Field>
-        <form.Field name="password">
-          {(field) => (
-            <AuthField
-              name="password"
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              enterKeyHint="done"
-              required
-              minLength={8}
-              placeholder="At least 8 characters"
-              value={field.state.value}
-              onChange={field.handleChange}
-              onBlur={field.handleBlur}
-              isInvalid={
-                field.state.meta.isTouched && !field.state.meta.isValid
-              }
-              errors={field.state.meta.errors}
-            />
-          )}
-        </form.Field>
-        <AuthSubmitButton pending={isLoading} pendingLabel="Creating account…">
+      <form action={formAction} noValidate className="flex flex-col gap-4">
+        <input type="hidden" name="next" value={next ?? ""} />
+        <AuthField
+          name="name"
+          label="Name"
+          autoComplete="name"
+          autoCapitalize="words"
+          enterKeyHint="next"
+          required
+          placeholder="Your name"
+          value={values.name}
+          onChange={(value) =>
+            setValues((current) => ({ ...current, name: value }))
+          }
+          onBlur={() => {}}
+          isInvalid={Boolean(state.fieldErrors.name)}
+          errors={
+            state.fieldErrors.name ? [{ message: state.fieldErrors.name }] : []
+          }
+        />
+        <AuthField
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="next"
+          required
+          placeholder="you@example.com"
+          value={values.email}
+          onChange={(value) =>
+            setValues((current) => ({ ...current, email: value }))
+          }
+          onBlur={() => {}}
+          isInvalid={Boolean(state.fieldErrors.email)}
+          errors={
+            state.fieldErrors.email
+              ? [{ message: state.fieldErrors.email }]
+              : []
+          }
+        />
+        <AuthField
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          enterKeyHint="done"
+          required
+          minLength={8}
+          placeholder="At least 8 characters"
+          value={values.password}
+          onChange={(value) =>
+            setValues((current) => ({ ...current, password: value }))
+          }
+          onBlur={() => {}}
+          isInvalid={Boolean(state.fieldErrors.password)}
+          errors={
+            state.fieldErrors.password
+              ? [{ message: state.fieldErrors.password }]
+              : []
+          }
+        />
+        {state.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {state.error}
+          </p>
+        )}
+        <AuthSubmitButton pendingLabel="Creating account…">
           Sign up
         </AuthSubmitButton>
       </form>

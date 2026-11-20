@@ -1,13 +1,14 @@
 "use client";
 import type { ReactNode } from "react";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -20,7 +21,7 @@ interface Props {
 }
 
 const StatsCards = ({ from, to, currency }: Props) => {
-  const { data } = useSuspenseQuery<GetBalanceStatsResponseType>({
+  const { data, isPending } = useQuery<GetBalanceStatsResponseType>({
     queryKey: queryKeys.overview.stats(from, to),
     queryFn: async () => {
       try {
@@ -41,11 +42,16 @@ const StatsCards = ({ from, to, currency }: Props) => {
     },
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
   });
 
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
-  const { income = 0, expense = 0 } = data;
+  if (isPending) {
+    return <Skeleton className="h-32 w-full" />;
+  }
+
+  const { income = 0, expense = 0 } = data ?? {};
   const balance = income - expense;
 
   return (

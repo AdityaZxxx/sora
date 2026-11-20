@@ -56,12 +56,26 @@ const NotificationBell = () => {
     mutationFn: async () => {
       return unwrapAction(await markAllRead());
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.notifications,
-      });
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications });
+      const previous = queryClient.getQueryData<Notification[]>(
+        queryKeys.notifications,
+      );
+      const readAt = new Date();
+      queryClient.setQueryData<Notification[]>(
+        queryKeys.notifications,
+        (current) =>
+          current?.map((notification) => ({
+            ...notification,
+            readAt: notification.readAt ?? readAt,
+          })),
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.notifications, context.previous);
+      }
       toast.error(
         actionErrorMessage(
           error,
@@ -71,6 +85,9 @@ const NotificationBell = () => {
           id: "mark-all-read",
         },
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
     },
   });
 
