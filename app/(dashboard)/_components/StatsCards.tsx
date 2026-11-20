@@ -9,6 +9,7 @@ import { useState } from "react";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logClientError } from "@/instrumentation-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -35,9 +36,11 @@ const StatsCards = ({ from, to, currency }: Props) => {
           throw new Error("Failed to fetch balance stats");
         }
         return await response.json();
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-        throw error;
+      } catch (cause) {
+        logClientError("stats.fetch-failed", {
+          error: cause instanceof Error ? cause.message : String(cause),
+        });
+        throw cause;
       }
     },
     staleTime: QUERY_STALE_TIME,
