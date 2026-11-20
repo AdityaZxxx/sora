@@ -31,6 +31,9 @@ import { CreateTransactionSchema } from "@/schemas/transaction";
 
 type TransactionCursor = { date: string; id: string };
 
+const IDEMPOTENCY_KEY_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(
     JSON.stringify({
@@ -251,6 +254,7 @@ export type CreateTransactionInput = {
   shares?: { userId: string; amount: number }[];
   addedVia?: "agent" | null;
   recurringItemId?: string;
+  idempotencyKey?: string;
 };
 
 export async function createTransaction(
@@ -260,6 +264,12 @@ export async function createTransaction(
   role: MemberRole,
 ) {
   assertFullMemberRole(role);
+
+  const idempotencyKey =
+    input.idempotencyKey && IDEMPOTENCY_KEY_PATTERN.test(input.idempotencyKey)
+      ? input.idempotencyKey
+      : undefined;
+
   const categoryRow = await requireCategory(
     householdId,
     input.category,
@@ -284,6 +294,20 @@ export async function createTransaction(
   if (shareInput.length > 0 && (type !== "expense" || !shared)) {
     throw new DomainError("Shares are only valid for shared expenses");
   }
+
+  type StoredTransaction = NonNullable<
+    Awaited<ReturnType<typeof prisma.transaction.findFirst>>
+  >;
+  const matchesKeyedTransaction = (existing: StoredTransaction) =>
+    existing.amount.toNumber() === amount &&
+    existing.date.getTime() === date.getTime() &&
+    existing.type === type &&
+    existing.shared === shared &&
+    existing.category === categoryRow.name &&
+    existing.addedById === userId &&
+    existing.description === (description || "") &&
+    existing.goalId === (goalId ?? null) &&
+    existing.addedVia === addedVia;
 
   const [household, actor, goal, memberships, recurringItem] =
     await Promise.all([
@@ -369,58 +393,90 @@ export async function createTransaction(
     date,
   });
 
-  const created = await prisma.$transaction(async (tx) => {
-    const transaction = await tx.transaction.create({
-      data: {
-        householdId,
-        addedById: userId,
-        amount,
-        date,
-        description: description || "",
-        type,
-        shared,
-        category: categoryRow.name,
-        ...categoryIconSnapshot(categoryRow),
-        goalId,
-        addedVia,
-      },
-    });
+  let created;
+  try {
+    created = await prisma.$transaction(async (tx) => {
+      if (idempotencyKey) {
+        const existing = await tx.transaction.findFirst({
+          where: { id: idempotencyKey, householdId },
+        });
+        if (existing) {
+          if (!matchesKeyedTransaction(existing)) {
+            throw new DomainError(
+              "This idempotency key belongs to a different transaction",
+            );
+          }
+          return existing;
+        }
+      }
 
-    if (shareInput.length > 0) {
-      await tx.transactionShare.createMany({
-        data: shareInput.map((share) => ({
-          transactionId: transaction.id,
-          userId: share.userId,
-          amount: share.amount,
-        })),
-      });
-    }
-
-    if (recurringItem) {
-      await tx.recurringItem.update({
-        where: {
-          id: recurringItem.id,
-        },
+      const transaction = await tx.transaction.create({
         data: {
-          lastPostedAt: new Date(),
+          id: idempotencyKey,
+          householdId,
+          addedById: userId,
+          amount,
+          date,
+          description: description || "",
+          type,
+          shared,
+          category: categoryRow.name,
+          ...categoryIconSnapshot(categoryRow),
+          goalId,
+          addedVia,
         },
       });
-    }
 
-    if (!shared) {
+      if (shareInput.length > 0) {
+        await tx.transactionShare.createMany({
+          data: shareInput.map((share) => ({
+            transactionId: transaction.id,
+            userId: share.userId,
+            amount: share.amount,
+          })),
+        });
+      }
+
+      if (recurringItem) {
+        await tx.recurringItem.update({
+          where: {
+            id: recurringItem.id,
+          },
+          data: {
+            lastPostedAt: new Date(),
+          },
+        });
+      }
+
+      if (!shared) {
+        return transaction;
+      }
+
+      await incrementRollups(tx, { householdId, date, type, amount });
+      await publishHouseholdChange({
+        householdId,
+        resource: "transactions",
+        message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
+        executor: tx,
+      });
+
       return transaction;
-    }
-
-    await incrementRollups(tx, { householdId, date, type, amount });
-    await publishHouseholdChange({
-      householdId,
-      resource: "transactions",
-      message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
-      executor: tx,
     });
-
-    return transaction;
-  });
+  } catch (cause) {
+    if (
+      idempotencyKey &&
+      cause instanceof Prisma.PrismaClientKnownRequestError &&
+      cause.code === "P2002"
+    ) {
+      const existing = await prisma.transaction.findFirst({
+        where: { id: idempotencyKey, householdId },
+      });
+      if (existing && matchesKeyedTransaction(existing)) {
+        return existing;
+      }
+    }
+    throw cause;
+  }
 
   if (thresholdMessage) {
     const message = thresholdMessage;
