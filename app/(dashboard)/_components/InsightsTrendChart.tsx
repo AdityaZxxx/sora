@@ -49,6 +49,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const chartLabel = `Income and expense trend over the last ${months.length} months`;
 
   useEffect(() => {
     const container = mountRef.current;
@@ -169,7 +170,31 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col">
-      <div ref={mountRef} className="h-full min-h-0 w-full" />
+      <div
+        ref={mountRef}
+        role="img"
+        aria-label={chartLabel}
+        className="h-full min-h-0 w-full"
+      />
+      <table className="sr-only">
+        <caption>{chartLabel}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Month</th>
+            <th scope="col">Income</th>
+            <th scope="col">Expense</th>
+          </tr>
+        </thead>
+        <tbody>
+          {months.map((bucket) => (
+            <tr key={`${bucket.year}-${bucket.month}`}>
+              <th scope="row">{fullMonth(bucket.year, bucket.month)}</th>
+              <td>{formatter.format(bucket.income)}</td>
+              <td>{formatter.format(bucket.expense)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "next-themes";
 import { useReportWebVitals } from "next/web-vitals";
 import { useState } from "react";
@@ -45,20 +46,22 @@ const RootProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <TooltipProvider>{children}</TooltipProvider>
-        <HouseholdEvents />
-      </ThemeProvider>
-      {process.env.NODE_ENV === "development" && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider>{children}</TooltipProvider>
+          <HouseholdEvents />
+        </ThemeProvider>
+        {process.env.NODE_ENV === "development" && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </QueryClientProvider>
+    </MotionConfig>
   );
 };
 

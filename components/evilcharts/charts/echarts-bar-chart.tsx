@@ -158,6 +158,9 @@ export interface EChartsBarChartProps<TData extends Record<string, unknown>> {
   isLoading?: boolean;
   loadingBars?: number;
   chartOptions?: Record<string, unknown>;
+  ariaLabel?: string;
+  categoryLabel?: string;
+  valueFormatter?: (value: number) => string;
   children?: ReactNode;
 }
 
@@ -1210,6 +1213,9 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
   isLoading = false,
   loadingBars = LOADING_DEFAULT_BARS,
   chartOptions,
+  ariaLabel,
+  categoryLabel,
+  valueFormatter,
   children,
 }: EChartsBarChartProps<TData>) {
   const rawId = useId();
@@ -1894,6 +1900,27 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
         : { top: "50%", transform: "translateY(-50%)" }),
   };
 
+  const seriesLabels = seriesKeys.map((key) => {
+    const label = config[key]?.label;
+    return typeof label === "string" ? label : key;
+  });
+  const tableCategoryLabel =
+    categoryLabel ??
+    (typeof categorySlot.label === "string" ? categorySlot.label : null) ??
+    categorySlot.dataKey ??
+    "Category";
+  const chartLabel =
+    ariaLabel ??
+    `Bar chart of ${seriesLabels.join(", ")} across ${data.length} ${data.length === 1 ? "category" : "categories"}`;
+  const formatValue =
+    valueFormatter ?? ((value: number) => value.toLocaleString());
+  const formatCategory = (row: TData, index: number) => {
+    const raw = String(row[categoryKey] ?? "");
+    return categorySlot.tickFormatter
+      ? categorySlot.tickFormatter(raw, index)
+      : raw;
+  };
+
   return (
     <div
       ref={containerRef}
@@ -1903,8 +1930,42 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
       <style dangerouslySetInnerHTML={{ __html: css }} />
 
       <div className="relative min-h-0 w-full flex-1">
-        <div ref={mountRef} className="h-full min-h-0 w-full" />
+        <div
+          ref={mountRef}
+          role="img"
+          aria-label={chartLabel}
+          aria-busy={isLoading}
+          className="h-full min-h-0 w-full"
+        />
       </div>
+
+      {!isLoading && (
+        <table className="sr-only">
+          <caption>{chartLabel}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{tableCategoryLabel}</th>
+              {seriesLabels.map((label, index) => (
+                <th scope="col" key={seriesKeys[index]}>
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, index) => (
+              <tr key={index}>
+                <th scope="row">{formatCategory(row, index)}</th>
+                {seriesKeys.map((key) => (
+                  <td key={key}>
+                    {row[key] == null ? "" : formatValue(Number(row[key]) || 0)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {legendSlot.present && !isLoading && (
         <LegendOverlay
