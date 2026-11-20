@@ -2,7 +2,10 @@
 
 import type { MonthlyRollup } from "@/lib/insights";
 
-import * as echarts from "echarts";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import * as echarts from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
 import { useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 
@@ -23,6 +26,8 @@ type TooltipParam = {
 };
 
 type TopLevelFormatterParams = TooltipParam | TooltipParam[];
+
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 const shortMonth = (month: number) =>
   new Date(Date.UTC(2024, month, 1)).toLocaleDateString("en-US", {
