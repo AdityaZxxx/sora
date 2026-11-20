@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { clearOfflineSnapshot } from "@/hooks/use-offline-snapshot";
 import { authClient } from "@/lib/auth-client";
 
 export function useSignOut() {
@@ -14,6 +15,7 @@ export function useSignOut() {
       toast.error(error.message || "Failed to sign out");
       return;
     }
+    clearOfflineSnapshot();
     toast.success("Signed out");
     router.push("/sign-in");
     router.refresh();

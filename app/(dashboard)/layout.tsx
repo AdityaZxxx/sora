@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import InstallPrompt from "@/components/InstallPrompt";
 import Navbar from "@/components/Navbar";
+import NewExpenseShortcut from "@/components/NewExpenseShortcut";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -11,10 +14,13 @@ const Layout = ({ children }: { children: ReactNode }) => {
       >
         Skip to content
       </a>
+      <OfflineIndicator />
+      <NewExpenseShortcut />
       <Navbar />
       <main id="main-content" className="w-full flex-1">
         {children}
       </main>
+      <InstallPrompt />
     </div>
   );
 };
