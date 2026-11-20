@@ -4,13 +4,12 @@ import type { Category } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useId, useState } from "react";
+import { useDeferredValue, useId, useState } from "react";
 
 import CategoryIcon from "@/components/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -45,6 +44,8 @@ const CategoryPicker = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue ?? "");
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const listId = useId();
 
   const selectCategory = (name: string) => {
@@ -67,6 +68,11 @@ const CategoryPicker = ({
 
   const selectedCategory = categoriesQuery.data?.find(
     (category: Category) => category.name === value,
+  );
+  const needle = deferredSearch.trim().toLowerCase();
+  const categories: Category[] = (categoriesQuery.data ?? []).filter(
+    (category: Category) =>
+      !needle || category.name.toLowerCase().includes(needle),
   );
 
   const SuccessCallback = (category: Category) => {
@@ -98,22 +104,25 @@ const CategoryPicker = ({
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command
+          shouldFilter={false}
           onSubmit={(e) => {
             e.preventDefault();
           }}
         >
-          <CommandInput placeholder="Search category…" />
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search category…"
+          />
           <CreateCategoryDialog type={type} successCallback={SuccessCallback} />
-          <CommandEmpty>
-            <p>Category not found</p>
-            <p className="text-xs text-muted-foreground">
-              Create a new category
-            </p>
-          </CommandEmpty>
           <CommandGroup>
             <CommandList id={listId}>
-              {categoriesQuery.data &&
-                categoriesQuery.data.map((category: Category) => (
+              {categories.length === 0 ? (
+                <p className="py-6 text-center text-sm">
+                  Category not found. Create a new category.
+                </p>
+              ) : (
+                categories.map((category) => (
                   <CommandItem
                     key={category.name}
                     onSelect={() => {
@@ -129,7 +138,8 @@ const CategoryPicker = ({
                       )}
                     />
                   </CommandItem>
-                ))}
+                ))
+              )}
             </CommandList>
           </CommandGroup>
         </Command>

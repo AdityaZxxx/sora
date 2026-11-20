@@ -2,7 +2,7 @@
 import type { HistoryChartRow, SeriesKey } from "./HistoryChart";
 import type { Period, Timeframe } from "@/lib/types";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChartNoAxesColumn } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Suspense, useState } from "react";
@@ -141,7 +141,7 @@ const HistoryResults = ({
   hidden: ReadonlySet<SeriesKey>;
   formatter: ReturnType<typeof getFormatterForCurrency>;
 }) => {
-  const { data } = useSuspenseQuery({
+  const { data, isPending } = useQuery<HistoryChartRow[]>({
     queryKey: queryKeys.overview.history(timeframe, period),
     queryFn: async () => {
       const response = await fetch(
@@ -155,7 +155,12 @@ const HistoryResults = ({
     },
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
   });
+
+  if (isPending) {
+    return <Skeleton className="h-[300px] w-full" />;
+  }
 
   const dataAvailable = Array.isArray(data) && data.length > 0;
 
