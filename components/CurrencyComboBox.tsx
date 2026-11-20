@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -119,28 +118,44 @@ function CurrencyList({
   setOpen: (open: boolean) => void;
   setSelectedCurrency: (currency: Currency | null) => void;
 }) {
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
+  const needle = deferredSearch.trim().toLowerCase();
+  const currencies = needle
+    ? Currencies.filter((currency) =>
+        `${currency.label} ${currency.value}`.toLowerCase().includes(needle),
+      )
+    : Currencies;
+
   return (
-    <Command>
-      <CommandInput placeholder="Filter currency…" />
+    <Command shouldFilter={false}>
+      <CommandInput
+        value={search}
+        onValueChange={setSearch}
+        placeholder="Filter currency…"
+      />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup>
-          {Currencies.map((currency) => (
-            <CommandItem
-              key={currency.value}
-              value={currency.value}
-              onSelect={(value) => {
-                setSelectedCurrency(
-                  Currencies.find((priority) => priority.value === value) ||
-                    null,
-                );
-                setOpen(false);
-              }}
-            >
-              {currency.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {currencies.length === 0 ? (
+          <p className="py-6 text-center text-sm">No results found.</p>
+        ) : (
+          <CommandGroup>
+            {currencies.map((currency) => (
+              <CommandItem
+                key={currency.value}
+                value={currency.value}
+                onSelect={(value) => {
+                  setSelectedCurrency(
+                    Currencies.find((priority) => priority.value === value) ??
+                      null,
+                  );
+                  setOpen(false);
+                }}
+              >
+                {currency.label}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
       </CommandList>
     </Command>
   );

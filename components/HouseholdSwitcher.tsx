@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, House, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useTransition, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ export default function HouseholdSwitcher({
 }: HouseholdSwitcherProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [, startSwitchTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
 
@@ -56,8 +57,10 @@ export default function HouseholdSwitcher({
   const { mutate: switchTo, isPending: isSwitching } = useMutation({
     mutationFn: switchHousehold,
     onSuccess: () => {
-      queryClient.invalidateQueries();
-      router.refresh();
+      startSwitchTransition(async () => {
+        await queryClient.invalidateQueries();
+        router.refresh();
+      });
     },
     onError: () => {
       toast.error("Unable to switch household. Try again.", {

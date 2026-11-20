@@ -44,6 +44,8 @@ import { setEmailDigest, setMemberRole } from "../_actions/membership";
 import LeaveHouseholdDialog from "./LeaveHouseholdDialog";
 import RemoveMemberDialog from "./RemoveMemberDialog";
 
+type Members = Awaited<ReturnType<typeof listMembers>>;
+
 const MembersSection = () => {
   const { data: session } = useSession();
 
@@ -68,12 +70,26 @@ const MembersSection = () => {
     mutationFn: async (input: Parameters<typeof setEmailDigest>[0]) => {
       return unwrapAction(await setEmailDigest(input));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({
         queryKey: queryKeys.householdMembers,
       });
+      const previous = queryClient.getQueryData<Members>(
+        queryKeys.householdMembers,
+      );
+      queryClient.setQueryData<Members>(queryKeys.householdMembers, (current) =>
+        current?.map((member) =>
+          member.user.id === session?.user.id
+            ? { ...member, emailDigest: input.emailDigest }
+            : member,
+        ),
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _input, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.householdMembers, context.previous);
+      }
       toast.error(
         actionErrorMessage(
           error,
@@ -84,18 +100,37 @@ const MembersSection = () => {
         },
       );
     },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.householdMembers,
+      });
+    },
   });
 
   const { mutate: changeRole } = useMutation({
     mutationFn: async (input: Parameters<typeof setMemberRole>[0]) => {
       return unwrapAction(await setMemberRole(input));
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({
         queryKey: queryKeys.householdMembers,
       });
+      const previous = queryClient.getQueryData<Members>(
+        queryKeys.householdMembers,
+      );
+      queryClient.setQueryData<Members>(queryKeys.householdMembers, (current) =>
+        current?.map((member) =>
+          member.userId === input.userId
+            ? { ...member, role: input.role }
+            : member,
+        ),
+      );
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _input, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.householdMembers, context.previous);
+      }
       toast.error(
         actionErrorMessage(
           error,
@@ -105,6 +140,11 @@ const MembersSection = () => {
           id: "member-role",
         },
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.householdMembers,
+      });
     },
   });
 

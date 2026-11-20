@@ -1,7 +1,7 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -30,7 +31,7 @@ interface Props {
 }
 
 const CategoriesStats = ({ from, to, currency }: Props) => {
-  const { data: stats } = useSuspenseQuery<GetCategoriesStatsResponseType>({
+  const { data: stats, isPending } = useQuery<GetCategoriesStatsResponseType>({
     queryKey: queryKeys.overview.categories(from, to),
     queryFn: async () => {
       const response = await fetch(
@@ -46,12 +47,17 @@ const CategoriesStats = ({ from, to, currency }: Props) => {
     },
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
   });
 
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
-  const incomeData = stats.filter((d) => d.type === "income");
-  const expenseData = stats.filter((d) => d.type === "expense");
+  if (isPending) {
+    return <Skeleton className="h-88 w-full" />;
+  }
+
+  const incomeData = (stats ?? []).filter((d) => d.type === "income");
+  const expenseData = (stats ?? []).filter((d) => d.type === "expense");
 
   const totalIncome = incomeData.reduce(
     (sum, d) => sum + (d._sum.amount || 0),
