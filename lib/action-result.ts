@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { firstIssueMessage } from "@/lib/issue-message";
+import { logError, logInfo, logWarn } from "@/lib/log";
 import { withRequestId } from "@/lib/request-id";
 
 export type ActionResult<T = void> =
@@ -27,17 +28,50 @@ export async function withHouseholdAction<T>(
   fallback: string,
   operation: (context: HouseholdActionContext) => Promise<T> | T,
 ): Promise<ActionResult<T>> {
-  const result = await requireHousehold();
-  if (!result) {
-    redirect("/sign-in");
-  }
-
-  try {
-    return ok(await withRequestId(async () => operation(result)));
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return fail(firstIssueMessage(cause.message, fallback));
+  return withRequestId(async () => {
+    const startedAt = Date.now();
+    const result = await requireHousehold();
+    if (!result) {
+      logWarn("action.unauthorized", {
+        outcome: "rejected",
+        durationMs: Date.now() - startedAt,
+      });
+      redirect("/sign-in");
     }
-    throw cause;
-  }
+
+    const householdId = result.household.id;
+    const userId = result.session.user.id;
+
+    try {
+      const data = await operation(result);
+      logInfo("action.completed", {
+        householdId,
+        userId,
+        outcome: "ok",
+        durationMs: Date.now() - startedAt,
+      });
+      return ok(data);
+    } catch (cause) {
+      const durationMs = Date.now() - startedAt;
+      if (cause instanceof DomainError) {
+        const message = firstIssueMessage(cause.message, fallback);
+        logWarn("action.rejected", {
+          householdId,
+          userId,
+          outcome: "rejected",
+          durationMs,
+          error: message,
+        });
+        return fail(message);
+      }
+      logError("action.failed", {
+        householdId,
+        userId,
+        outcome: "failed",
+        durationMs,
+        error: cause instanceof Error ? cause.message : String(cause),
+      });
+      throw cause;
+    }
+  });
 }

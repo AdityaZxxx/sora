@@ -5,10 +5,12 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "next-themes";
+import { useReportWebVitals } from "next/web-vitals";
 import { useState } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useHouseholdEvents } from "@/hooks/use-household-events";
+import { logClientInfo } from "@/instrumentation-client";
 import { QUERY_GC_TIME, QUERY_STALE_TIME } from "@/lib/constants";
 
 const HouseholdEvents = () => {
@@ -16,7 +18,17 @@ const HouseholdEvents = () => {
   return null;
 };
 
+const reportWebVital: Parameters<typeof useReportWebVitals>[0] = (metric) => {
+  logClientInfo(`web-vitals.${metric.name}`, {
+    value: metric.value,
+    rating: metric.rating,
+    path: metric.navigationURL,
+  });
+};
+
 const RootProvider = ({ children }: { children: ReactNode }) => {
+  useReportWebVitals(reportWebVital);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
