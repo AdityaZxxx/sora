@@ -9,6 +9,12 @@ export type LogFields = {
   userId?: string;
   outcome?: LogOutcome;
   durationMs?: number;
+  error?: string;
+  path?: string;
+  route?: string;
+  value?: number;
+  rating?: string;
+  status?: number;
 };
 
 export function log(
@@ -30,6 +36,12 @@ export function log(
       "userId",
       "outcome",
       "durationMs",
+      "error",
+      "path",
+      "route",
+      "value",
+      "rating",
+      "status",
     ] as const) {
       const value = fields[key];
       if (value !== undefined) line[key] = value;

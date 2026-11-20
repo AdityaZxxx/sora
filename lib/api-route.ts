@@ -7,6 +7,8 @@ import { resolveDateRange } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { rejection, unauthorized } from "@/lib/http-error";
+import { logError, logInfo, logWarn } from "@/lib/log";
+import { withRequestId } from "@/lib/request-id";
 
 export { rejection, unauthorized } from "@/lib/http-error";
 
@@ -26,19 +28,52 @@ export function parseQueryParams<TSchema extends z.ZodType>(
 export async function withHouseholdRoute(
   handler: (context: HouseholdActionContext) => Promise<Response> | Response,
 ): Promise<Response> {
-  const result = await requireHousehold();
-  if (!result) {
-    return unauthorized();
-  }
-
-  try {
-    return await handler(result);
-  } catch (cause) {
-    if (cause instanceof DomainError) {
-      return rejection(cause.message, 400);
+  return withRequestId(async () => {
+    const startedAt = Date.now();
+    const result = await requireHousehold();
+    if (!result) {
+      logWarn("route.unauthorized", {
+        outcome: "rejected",
+        durationMs: Date.now() - startedAt,
+      });
+      return unauthorized();
     }
-    throw cause;
-  }
+
+    const householdId = result.household.id;
+    const userId = result.session.user.id;
+
+    try {
+      const response = await handler(result);
+      logInfo("route.completed", {
+        householdId,
+        userId,
+        outcome: "ok",
+        durationMs: Date.now() - startedAt,
+        status: response.status,
+      });
+      return response;
+    } catch (cause) {
+      const durationMs = Date.now() - startedAt;
+      if (cause instanceof DomainError) {
+        logWarn("route.rejected", {
+          householdId,
+          userId,
+          outcome: "rejected",
+          durationMs,
+          error: cause.message,
+        });
+        return rejection(cause.message, 400);
+      }
+      logError("route.failed", {
+        householdId,
+        userId,
+        outcome: "failed",
+        durationMs,
+        error: cause instanceof Error ? cause.message : String(cause),
+      });
+      throw cause;
+    }
+  });
 }
 
 export function dateRangeFromParams(searchParams: URLSearchParams) {
