@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "analyze": "pnpm build && next analyze --output",
+    "analyze:webpack": "ANALYZE=true next build --webpack",
     "start": "next start",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -55,6 +57,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.4.6",
     "@tailwindcss/postcss": "^4.3.4",
     "@tanstack/react-query-devtools": "^5.105.3",
     "@types/bcrypt": "^6.0.0",
