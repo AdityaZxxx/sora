@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Sora, offline</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/offline.css" />
+  </head>
+  <body>
+    <main class="card">
+      <span class="badge">Offline</span>
+      <h1>Sora</h1>
+      <p class="lede" id="message">You are offline.</p>
+
+      <section id="snapshot" hidden>
+        <h2>This month</h2>
+        <div class="stats">
+          <div class="stat income">
+            <span>Income</span>
+            <strong id="income"></strong>
+          </div>
+          <div class="stat expense">
+            <span>Expense</span>
+            <strong id="expense"></strong>
+          </div>
+          <div class="stat">
+            <span>Net</span>
+            <strong id="net"></strong>
+          </div>
+        </div>
+
+        <h2>Balances</h2>
+        <ul class="balances" id="balances"></ul>
+
+        <p class="note">Reconnect to see individual transactions.</p>
+      </section>
+
+      <p class="note" id="empty" hidden>
+        Connect once while online to save a summary for offline use.
+      </p>
+
+      <button type="button" id="retry">Try again</button>
+    </main>
+    <script src="/offline.js" defer></script>
+  </body>
+</html>

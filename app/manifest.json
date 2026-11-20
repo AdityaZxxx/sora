@@ -1,6 +1,14 @@
 {
   "name": "Sora",
   "short_name": "Sora",
+  "description": "A free shared finance app for couples and households: one ledger, budgets, and goals.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0E0F10",
+  "theme_color": "#0E0F10",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -13,9 +21,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
-  "theme_color": "#0E0F10",
-  "background_color": "#0E0F10",
-  "display": "standalone"
+  "shortcuts": [
+    {
+      "name": "New expense",
+      "short_name": "New expense",
+      "description": "Add an expense to your household ledger",
+      "url": "/?new=expense"
+    }
+  ]
 }

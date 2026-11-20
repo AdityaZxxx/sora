@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { deleteUserAccount } from "@/lib/account";
@@ -18,6 +18,14 @@ export async function deleteAccount(): Promise<ActionResult> {
   });
 
   await deleteUserAccount(session.user.id, session.user.email);
+
+  const cookieStore = await cookies();
+  cookieStore.set("sora_clear_offline", "1", {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60,
+  });
 
   redirect("/sign-in");
 }
