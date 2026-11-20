@@ -11,17 +11,9 @@ import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   createRecurringItem,
   deleteRecurringItem,
-  listRecurringItems,
   setRecurringItemPaused,
   updateRecurringItem,
 } from "@/lib/recurring";
-
-export async function listRecurringItemsAction() {
-  return withHouseholdAction(
-    "Unable to load the bills. Refresh the page and try again.",
-    ({ household }) => listRecurringItems(household.id),
-  );
-}
 
 export async function CreateRecurringItem(form: CreateRecurringItemType) {
   return withHouseholdAction(

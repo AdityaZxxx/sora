@@ -32,14 +32,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { unwrapAction } from "@/lib/action-client";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
-import { listBudgets } from "../../_actions/budgets";
 import BudgetDialog from "./BudgetDialog";
 import DeleteBudgetDialog from "./DeleteBudgetDialog";
 
@@ -57,9 +56,11 @@ const BudgetsSection = ({
     refetch,
   } = useQuery({
     queryKey: queryKeys.budgets,
-    queryFn: async () => {
-      return unwrapAction(await listBudgets());
-    },
+    queryFn: () =>
+      fetchReadJson<BudgetWithProgress[]>(
+        "/api/budgets",
+        "Unable to load the budgets. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });

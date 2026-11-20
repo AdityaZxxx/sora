@@ -1,4 +1,6 @@
 "use client";
+import type { GoalWithProgress } from "@/lib/goals";
+import type { listMembers } from "@/lib/members";
 import type { TransactionType } from "@/lib/types";
 import type { ReactElement, ReactNode } from "react";
 
@@ -45,6 +47,7 @@ import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -56,9 +59,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
-import { listGoals } from "../_actions/goals";
 import { CreateTransaction } from "../_actions/transaction";
-import { listMembers } from "../manage/_actions/membership";
 import CategoryPicker from "./CategoryPicker";
 
 interface Props {
@@ -109,9 +110,11 @@ const CreateTransactionDialog = ({
 
   const goalsQuery = useQuery({
     queryKey: queryKeys.goals,
-    queryFn: async () => {
-      return unwrapAction(await listGoals());
-    },
+    queryFn: () =>
+      fetchReadJson<GoalWithProgress[]>(
+        "/api/goals",
+        "Unable to load the goals. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
@@ -122,9 +125,11 @@ const CreateTransactionDialog = ({
 
   const membersQuery = useQuery({
     queryKey: queryKeys.householdMembers,
-    queryFn: async () => {
-      return unwrapAction(await listMembers()) ?? [];
-    },
+    queryFn: () =>
+      fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
+        "/api/members",
+        "Unable to load the members. Refresh the page and try again.",
+      ),
     enabled: memberCount > 1,
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,

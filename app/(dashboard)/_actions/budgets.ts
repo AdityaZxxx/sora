@@ -6,24 +6,13 @@ import type {
 } from "@/schemas/budgets";
 import type { DeleteIdSchemaType } from "@/schemas/delete";
 
-import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
+import { withHouseholdAction } from "@/lib/action-result";
 import {
   createHouseholdBudget,
   deleteHouseholdBudget,
-  getBudgetsWithProgress,
-  type BudgetWithProgress,
   updateHouseholdBudget,
 } from "@/lib/budgets";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-
-export async function listBudgets(): Promise<
-  ActionResult<BudgetWithProgress[]>
-> {
-  return withHouseholdAction(
-    "Unable to load the budgets. Refresh the page and try again.",
-    ({ household }) => getBudgetsWithProgress(household.id),
-  );
-}
 
 export async function createBudget(form: CreateBudgetSchemaType) {
   return withHouseholdAction(

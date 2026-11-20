@@ -1,4 +1,6 @@
 "use client";
+import type { listMembers } from "@/lib/members";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
 import { toast } from "sonner";
@@ -35,13 +37,10 @@ import {
   QUERY_STALE_TIME,
   VIEW_ONLY_ROLE,
 } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-import {
-  listMembers,
-  setEmailDigest,
-  setMemberRole,
-} from "../_actions/membership";
+import { setEmailDigest, setMemberRole } from "../_actions/membership";
 import LeaveHouseholdDialog from "./LeaveHouseholdDialog";
 import RemoveMemberDialog from "./RemoveMemberDialog";
 
@@ -52,9 +51,11 @@ const MembersSection = () => {
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.householdMembers,
-    queryFn: async () => {
-      return unwrapAction(await listMembers()) ?? [];
-    },
+    queryFn: () =>
+      fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
+        "/api/members",
+        "Unable to load the members. Refresh the page and try again.",
+      ),
     staleTime: QUERY_STALE_TIME,
   });
 

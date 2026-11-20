@@ -19,19 +19,11 @@ import {
 } from "@/lib/household";
 import {
   leaveHousehold as leaveHouseholdSeam,
-  listMembers as listMembersSeam,
   removeMember as removeMemberSeam,
   setEmailDigest as setEmailDigestSeam,
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyHouseholdExcept } from "@/lib/notifications";
-
-export async function listMembers() {
-  return withHouseholdAction(
-    "Unable to load the members. Refresh the page and try again.",
-    ({ household }) => listMembersSeam(household.id),
-  );
-}
 
 export async function leaveHousehold(): Promise<ActionResult> {
   return withHouseholdAction(

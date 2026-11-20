@@ -1,13 +1,12 @@
 "use client";
+import type { Notification } from "@prisma/client";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, CheckCheck, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  listNotifications,
-  markAllRead,
-} from "@/app/(dashboard)/_actions/notifications";
+import { markAllRead } from "@/app/(dashboard)/_actions/notifications";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +34,11 @@ const NotificationBell = () => {
 
   const { data: notifications = [] } = useQuery({
     queryKey: queryKeys.notifications,
-    queryFn: async () => {
-      return unwrapAction(await listNotifications());
-    },
+    queryFn: () =>
+      fetchReadJson<Notification[]>(
+        "/api/notifications",
+        "Unable to load the notifications. Refresh the page and try again.",
+      ),
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,

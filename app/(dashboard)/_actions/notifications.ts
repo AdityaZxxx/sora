@@ -1,23 +1,8 @@
 "use server";
 
-import type { Notification } from "@prisma/client";
-
 import { withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-import {
-  listNotifications as listNotificationsSeam,
-  markNotificationsRead,
-} from "@/lib/notifications";
-
-export async function listNotifications() {
-  return withHouseholdAction(
-    "Unable to load the notifications. Refresh the page and try again.",
-    ({ household, session }) =>
-      listNotificationsSeam(household.id, session.user.id),
-  );
-}
-
-export type NotificationItem = Notification;
+import { markNotificationsRead } from "@/lib/notifications";
 
 export async function markAllRead() {
   return withHouseholdAction(

@@ -9,14 +9,10 @@ import type {
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import {
   createApiToken as createApiTokenSeam,
-  listApiTokens as listApiTokensSeam,
   revokeApiToken as revokeApiTokenSeam,
   setAgentAccess as setAgentAccessSeam,
-  type ApiTokenSummary,
 } from "@/lib/api-token";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-
-export type { ApiTokenSummary };
 
 export async function createApiToken(
   form: CreateApiTokenSchemaType,
@@ -33,15 +29,6 @@ export async function createApiToken(
       revalidateHousehold(household.id, [CACHE_RESOURCE.apiTokens]);
       return created;
     },
-  );
-}
-
-export async function listApiTokens(): Promise<
-  ActionResult<ApiTokenSummary[]>
-> {
-  return withHouseholdAction(
-    "Unable to load the tokens. Refresh the page and try again.",
-    ({ household }) => listApiTokensSeam(household.id),
   );
 }
 

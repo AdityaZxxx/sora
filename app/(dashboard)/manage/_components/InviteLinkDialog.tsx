@@ -27,13 +27,10 @@ import {
 } from "@/components/ui/tooltip";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-import {
-  createInviteLink,
-  listInviteLinks,
-  revokeInviteLink,
-} from "../_actions/invite";
+import { createInviteLink, revokeInviteLink } from "../_actions/invite";
 
 const QRCodeSVG = dynamic(
   () => import("qrcode.react").then((mod) => mod.QRCodeSVG),
@@ -56,9 +53,11 @@ const InviteLinkDialog = ({ trigger }: Props) => {
 
   const { data: inviteLinks = [], isLoading } = useQuery<InviteLink[]>({
     queryKey: queryKeys.inviteLinks,
-    queryFn: async () => {
-      return unwrapAction(await listInviteLinks()) ?? [];
-    },
+    queryFn: () =>
+      fetchReadJson<InviteLink[]>(
+        "/api/invite-links",
+        "Unable to load the invite links. Refresh the page and try again.",
+      ),
     enabled: open,
     staleTime: QUERY_STALE_TIME,
   });

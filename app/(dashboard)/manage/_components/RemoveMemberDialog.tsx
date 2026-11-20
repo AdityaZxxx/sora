@@ -1,5 +1,5 @@
 "use client";
-import type { listMembers } from "../_actions/membership";
+import type { listMembers } from "@/lib/members";
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -7,9 +7,7 @@ import { queryKeys } from "@/lib/query-keys";
 
 import { removeMember } from "../_actions/membership";
 
-type Member = NonNullable<
-  Extract<Awaited<ReturnType<typeof listMembers>>, { ok: true }>["data"]
->[number];
+type Member = Awaited<ReturnType<typeof listMembers>>[number];
 
 interface Props {
   trigger: ReactNode;
