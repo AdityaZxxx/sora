@@ -6,8 +6,11 @@
 
 ## Evidence
 
-- **Before:** <what was wrong, or the failing output>
-  **After:** <the command that ran and what it printed>
+Put every before and after pair into a two-column table so each row compares side by side.
+
+| Check          | Before                                  | After                                      |
+| -------------- | --------------------------------------- | ------------------------------------------ |
+| <what changed> | <what was wrong, or the failing output> | <the command that ran and what it printed> |
 
 Docs-only changes state that the app is unchanged and nothing was run. Behaviour changes show the run that drove the app.
 
