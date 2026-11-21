@@ -4,9 +4,9 @@ import type { QueuedWrite } from "@/lib/offline-write-queue";
 
 import { useSyncExternalStore } from "react";
 
+import { getMutationClient } from "@/hooks/mutation-client";
 import {
   listWrites,
-  replayWrites,
   WRITE_QUEUE_CHANGE_EVENT,
 } from "@/lib/offline-write-queue";
 
@@ -26,10 +26,6 @@ function subscribe(onStoreChange: () => void) {
   return () => window.removeEventListener(WRITE_QUEUE_CHANGE_EVENT, update);
 }
 
-async function retry() {
-  return replayWrites();
-}
-
 function getSnapshot() {
   return snapshot;
 }
@@ -39,6 +35,7 @@ function getServerSnapshot() {
 }
 
 export function usePendingSync() {
+  const client = getMutationClient();
   const writes = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -48,5 +45,5 @@ export function usePendingSync() {
   const pending = writes.filter((write) => write.status === "pending");
   const failed = writes.filter((write) => write.status === "failed");
 
-  return { pending, failed, retry };
+  return { pending, failed, retry: client.replay };
 }

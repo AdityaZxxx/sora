@@ -2,8 +2,6 @@
 
 import type { CreateTransactionSchemaType } from "@/schemas/transaction";
 
-import { headers } from "next/headers";
-
 import { withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { createTransaction } from "@/lib/transactions";
@@ -16,12 +14,6 @@ export async function CreateTransaction(form: CreateTransactionActionInput) {
   return withHouseholdAction(
     "Unable to add the transaction. Check the amount, category and date, then try again.",
     async ({ household, session, membership }) => {
-      const requestHeaders = await headers();
-      const idempotencyKey =
-        form.idempotencyKey ??
-        requestHeaders.get("x-sora-idempotency-key") ??
-        undefined;
-
       await createTransaction(
         household.id,
         session.user.id,
@@ -35,7 +27,7 @@ export async function CreateTransaction(form: CreateTransactionActionInput) {
           goalId: form.goalId || undefined,
           shares: form.shares,
           recurringItemId: form.recurringItemId,
-          idempotencyKey,
+          idempotencyKey: form.idempotencyKey,
         },
         membership.role,
       );
