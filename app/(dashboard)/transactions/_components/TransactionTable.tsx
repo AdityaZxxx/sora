@@ -67,7 +67,7 @@ import {
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
-import { getFormatterForCurrency } from "@/lib/helpers";
+import { formatDateForDisplay, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import {
   type GetTransactionsHistoryResponseType,
@@ -179,20 +179,11 @@ const buildColumns = (formatAmount: (value: number) => string) =>
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Date" />
       ),
-      cell: ({ row }) => {
-        const date = new Date(row.original.date);
-        const formattedDate = date.toLocaleDateString("default", {
-          timeZone: "UTC",
-          year: "numeric",
-          month: "short",
-          day: "2-digit",
-        });
-        return (
-          <div className="whitespace-nowrap text-muted-foreground">
-            {formattedDate}
-          </div>
-        );
-      },
+      cell: ({ row }) => (
+        <div className="whitespace-nowrap text-muted-foreground">
+          {formatDateForDisplay(new Date(row.original.date))}
+        </div>
+      ),
       sortFn: (rowA, rowB) => {
         const dateA = new Date(rowA.original.date).getTime();
         const dateB = new Date(rowB.original.date).getTime();
