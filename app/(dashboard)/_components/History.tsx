@@ -12,6 +12,7 @@ import EmptyState from "@/components/ui/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
@@ -143,16 +144,12 @@ const HistoryResults = ({
 }) => {
   const { data, isPending } = useQuery<HistoryChartRow[]>({
     queryKey: queryKeys.overview.history(timeframe, period),
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/history-data?timeframe=${timeframe}&year=${period.year}&month=${period.month}`,
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch history data: ${errorText}`);
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      fetchReadJson<HistoryChartRow[]>(
+        "/api/history-data",
+        "Failed to fetch history data",
+        { params: { timeframe, year: period.year, month: period.month } },
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,

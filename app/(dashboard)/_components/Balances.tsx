@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
-import { fetchJson } from "@/lib/fetch-json";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema, type MemberBalance } from "@/schemas/balances";
@@ -30,11 +30,9 @@ const Balances = ({ currency, canEdit = true }: Props) => {
   const { data: balances = [] } = useSuspenseQuery<MemberBalance[]>({
     queryKey: queryKeys.balances,
     queryFn: () =>
-      fetchJson(
-        "/api/balances",
-        MemberBalancesSchema,
-        "Failed to fetch balances",
-      ),
+      fetchReadJson("/api/balances", "Failed to fetch balances", {
+        schema: MemberBalancesSchema,
+      }),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
