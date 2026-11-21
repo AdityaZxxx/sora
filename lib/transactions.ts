@@ -14,17 +14,14 @@ import {
 } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { toMoney } from "@/lib/money";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
-import {
-  fromCents,
-  sharesMatchExpense,
-  sharesTotalCents,
-} from "@/lib/split-shares";
+import { sharesMatchExpense, sharesTotal } from "@/lib/split-shares";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
@@ -287,6 +284,7 @@ export async function createTransaction(
   }
 
   const { amount, date, description, type, shared } = parsedBody.data;
+  const moneyAmount = toMoney(amount);
   const goalId = parsedBody.data.goalId || undefined;
   const addedVia = input.addedVia ?? null;
   const recurringItemId = input.recurringItemId || undefined;
@@ -299,7 +297,7 @@ export async function createTransaction(
     Awaited<ReturnType<typeof prisma.transaction.findFirst>>
   >;
   const matchesKeyedTransaction = (existing: StoredTransaction) =>
-    existing.amount.toNumber() === amount &&
+    existing.amount.eq(moneyAmount) &&
     existing.date.getTime() === date.getTime() &&
     existing.type === type &&
     existing.shared === shared &&
@@ -379,7 +377,7 @@ export async function createTransaction(
 
   if (!sharesMatchExpense(shareInput, amount)) {
     throw new DomainError(
-      `The member shares add up to ${formatAmount(fromCents(sharesTotalCents(shareInput)))} but the expense is ${formatAmount(amount)}.`,
+      `The member shares add up to ${formatAmount(sharesTotal(shareInput).toNumber())} but the expense is ${formatAmount(amount)}.`,
     );
   }
 
@@ -452,7 +450,12 @@ export async function createTransaction(
         return transaction;
       }
 
-      await incrementRollups(tx, { householdId, date, type, amount });
+      await incrementRollups(tx, {
+        householdId,
+        date,
+        type,
+        amount: moneyAmount,
+      });
       await publishHouseholdChange({
         householdId,
         resource: "transactions",
@@ -512,7 +515,7 @@ export async function createTransaction(
         },
       });
       const contributedTotal = contributed._sum.amount ?? new Prisma.Decimal(0);
-      const contributedBefore = contributedTotal.minus(amount);
+      const contributedBefore = contributedTotal.minus(moneyAmount);
       if (
         contributedBefore.gte(goal.target) ||
         contributedTotal.lt(goal.target)
@@ -540,7 +543,7 @@ export async function createTransaction(
 
   after(async () => {
     const result = await evaluateUnusualSpending({
-      amount,
+      amount: moneyAmount,
       category: categoryRow.name,
       description: description ?? "",
       type,
@@ -600,7 +603,7 @@ export async function deleteTransaction(
       householdId,
       date: transaction.date,
       type: transaction.type,
-      amount: transaction.amount.toNumber(),
+      amount: transaction.amount,
     });
     await publishHouseholdChange({
       householdId,
