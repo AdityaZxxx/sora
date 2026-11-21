@@ -1,7 +1,6 @@
 "use client";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { listMembers } from "@/lib/members";
-import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { TransactionType } from "@/lib/types";
 import type { ReactElement, ReactNode } from "react";
 
@@ -50,7 +49,7 @@ import { QUERY_STALE_TIME } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
-import { queryKeys } from "@/lib/query-keys";
+import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import {
   finalizeShares,
   sharesTotalCents,
@@ -147,38 +146,9 @@ const CreateTransactionDialog = ({
       toast.loading("Adding transaction…", {
         id: "create-transaction",
       });
-      await queryClient.cancelQueries({ queryKey: queryKeys.overview.all });
-      const previousStats =
-        queryClient.getQueriesData<GetBalanceStatsResponseType>({
-          queryKey: ["overview", "stats"],
-        });
-
-      for (const [key, stats] of previousStats) {
-        if (
-          !stats ||
-          typeof stats.income !== "number" ||
-          typeof stats.expense !== "number" ||
-          !(key[2] instanceof Date) ||
-          !(key[3] instanceof Date) ||
-          input.date < key[2] ||
-          input.date > key[3] ||
-          !input.shared
-        ) {
-          continue;
-        }
-        queryClient.setQueryData<GetBalanceStatsResponseType>(
-          key,
-          (current) => {
-            if (!current) return current;
-            return input.type === "income"
-              ? { ...current, income: current.income + input.amount }
-              : { ...current, expense: current.expense + input.amount };
-          },
-        );
-      }
-
+      const optimistic = await applyTransactionOptimistic(queryClient, input);
       setOpen(false);
-      return { previousStats };
+      return optimistic;
     },
     onSuccess: () => {
       toast.success("Transaction added", {
@@ -188,9 +158,7 @@ const CreateTransactionDialog = ({
       resetSplitInputs();
     },
     onError: (error, _input, context) => {
-      for (const [key, stats] of context?.previousStats ?? []) {
-        queryClient.setQueryData(key, stats);
-      }
+      context?.rollback();
       setOpen(true);
       toast.error(
         actionErrorMessage(
@@ -202,16 +170,8 @@ const CreateTransactionDialog = ({
         },
       );
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.overview.all,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.goals,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.recurringItems,
-      });
+    onSettled: (_data, _error, _input, context) => {
+      context?.invalidate();
     },
   });
 
