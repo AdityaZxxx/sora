@@ -286,28 +286,11 @@ export async function createTransaction(
     );
   }
 
-  const { amount, date, description, type, shared } = parsedBody.data;
+  const { amount, date, description, type } = parsedBody.data;
   const goalId = parsedBody.data.goalId || undefined;
   const addedVia = input.addedVia ?? null;
   const recurringItemId = input.recurringItemId || undefined;
   const shareInput = parsedBody.data.shares ?? [];
-  if (shareInput.length > 0 && (type !== "expense" || !shared)) {
-    throw new DomainError("Shares are only valid for shared expenses");
-  }
-
-  type StoredTransaction = NonNullable<
-    Awaited<ReturnType<typeof prisma.transaction.findFirst>>
-  >;
-  const matchesKeyedTransaction = (existing: StoredTransaction) =>
-    existing.amount.toNumber() === amount &&
-    existing.date.getTime() === date.getTime() &&
-    existing.type === type &&
-    existing.shared === shared &&
-    existing.category === categoryRow.name &&
-    existing.addedById === userId &&
-    existing.description === (description || "") &&
-    existing.goalId === (goalId ?? null) &&
-    existing.addedVia === addedVia;
 
   const [household, actor, goal, memberships, recurringItem] =
     await Promise.all([
@@ -335,16 +318,14 @@ export async function createTransaction(
             },
           })
         : null,
-      shareInput.length > 0
-        ? prisma.householdMembership.findMany({
-            where: {
-              householdId,
-            },
-            select: {
-              userId: true,
-            },
-          })
-        : [],
+      prisma.householdMembership.findMany({
+        where: {
+          householdId,
+        },
+        select: {
+          userId: true,
+        },
+      }),
       recurringItemId
         ? prisma.recurringItem.findFirst({
             where: {
@@ -354,6 +335,26 @@ export async function createTransaction(
           })
         : null,
     ]);
+
+  const shared = memberships.length === 1 ? true : parsedBody.data.shared;
+
+  if (shareInput.length > 0 && (type !== "expense" || !shared)) {
+    throw new DomainError("Shares are only valid for shared expenses");
+  }
+
+  type StoredTransaction = NonNullable<
+    Awaited<ReturnType<typeof prisma.transaction.findFirst>>
+  >;
+  const matchesKeyedTransaction = (existing: StoredTransaction) =>
+    existing.amount.toNumber() === amount &&
+    existing.date.getTime() === date.getTime() &&
+    existing.type === type &&
+    existing.shared === shared &&
+    existing.category === categoryRow.name &&
+    existing.addedById === userId &&
+    existing.description === (description || "") &&
+    existing.goalId === (goalId ?? null) &&
+    existing.addedVia === addedVia;
 
   if (goalId && !goal) {
     throw new DomainError("Goal not found");

@@ -237,7 +237,7 @@ const CreateTransactionDialog = ({
       mutate({
         ...value,
         date: dateToUtcDate(value.date),
-        shared: memberCount > 1 ? value.shared : true,
+        shared: value.shared,
         shares: buildShares(value),
         recurringItemId,
       });
