@@ -20,11 +20,6 @@ import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
-import {
-  fromCents,
-  sharesMatchExpense,
-  sharesTotalCents,
-} from "@/lib/split-shares";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
@@ -377,9 +372,13 @@ export async function createTransaction(
     );
   }
 
-  if (!sharesMatchExpense(shareInput, amount)) {
+  const shareTotalCents = shareInput.reduce(
+    (sum, share) => sum + Math.round(share.amount * 100),
+    0,
+  );
+  if (shareInput.length > 0 && shareTotalCents !== Math.round(amount * 100)) {
     throw new DomainError(
-      `The member shares add up to ${formatAmount(fromCents(sharesTotalCents(shareInput)))} but the expense is ${formatAmount(amount)}.`,
+      `The member shares add up to ${formatAmount(shareTotalCents / 100)} but the expense is ${formatAmount(amount)}.`,
     );
   }
 
@@ -539,15 +538,22 @@ export async function createTransaction(
   }
 
   after(async () => {
-    const result = await evaluateUnusualSpending({
-      amount,
-      category: categoryRow.name,
-      description: description ?? "",
-      type,
-      shared,
-      householdId,
-      userId,
-    });
+    const result = await evaluateUnusualSpending(
+      {
+        amount,
+        category: categoryRow.name,
+        description: description ?? "",
+        type,
+        shared,
+        householdId,
+        userId,
+      },
+      {
+        clock: () => new Date(),
+        repo: prisma,
+        notifier: notifyMembers,
+      },
+    );
     if (result.notified > 0) {
       revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
     }

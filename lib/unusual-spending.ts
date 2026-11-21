@@ -1,11 +1,11 @@
+import type { PrismaClient } from "@prisma/client";
+
 import {
   FULL_MEMBER_ROLE,
   UNUSUAL_SPENDING_TYPE,
   DEFAULT_CURRENCY,
 } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
-import { notifyMembers } from "@/lib/notifications";
-import prisma from "@/lib/prisma";
 import { isSettlementCategory } from "@/lib/settlements";
 
 const FLOOR_MINIMUM = 100;
@@ -24,15 +24,25 @@ export type SpendingCandidate = {
 
 type Window = { start: Date; end: Date };
 
-export function trailingWindow(now: Date = new Date()): Window {
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1),
-  );
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  return { start, end };
-}
+export type UnusualSpendingDeps = {
+  clock: () => Date;
+  repo: Pick<
+    PrismaClient,
+    "transaction" | "monthHistory" | "household" | "householdMembership"
+  >;
+  notifier: (
+    householdId: string,
+    userIds: string[],
+    type: string,
+    message: string,
+  ) => Promise<void>;
+};
 
-async function trailingMonthlyIncome(householdId: string, window: Window) {
+async function trailingMonthlyIncome(
+  repo: UnusualSpendingDeps["repo"],
+  householdId: string,
+  window: Window,
+) {
   const months: { year: number; month: number }[] = [];
   const cursor = new Date(window.start.getTime());
   for (let index = 0; index < 3; index += 1) {
@@ -42,7 +52,7 @@ async function trailingMonthlyIncome(householdId: string, window: Window) {
     });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
-  const rows = await prisma.monthHistory.findMany({
+  const rows = await repo.monthHistory.findMany({
     where: {
       householdId,
       OR: months,
@@ -52,15 +62,9 @@ async function trailingMonthlyIncome(householdId: string, window: Window) {
   return total / 3;
 }
 
-export function floorFor(trailingIncome: number) {
-  return Math.max(
-    FLOOR_MINIMUM,
-    Math.round(trailingIncome * INCOME_FLOOR_RATIO * 100) / 100,
-  );
-}
-
 export async function evaluateUnusualSpending(
   transaction: SpendingCandidate,
+  deps: UnusualSpendingDeps,
 ): Promise<{ notified: number }> {
   if (transaction.type !== "expense") {
     return { notified: 0 };
@@ -69,14 +73,18 @@ export async function evaluateUnusualSpending(
     return { notified: 0 };
   }
 
-  const window = trailingWindow();
+  const now = deps.clock();
+  const window = {
+    start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1)),
+    end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+  };
 
   const sharedScope = transaction.shared
     ? { shared: true }
     : { shared: false, addedById: transaction.userId };
 
   const [baseline, trailingIncome] = await Promise.all([
-    prisma.transaction.aggregate({
+    deps.repo.transaction.aggregate({
       _sum: { amount: true },
       where: {
         householdId: transaction.householdId,
@@ -86,18 +94,22 @@ export async function evaluateUnusualSpending(
         date: { gte: window.start, lt: window.end },
       },
     }),
-    trailingMonthlyIncome(transaction.householdId, window),
+    trailingMonthlyIncome(deps.repo, transaction.householdId, window),
   ]);
 
   const average = (baseline._sum.amount?.toNumber() ?? 0) / 3;
-  if (average < floorFor(trailingIncome)) {
+  const floor = Math.max(
+    FLOOR_MINIMUM,
+    Math.round(trailingIncome * INCOME_FLOOR_RATIO * 100) / 100,
+  );
+  if (average < floor) {
     return { notified: 0 };
   }
   if (transaction.amount <= SPIKE_MULTIPLIER * average) {
     return { notified: 0 };
   }
 
-  const household = await prisma.household.findUnique({
+  const household = await deps.repo.household.findUnique({
     where: { id: transaction.householdId },
     select: { currency: true },
   });
@@ -106,7 +118,7 @@ export async function evaluateUnusualSpending(
   ).format;
 
   const recipients = transaction.shared
-    ? await prisma.householdMembership.findMany({
+    ? await deps.repo.householdMembership.findMany({
         where: {
           householdId: transaction.householdId,
           role: FULL_MEMBER_ROLE,
@@ -117,7 +129,7 @@ export async function evaluateUnusualSpending(
 
   const message = `Unusual spending: ${format(transaction.amount)} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average)}.`;
 
-  await notifyMembers(
+  await deps.notifier(
     transaction.householdId,
     recipients.map((recipient) => recipient.userId),
     UNUSUAL_SPENDING_TYPE,

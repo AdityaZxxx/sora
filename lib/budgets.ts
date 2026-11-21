@@ -13,22 +13,6 @@ import { settlementCategoryExclusion } from "@/lib/settlements";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-export function sharedSpendingFilter(
-  householdId: string,
-  range: { from: Date; to: Date },
-) {
-  return {
-    householdId,
-    shared: true,
-    type: "expense" as const,
-    category: settlementCategoryExclusion(),
-    date: {
-      gte: range.from,
-      lte: range.to,
-    },
-  };
-}
-
 export async function getSharedSpending(householdId: string) {
   "use cache";
   cacheLife("minutes");
@@ -40,7 +24,16 @@ export async function getSharedSpending(householdId: string) {
   const [thisMonth, lastMonth] = await Promise.all(
     ranges.map((range) =>
       prisma.transaction.aggregate({
-        where: sharedSpendingFilter(householdId, range),
+        where: {
+          householdId,
+          shared: true,
+          type: "expense" as const,
+          category: settlementCategoryExclusion(),
+          date: {
+            gte: range.from,
+            lte: range.to,
+          },
+        },
         _sum: {
           amount: true,
         },
@@ -65,7 +58,16 @@ export async function getMonthSpentByCategory(
   const { from, to } = utcMonthRangeFor(date);
   const rows = await prisma.transaction.groupBy({
     by: ["category"],
-    where: sharedSpendingFilter(householdId, { from, to }),
+    where: {
+      householdId,
+      shared: true,
+      type: "expense" as const,
+      category: settlementCategoryExclusion(),
+      date: {
+        gte: from,
+        lte: to,
+      },
+    },
     _sum: {
       amount: true,
     },
