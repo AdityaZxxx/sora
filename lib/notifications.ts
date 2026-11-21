@@ -1,3 +1,4 @@
+import type { Actor } from "@/lib/caller";
 import type { Notification } from "@prisma/client";
 
 import { cacheLife, cacheTag } from "next/cache";
@@ -8,6 +9,7 @@ import { publishHouseholdChange } from "@/lib/realtime";
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
 export async function notify(
+  actor: Actor,
   householdId: string,
   userId: string,
   type: string,
@@ -24,6 +26,7 @@ export async function notify(
 
   await publishHouseholdChange({
     householdId,
+    actor,
     resource: "notifications",
     message: "has a new notification",
   });
@@ -31,6 +34,7 @@ export async function notify(
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
 export async function notifyMembers(
+  actor: Actor,
   householdId: string,
   userIds: string[],
   type: string,
@@ -48,6 +52,7 @@ export async function notifyMembers(
 
   await publishHouseholdChange({
     householdId,
+    actor,
     resource: "notifications",
     message: "has a new notification",
   });
@@ -91,6 +96,7 @@ export async function markNotificationsRead(
 }
 
 export async function notifyHouseholdExcept(
+  actor: Actor,
   householdId: string,
   exceptUserId: string,
   type: string,
@@ -108,6 +114,7 @@ export async function notifyHouseholdExcept(
     },
   });
   await notifyMembers(
+    actor,
     householdId,
     memberships.map((membership) => membership.userId),
     type,

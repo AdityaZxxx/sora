@@ -39,7 +39,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdGoal(context.householdId, id, context.role);
+        await deleteHouseholdGoal(context, id);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -59,7 +59,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdBudget(context.householdId, id, context.role);
+        await deleteHouseholdBudget(context, id);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -85,15 +85,11 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ name, target, deadline }) =>
       runWriteTool(async () => {
-        const goal = await createHouseholdGoal(
-          context.householdId,
-          {
-            name,
-            target,
-            deadline: deadline ? parseDate(deadline) : undefined,
-          },
-          context.role,
-        );
+        const goal = await createHouseholdGoal(context, {
+          name,
+          target,
+          deadline: deadline ? parseDate(deadline) : undefined,
+        });
 
         return {
           id: goal.id,
@@ -146,11 +142,7 @@ export function registerGoalBudgetWriteTools(
             deadline === null || deadline === "" ? null : parseDate(deadline);
         }
 
-        const goal = await updateHouseholdGoal(
-          context.householdId,
-          update,
-          context.role,
-        );
+        const goal = await updateHouseholdGoal(context, update);
 
         return {
           id: goal.id,
@@ -185,11 +177,11 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ category, amount, mode }) =>
       runWriteTool(async () => {
-        const budget = await setHouseholdBudget(
-          context.householdId,
-          { category, amount, mode },
-          context.role,
-        );
+        const budget = await setHouseholdBudget(context, {
+          category,
+          amount,
+          mode,
+        });
 
         return {
           id: budget.id,

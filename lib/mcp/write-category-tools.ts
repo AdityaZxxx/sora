@@ -42,17 +42,13 @@ export function registerCategoryWriteTools(
     },
     async ({ name, icon, iconKind, iconColor, type }) =>
       runWriteTool(async () => {
-        const category = await createHouseholdCategory(
-          context.householdId,
-          {
-            name,
-            icon,
-            iconKind: iconKind ?? "emoji",
-            iconColor: iconColor ?? null,
-            type,
-          },
-          context.role,
-        );
+        const category = await createHouseholdCategory(context, {
+          name,
+          icon,
+          iconKind: iconKind ?? "emoji",
+          iconColor: iconColor ?? null,
+          type,
+        });
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.categories]);
 
         return {
@@ -96,18 +92,14 @@ export function registerCategoryWriteTools(
     },
     async ({ originalName, name, icon, iconKind, iconColor, type }) =>
       runWriteTool(async () => {
-        const category = await updateHouseholdCategory(
-          context.householdId,
-          {
-            originalName,
-            name,
-            icon,
-            iconKind: iconKind ?? "emoji",
-            iconColor: iconColor ?? null,
-            type,
-          },
-          context.role,
-        );
+        const category = await updateHouseholdCategory(context, {
+          originalName,
+          name,
+          icon,
+          iconKind: iconKind ?? "emoji",
+          iconColor: iconColor ?? null,
+          type,
+        });
         revalidateHousehold(context.householdId, [
           CACHE_RESOURCE.categories,
           CACHE_RESOURCE.transactions,
@@ -141,11 +133,7 @@ export function registerCategoryWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        const category = await deleteHouseholdCategory(
-          context.householdId,
-          id,
-          context.role,
-        );
+        const category = await deleteHouseholdCategory(context, id);
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.categories]);
 
         return {

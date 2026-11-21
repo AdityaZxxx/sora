@@ -1,5 +1,6 @@
 import { after } from "next/server";
 
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -8,7 +9,6 @@ import { log } from "@/lib/log";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { RecordSettlementSchema } from "@/schemas/settlement";
 
 const SETTLEMENT_CATEGORY_NAME = "Settlement";
@@ -34,26 +34,24 @@ export type RecordSettlementInput = {
 };
 
 export async function recordSettlement(
-  householdId: string,
-  userId: string,
+  caller: Caller,
   input: RecordSettlementInput,
-  role: MemberRole,
 ) {
   const startedAt = Date.now();
   try {
-    return await runSettlement(householdId, userId, input, role, startedAt);
+    return await runSettlement(caller, input, startedAt);
   } catch (cause) {
     if (cause instanceof DomainError) {
       log("warn", "settlement.recorded", {
-        householdId,
-        userId,
+        householdId: caller.householdId,
+        userId: caller.userId,
         outcome: "rejected",
         durationMs: Date.now() - startedAt,
       });
     } else {
       log("error", "settlement.recorded", {
-        householdId,
-        userId,
+        householdId: caller.householdId,
+        userId: caller.userId,
         outcome: "failed",
         durationMs: Date.now() - startedAt,
       });
@@ -63,13 +61,12 @@ export async function recordSettlement(
 }
 
 async function runSettlement(
-  householdId: string,
-  userId: string,
+  caller: Caller,
   input: RecordSettlementInput,
-  role: MemberRole,
   startedAt: number,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
+  const { householdId, userId } = caller;
   const parsedBody = RecordSettlementSchema.safeParse({
     memberId: input.memberId,
     amount: input.amount,
@@ -86,7 +83,7 @@ async function runSettlement(
     throw new DomainError("Cannot record a settlement with yourself");
   }
 
-  const [membership, household, payer] = await Promise.all([
+  const [membership, household] = await Promise.all([
     prisma.householdMembership.findUnique({
       where: {
         householdId_userId: {
@@ -110,14 +107,6 @@ async function runSettlement(
         currency: true,
       },
     }),
-    prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        name: true,
-      },
-    }),
   ]);
 
   if (!membership) {
@@ -127,7 +116,7 @@ async function runSettlement(
   const amountText = getFormatterForCurrency(
     household?.currency ?? DEFAULT_CURRENCY,
   ).format(amount);
-  const payerName = payer?.name ?? "A member";
+  const payerName = caller.actorName;
 
   const settlement = await prisma.$transaction(async (tx) => {
     const category = await tx.category.upsert({
@@ -167,6 +156,7 @@ async function runSettlement(
 
     await publishHouseholdChange({
       householdId,
+      actor: actorFor(caller),
       resource: "transactions",
       message: `recorded a settlement of ${amountText} with ${membership.user.name}`,
       executor: tx,
@@ -198,6 +188,7 @@ async function runSettlement(
     await Promise.all(
       otherMembers.map((other) =>
         notify(
+          actorFor(caller),
           householdId,
           other.userId,
           "settlement",

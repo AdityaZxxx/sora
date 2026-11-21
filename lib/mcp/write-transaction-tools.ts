@@ -68,23 +68,18 @@ export function registerTransactionWriteTools(
       recurringItemId,
     }) =>
       runWriteTool(async () => {
-        const transaction = await createTransaction(
-          context.householdId,
-          context.userId,
-          {
-            amount,
-            description,
-            date: date ? parseDate(date) : todayAtUtcMidnight(),
-            category,
-            type,
-            shared,
-            goalId: goalId || undefined,
-            shares,
-            recurringItemId,
-            addedVia: "agent",
-          },
-          context.role,
-        );
+        const transaction = await createTransaction(context, {
+          amount,
+          description,
+          date: date ? parseDate(date) : todayAtUtcMidnight(),
+          category,
+          type,
+          shared,
+          goalId: goalId || undefined,
+          shares,
+          recurringItemId,
+          addedVia: "agent",
+        });
 
         return {
           id: transaction.id,
@@ -114,7 +109,7 @@ export function registerTransactionWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteTransaction(context.householdId, id, context.role);
+        await deleteTransaction(context, id);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -137,16 +132,11 @@ export function registerTransactionWriteTools(
     },
     async ({ memberId, amount }) =>
       runWriteTool(async () => {
-        const settlement = await recordSettlement(
-          context.householdId,
-          context.userId,
-          {
-            memberId,
-            amount,
-            addedVia: "agent",
-          },
-          context.role,
-        );
+        const settlement = await recordSettlement(context, {
+          memberId,
+          amount,
+          addedVia: "agent",
+        });
 
         return {
           id: settlement.id,

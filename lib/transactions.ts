@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -19,7 +20,6 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import { sharesMatchExpense, sharesTotal } from "@/lib/split-shares";
@@ -320,25 +320,23 @@ async function resolveIdempotentWrite(
 }
 
 export async function createTransaction(
-  householdId: string,
-  userId: string,
+  caller: Caller,
   input: CreateTransactionInput,
-  role: MemberRole,
 ) {
-  return createTransactionWithDeps(householdId, userId, input, role, {
+  return createTransactionWithDeps(caller, input, {
     clock: systemClock,
     publisher: afterPublisher,
   });
 }
 
 async function createTransactionWithDeps(
-  householdId: string,
-  userId: string,
+  caller: Caller,
   input: CreateTransactionInput,
-  role: MemberRole,
   deps: CreateTransactionDeps,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
+  const { householdId, userId } = caller;
+  const actor = actorFor(caller);
 
   const key = readIdempotencyKey(input.idempotencyKey);
 
@@ -365,49 +363,40 @@ async function createTransactionWithDeps(
   const recurringItemId = input.recurringItemId || undefined;
   const shareInput = parsedBody.data.shares ?? [];
 
-  const [household, actor, goal, memberships, recurringItem] =
-    await Promise.all([
-      prisma.household.findUnique({
-        where: {
-          id: householdId,
-        },
-        select: {
-          currency: true,
-        },
-      }),
-      prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
-        select: {
-          name: true,
-        },
-      }),
-      goalId
-        ? prisma.goal.findFirst({
-            where: {
-              id: goalId,
-              householdId,
-            },
-          })
-        : null,
-      prisma.householdMembership.findMany({
-        where: {
-          householdId,
-        },
-        select: {
-          userId: true,
-        },
-      }),
-      recurringItemId
-        ? prisma.recurringItem.findFirst({
-            where: {
-              id: recurringItemId,
-              householdId,
-            },
-          })
-        : null,
-    ]);
+  const [household, goal, memberships, recurringItem] = await Promise.all([
+    prisma.household.findUnique({
+      where: {
+        id: householdId,
+      },
+      select: {
+        currency: true,
+      },
+    }),
+    goalId
+      ? prisma.goal.findFirst({
+          where: {
+            id: goalId,
+            householdId,
+          },
+        })
+      : null,
+    prisma.householdMembership.findMany({
+      where: {
+        householdId,
+      },
+      select: {
+        userId: true,
+      },
+    }),
+    recurringItemId
+      ? prisma.recurringItem.findFirst({
+          where: {
+            id: recurringItemId,
+            householdId,
+          },
+        })
+      : null,
+  ]);
 
   const shared = memberships.length === 1 ? true : parsedBody.data.shared;
 
@@ -515,6 +504,7 @@ async function createTransactionWithDeps(
       });
       await publishHouseholdChange({
         householdId,
+        actor,
         resource: "transactions",
         message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
         executor: tx,
@@ -545,9 +535,10 @@ async function createTransactionWithDeps(
   }
 
   const effects = buildPostCommitEffects({
+    actor,
     householdId,
     userId,
-    actorName: actor?.name ?? "A member",
+    actorName: caller.actorName,
     categoryName: categoryRow.name,
     amount,
     description: description ?? "",
@@ -565,12 +556,9 @@ async function createTransactionWithDeps(
   return created;
 }
 
-export async function deleteTransaction(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function deleteTransaction(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
+  const { householdId } = caller;
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -613,6 +601,7 @@ export async function deleteTransaction(
     });
     await publishHouseholdChange({
       householdId,
+      actor: actorFor(caller),
       resource: "transactions",
       message: `removed ${transaction.description || transaction.category}`,
       executor: tx,
