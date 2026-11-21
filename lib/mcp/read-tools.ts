@@ -47,7 +47,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           currency: context.currency,
           income: stats.income,
           expenses: stats.expense,
-          net: stats.income - stats.expense,
+          net: stats.net,
         });
       } catch (error) {
         return toolError(toolErrorMessage(error));
