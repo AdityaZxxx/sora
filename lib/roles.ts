@@ -7,10 +7,11 @@ export function parseMemberRole(role: string): MemberRole {
   return role === FULL_MEMBER_ROLE ? FULL_MEMBER_ROLE : VIEW_ONLY_ROLE;
 }
 
-export function assertFullMemberRole(role: MemberRole) {
+export function assertFullMemberRole(
+  role: MemberRole,
+  message = "View-only members cannot make changes in this household",
+) {
   if (role !== FULL_MEMBER_ROLE) {
-    throw new DomainError(
-      "View-only members cannot make changes in this household",
-    );
+    throw new DomainError(message);
   }
 }

@@ -17,13 +17,9 @@ import {
 export async function createGoal(form: CreateGoalSchemaType) {
   return withHouseholdAction(
     "Unable to create the goal. Check the name and target amount, then try again.",
-    async ({ household, membership }) => {
-      const created = await createHouseholdGoal(
-        household.id,
-        form,
-        membership.role,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.goals]);
+    async ({ caller }) => {
+      const created = await createHouseholdGoal(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
       return created;
     },
   );
@@ -32,13 +28,9 @@ export async function createGoal(form: CreateGoalSchemaType) {
 export async function updateGoal(form: UpdateGoalSchemaType) {
   return withHouseholdAction(
     "Unable to update the goal. Check the name and target amount, then try again.",
-    async ({ household, membership }) => {
-      const updated = await updateHouseholdGoal(
-        household.id,
-        form,
-        membership.role,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.goals]);
+    async ({ caller }) => {
+      const updated = await updateHouseholdGoal(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
       return updated;
     },
   );
@@ -47,13 +39,9 @@ export async function updateGoal(form: UpdateGoalSchemaType) {
 export async function deleteGoal(form: DeleteIdSchemaType) {
   return withHouseholdAction(
     "Unable to delete the goal. Check the goal and try again.",
-    async ({ household, membership }) => {
-      const deleted = await deleteHouseholdGoal(
-        household.id,
-        form.id,
-        membership.role,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.goals]);
+    async ({ caller }) => {
+      const deleted = await deleteHouseholdGoal(caller, form.id);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
       return deleted;
     },
   );

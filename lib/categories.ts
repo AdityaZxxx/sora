@@ -7,11 +7,11 @@ import type {
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import {
   isSettlementCategory,
   settlementCategoryExclusion,
@@ -51,11 +51,10 @@ export async function getCategories(
 }
 
 export async function createHouseholdCategory(
-  householdId: string,
+  caller: Caller,
   input: CreateCategorySchemaType,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = CreateCategorySchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(
@@ -69,7 +68,7 @@ export async function createHouseholdCategory(
 
   const category = await prisma.category.create({
     data: {
-      householdId,
+      householdId: caller.householdId,
       name,
       icon,
       iconKind,
@@ -79,7 +78,8 @@ export async function createHouseholdCategory(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "categories",
     message: `added the ${category.name} category`,
   });
@@ -114,11 +114,10 @@ function assertNotSettlementCategory(name: string) {
 }
 
 export async function updateHouseholdCategory(
-  householdId: string,
+  caller: Caller,
   input: UpdateCategorySchemaType,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = UpdateCategorySchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(
@@ -136,7 +135,7 @@ export async function updateHouseholdCategory(
   const existing = await prisma.category.findUnique({
     where: {
       name_householdId_type: {
-        householdId,
+        householdId: caller.householdId,
         name: originalName,
         type,
       },
@@ -156,7 +155,7 @@ export async function updateHouseholdCategory(
     const updated = await tx.category.update({
       where: {
         name_householdId_type: {
-          householdId,
+          householdId: caller.householdId,
           name: originalName,
           type,
         },
@@ -166,7 +165,7 @@ export async function updateHouseholdCategory(
 
     await tx.transaction.updateMany({
       where: {
-        householdId,
+        householdId: caller.householdId,
         category: originalName,
         type,
       },
@@ -179,7 +178,7 @@ export async function updateHouseholdCategory(
     if (type === "expense" && name !== originalName) {
       await tx.budget.updateMany({
         where: {
-          householdId,
+          householdId: caller.householdId,
           category: originalName,
         },
         data: { category: name },
@@ -189,7 +188,7 @@ export async function updateHouseholdCategory(
     if (name !== originalName || iconChanged) {
       await tx.recurringItem.updateMany({
         where: {
-          householdId,
+          householdId: caller.householdId,
           category: originalName,
           type,
         },
@@ -201,7 +200,8 @@ export async function updateHouseholdCategory(
     }
 
     await publishHouseholdChange({
-      householdId,
+      householdId: caller.householdId,
+      actor: actorFor(caller),
       resource: "categories",
       message: `changed the ${updated.name} category`,
       executor: tx,
@@ -211,12 +211,8 @@ export async function updateHouseholdCategory(
   });
 }
 
-export async function deleteHouseholdCategory(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function deleteHouseholdCategory(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -228,7 +224,7 @@ export async function deleteHouseholdCategory(
   const category = await prisma.category.findFirst({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (!category) {
@@ -240,7 +236,7 @@ export async function deleteHouseholdCategory(
   const deleted = await prisma.category.deleteMany({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (deleted.count === 0) {
@@ -248,7 +244,8 @@ export async function deleteHouseholdCategory(
   }
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "categories",
     message: `removed the ${category.name} category`,
   });

@@ -1,28 +1,17 @@
 import type { TokenAuth } from "@/lib/api-token";
-import type { TokenScope } from "@/lib/types";
+import type { Caller } from "@/lib/caller";
 
-import { parseMemberRole, type MemberRole } from "@/lib/roles";
-
-export type McpContext = {
-  householdId: string;
+export type McpContext = Caller & {
   householdName: string | null;
   currency: string | null;
-  userId: string;
-  userName: string;
-  role: MemberRole;
-  scope: TokenScope;
 };
 
 export function contextFromToken(
   auth: Extract<TokenAuth, { ok: true }>,
 ): McpContext {
   return {
-    householdId: auth.household.id,
+    ...auth.caller,
     householdName: auth.household.name,
     currency: auth.household.currency,
-    userId: auth.user.id,
-    userName: auth.user.name,
-    role: parseMemberRole(auth.membership.role),
-    scope: auth.token.scope as TokenScope,
   };
 }
