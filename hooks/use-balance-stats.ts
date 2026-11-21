@@ -3,7 +3,6 @@
 import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 
 import { logClientError } from "@/instrumentation-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
@@ -16,11 +15,9 @@ export function useBalanceStats(from: Date, to: Date) {
     queryFn: async () => {
       try {
         return await fetchReadJson<GetBalanceStatsResponseType>(
-          `/api/stats/balance?from=${format(from, "yyyy-MM-dd")}&to=${format(
-            to,
-            "yyyy-MM-dd",
-          )}`,
+          "/api/stats/balance",
           "Failed to fetch balance stats",
+          { params: { from, to } },
         );
       } catch (cause) {
         logClientError("stats.fetch-failed", {

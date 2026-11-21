@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -170,15 +171,11 @@ function CategoryList({
   } = useQuery<Category[]>({
     queryKey: queryKeys.categories(type),
     queryFn: () =>
-      fetch(`/api/categories?type=${type}`).then(async (res) => {
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(
-            error.message || "Unable to load categories. Try again.",
-          );
-        }
-        return res.json();
-      }),
+      fetchReadJson<Category[]>(
+        "/api/categories",
+        "Unable to load categories. Try again.",
+        { params: { type } },
+      ),
     retry: 1,
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,

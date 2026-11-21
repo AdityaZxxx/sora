@@ -12,7 +12,6 @@ import {
   flexRender,
   useTable,
 } from "@tanstack/react-table";
-import { format } from "date-fns";
 import {
   ChevronLeft,
   ChevronRight,
@@ -67,6 +66,7 @@ import {
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -97,16 +97,11 @@ async function fetchHistoryPage(
   cursor: string | null,
   limit: number,
 ): Promise<GetTransactionsHistoryResponseType> {
-  const params = new URLSearchParams({
-    from: format(from, "yyyy-MM-dd"),
-    to: format(to, "yyyy-MM-dd"),
-    limit: String(limit),
-  });
-  if (cursor) params.set("cursor", cursor);
-
-  const response = await fetch(`/api/transaction-history?${params}`);
-  if (!response.ok) throw new Error("Failed to fetch transaction history");
-  return response.json();
+  return fetchReadJson<GetTransactionsHistoryResponseType>(
+    "/api/transaction-history",
+    "Failed to fetch transaction history",
+    { params: { from, to, limit, cursor } },
+  );
 }
 
 async function fetchAllHistory(from: Date, to: Date, limit: number) {

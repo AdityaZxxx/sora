@@ -1,5 +1,7 @@
 import type { z } from "zod";
 
+import { format } from "date-fns";
+
 type JsonValue =
   | string
   | number
@@ -17,20 +19,27 @@ type ReadValue =
   | ReadValue[]
   | { [key: string]: ReadValue };
 
+type QueryParam = string | number | Date | null | undefined;
+
+type ReadOptions<T> = {
+  params?: Record<string, QueryParam>;
+  schema?: z.ZodType<T>;
+};
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
-export async function fetchJson<TSchema extends z.ZodType>(
-  url: string,
-  schema: TSchema,
-  errorMessage: string,
-): Promise<z.output<TSchema>> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(errorMessage);
+function withParams(path: string, params?: Record<string, QueryParam>) {
+  if (!params) return path;
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined) continue;
+    search.set(
+      key,
+      value instanceof Date ? format(value, "yyyy-MM-dd") : String(value),
+    );
   }
-
-  const body: unknown = await response.json();
-  return schema.parse(body);
+  const query = search.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 function reviveDates(value: JsonValue): ReadValue {
@@ -49,13 +58,14 @@ function reviveDates(value: JsonValue): ReadValue {
 }
 
 export async function fetchReadJson<T>(
-  url: string,
+  path: string,
   errorMessage: string,
+  options?: ReadOptions<T>,
 ): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(withParams(path, options?.params));
   if (!response.ok) {
     throw new Error(errorMessage);
   }
-
-  return reviveDates(await response.json()) as T;
+  const body = reviveDates(await response.json());
+  return (options?.schema ? options.schema.parse(body) : body) as T;
 }

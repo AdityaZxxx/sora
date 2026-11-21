@@ -10,7 +10,7 @@ import { useHouseholds } from "@/hooks/use-households";
 import { useSession } from "@/lib/auth-client";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
-import { fetchJson } from "@/lib/fetch-json";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema } from "@/schemas/balances";
 
@@ -89,11 +89,9 @@ export function useOfflineSnapshot() {
   >({
     queryKey: queryKeys.balances,
     queryFn: () =>
-      fetchJson(
-        "/api/balances",
-        MemberBalancesSchema,
-        "Failed to fetch balances",
-      ),
+      fetchReadJson("/api/balances", "Failed to fetch balances", {
+        schema: MemberBalancesSchema,
+      }),
     staleTime: QUERY_STALE_TIME,
   });
 

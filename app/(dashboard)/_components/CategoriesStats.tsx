@@ -2,7 +2,6 @@
 import type { TransactionType } from "@/lib/types";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
 import CategoryIcon from "@/components/CategoryIcon";
@@ -12,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -33,18 +33,12 @@ interface Props {
 const CategoriesStats = ({ from, to, currency }: Props) => {
   const { data: stats, isPending } = useQuery<GetCategoriesStatsResponseType>({
     queryKey: queryKeys.overview.categories(from, to),
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/stats/categories?from=${format(from, "yyyy-MM-dd")}&to=${format(
-          to,
-          "yyyy-MM-dd",
-        )}`,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories stats");
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      fetchReadJson<GetCategoriesStatsResponseType>(
+        "/api/stats/categories",
+        "Failed to fetch categories stats",
+        { params: { from, to } },
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,
