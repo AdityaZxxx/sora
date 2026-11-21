@@ -1,8 +1,6 @@
 import type { HouseholdActionContext } from "@/lib/action-result";
 import type { z } from "zod";
 
-import { createHash } from "node:crypto";
-
 import { resolveDateRange } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
@@ -83,20 +81,11 @@ export function dateRangeFromParams(searchParams: URLSearchParams) {
   );
 }
 
-export function jsonReadResponse<T>(request: Request, data: T): Response {
-  const body = JSON.stringify(data);
-  const etag = `"${createHash("sha256").update(body).digest("base64url")}"`;
-  const headers = {
-    "Content-Type": "application/json",
-    "Cache-Control": "private, no-cache",
-    ETag: etag,
-  };
-  const ifNoneMatch = request.headers
-    .get("if-none-match")
-    ?.split(",")
-    .map((value) => value.trim());
-  if (ifNoneMatch?.includes(etag)) {
-    return new Response(null, { status: 304, headers });
-  }
-  return new Response(body, { headers });
+export function jsonReadResponse<T>(_request: Request, data: T): Response {
+  return new Response(JSON.stringify(data), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-cache",
+    },
+  });
 }
