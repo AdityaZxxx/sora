@@ -5,7 +5,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { deleteHouseholdBudget, setHouseholdBudget } from "@/lib/budgets";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { DATE_PATTERN, parseDate } from "@/lib/dates";
 import {
   createHouseholdGoal,
@@ -41,7 +40,6 @@ export function registerGoalBudgetWriteTools(
     async ({ id }) =>
       runWriteTool(async () => {
         await deleteHouseholdGoal(context.householdId, id, context.role);
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -62,7 +60,6 @@ export function registerGoalBudgetWriteTools(
     async ({ id }) =>
       runWriteTool(async () => {
         await deleteHouseholdBudget(context.householdId, id, context.role);
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.budgets]);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -97,7 +94,6 @@ export function registerGoalBudgetWriteTools(
           },
           context.role,
         );
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return {
           id: goal.id,
@@ -155,7 +151,6 @@ export function registerGoalBudgetWriteTools(
           update,
           context.role,
         );
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return {
           id: goal.id,
@@ -195,7 +190,6 @@ export function registerGoalBudgetWriteTools(
           { category, amount, mode },
           context.role,
         );
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.budgets]);
 
         return {
           id: budget.id,

@@ -4,12 +4,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { EventEmitter } from "node:events";
 
 import { getSession } from "@/lib/auth";
+import { revalidateHousehold } from "@/lib/cache";
 import {
   HOUSEHOLD_EVENT_CHANNEL,
+  householdChangeEffects,
   householdChangeSchema,
   type HouseholdChange,
   type HouseholdChangeResource,
-} from "@/lib/household-events";
+} from "@/lib/household-change";
 import prisma, { stripSslMode } from "@/lib/prisma";
 
 type QueryExecutor = Prisma.TransactionClient | PrismaClient;
@@ -37,6 +39,7 @@ export async function publishHouseholdChange({
   });
 
   await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
+  revalidateHousehold(householdId, householdChangeEffects(resource).serverTags);
 }
 
 export async function hasHouseholdMembership(
