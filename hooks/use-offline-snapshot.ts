@@ -1,17 +1,16 @@
 "use client";
 
-import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { MemberBalance } from "@/schemas/balances";
 
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 
+import { useBalanceStats } from "@/hooks/use-balance-stats";
 import { useHouseholds } from "@/hooks/use-households";
 import { useSession } from "@/lib/auth-client";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
-import { fetchJson, fetchReadJson } from "@/lib/fetch-json";
+import { fetchJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema } from "@/schemas/balances";
 
@@ -98,19 +97,10 @@ export function useOfflineSnapshot() {
     staleTime: QUERY_STALE_TIME,
   });
 
-  const { data: stats, isFetching: statsFetching } =
-    useQuery<GetBalanceStatsResponseType>({
-      queryKey: queryKeys.overview.stats(range.from, range.to),
-      queryFn: () =>
-        fetchReadJson<GetBalanceStatsResponseType>(
-          `/api/stats/balance?from=${format(range.from, "yyyy-MM-dd")}&to=${format(
-            range.to,
-            "yyyy-MM-dd",
-          )}`,
-          "Failed to fetch balance stats",
-        ),
-      staleTime: QUERY_STALE_TIME,
-    });
+  const { data: stats, isFetching: statsFetching } = useBalanceStats(
+    range.from,
+    range.to,
+  );
 
   const activeHousehold = useRef<string | undefined>(undefined);
 
@@ -159,7 +149,7 @@ export function useOfflineSnapshot() {
       stats: {
         income: stats.income,
         expense: stats.expense,
-        net: stats.income - stats.expense,
+        net: stats.net,
       },
       balances: balances.map(({ name, balance }) => ({ name, balance })),
     };
