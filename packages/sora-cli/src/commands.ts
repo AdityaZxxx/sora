@@ -204,7 +204,7 @@ function requireValue(
 
 const MAX_MONEY_AMOUNT = 1_000_000_000_000;
 
-function parseAmount(value: string): number {
+function parseAmount(value: string): string {
   if (!/^\d+(\.\d{1,2})?$/.test(value) || Number(value) <= 0) {
     throw new CliError(
       `Invalid --amount: ${value}. Use a positive number with at most two decimals, such as 500 or 12.50.`,
@@ -216,7 +216,7 @@ function parseAmount(value: string): number {
     );
   }
 
-  return Number(value);
+  return value;
 }
 
 function transactionArgs(

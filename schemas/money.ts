@@ -2,9 +2,17 @@ import { z } from "zod";
 
 export const MAX_MONEY_AMOUNT = 1_000_000_000_000;
 
+const MONEY_TEXT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
+
 function numberInput(coerced: boolean) {
   if (!coerced) {
-    return z.number({ error: "Amount must be a number" });
+    return z
+      .string()
+      .regex(
+        MONEY_TEXT_PATTERN,
+        "Amount must be a decimal amount such as 12.50",
+      )
+      .transform((value) => Number(value));
   }
 
   return z.preprocess((value, ctx) => {

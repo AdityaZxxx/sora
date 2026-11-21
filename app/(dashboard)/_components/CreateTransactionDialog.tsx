@@ -53,8 +53,7 @@ import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import {
   finalizeShares,
-  sharesTotalCents,
-  toCents,
+  sharesTotal,
   type SplitMode,
 } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
@@ -281,8 +280,7 @@ const CreateTransactionDialog = ({
         );
 
   const splitInvalid =
-    previewShares !== null &&
-    sharesTotalCents(previewShares) !== toCents(amountValue);
+    previewShares !== null && !sharesTotal(previewShares).eq(amountValue);
 
   const resetSplitInputs = () => {
     setSplitMode("equal");

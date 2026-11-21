@@ -1,19 +1,23 @@
+import { Prisma } from "@prisma/client";
+
 import {
   FULL_MEMBER_ROLE,
   UNUSUAL_SPENDING_TYPE,
   DEFAULT_CURRENCY,
 } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { sumMoney, zeroMoney, type Money } from "@/lib/money";
 import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { isSettlementCategory } from "@/lib/settlements";
 
-const FLOOR_MINIMUM = 100;
-const INCOME_FLOOR_RATIO = 0.005;
-const SPIKE_MULTIPLIER = 2;
+const { Decimal } = Prisma;
+const FLOOR_MINIMUM = new Decimal(100);
+const INCOME_FLOOR_RATIO = new Decimal("0.005");
+const SPIKE_MULTIPLIER = new Decimal(2);
 
 export type SpendingCandidate = {
-  amount: number;
+  amount: Money;
   category: string;
   description: string;
   type: string;
@@ -48,15 +52,14 @@ async function trailingMonthlyIncome(householdId: string, window: Window) {
       OR: months,
     },
   });
-  const total = rows.reduce((sum, row) => sum + row.income.toNumber(), 0);
-  return total / 3;
+  return sumMoney(rows.map((row) => row.income)).div(3);
 }
 
-export function floorFor(trailingIncome: number) {
-  return Math.max(
-    FLOOR_MINIMUM,
-    Math.round(trailingIncome * INCOME_FLOOR_RATIO * 100) / 100,
-  );
+export function floorFor(trailingIncome: Money) {
+  const ratioFloor = trailingIncome
+    .times(INCOME_FLOOR_RATIO)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  return ratioFloor.gt(FLOOR_MINIMUM) ? ratioFloor : FLOOR_MINIMUM;
 }
 
 export async function evaluateUnusualSpending(
@@ -89,11 +92,11 @@ export async function evaluateUnusualSpending(
     trailingMonthlyIncome(transaction.householdId, window),
   ]);
 
-  const average = (baseline._sum.amount?.toNumber() ?? 0) / 3;
-  if (average < floorFor(trailingIncome)) {
+  const average = (baseline._sum.amount ?? zeroMoney()).div(3);
+  if (average.lt(floorFor(trailingIncome))) {
     return { notified: 0 };
   }
-  if (transaction.amount <= SPIKE_MULTIPLIER * average) {
+  if (transaction.amount.lte(SPIKE_MULTIPLIER.times(average))) {
     return { notified: 0 };
   }
 
@@ -115,7 +118,7 @@ export async function evaluateUnusualSpending(
       })
     : [{ userId: transaction.userId }];
 
-  const message = `Unusual spending: ${format(transaction.amount)} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average)}.`;
+  const message = `Unusual spending: ${format(transaction.amount.toNumber())} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average.toNumber())}.`;
 
   await notifyMembers(
     transaction.householdId,
