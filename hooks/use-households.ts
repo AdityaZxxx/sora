@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { POLL_INTERVAL } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
 export type HouseholdsResponse = {
@@ -17,13 +18,11 @@ export type HouseholdsResponse = {
 export function useHouseholds() {
   return useQuery<HouseholdsResponse>({
     queryKey: queryKeys.households,
-    queryFn: async () => {
-      const response = await fetch("/api/households");
-      if (!response.ok) {
-        throw new Error("Failed to load households");
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      fetchReadJson<HouseholdsResponse>(
+        "/api/households",
+        "Failed to load households",
+      ),
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,

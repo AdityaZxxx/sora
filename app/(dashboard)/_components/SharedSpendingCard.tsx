@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import {
   getFormatterForCurrency,
   getNumberFlowCurrencyProps,
@@ -21,13 +22,11 @@ interface Props {
 const SharedSpendingCard = ({ currency }: Props) => {
   const { data: spending } = useSuspenseQuery<GetSharedSpendingResponseType>({
     queryKey: queryKeys.sharedSpending,
-    queryFn: async () => {
-      const response = await fetch("/api/stats/shared-spending");
-      if (!response.ok) {
-        throw new Error("Failed to fetch shared spending");
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      fetchReadJson<GetSharedSpendingResponseType>(
+        "/api/stats/shared-spending",
+        "Failed to fetch shared spending",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
