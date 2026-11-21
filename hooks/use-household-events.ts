@@ -9,9 +9,9 @@ import { useSession } from "@/lib/auth-client";
 import {
   eventSourceReadySchema,
   HOUSEHOLD_EVENTS_ENDPOINT,
+  householdChangeEffects,
   householdChangeSchema,
-  queryKeysForChange,
-} from "@/lib/household-events";
+} from "@/lib/household-change";
 
 export function useHouseholdEvents() {
   const queryClient = useQueryClient();
@@ -59,7 +59,8 @@ export function useHouseholdEvents() {
       ) {
         toast(change.message);
       }
-      for (const queryKey of queryKeysForChange(change.resource)) {
+      for (const queryKey of householdChangeEffects(change.resource)
+        .clientKeys) {
         void queryClient.invalidateQueries({ queryKey });
       }
       router.refresh();
