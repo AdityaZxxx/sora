@@ -1,4 +1,5 @@
 "use client";
+import type { CreateTransactionActionInput } from "../_actions/transaction";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { listMembers } from "@/lib/members";
 import type { GetBalanceStatsResponseType } from "@/lib/transactions";
@@ -44,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getMutationClient } from "@/hooks/mutation-client";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
@@ -60,7 +62,6 @@ import {
 import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
-import { CreateTransaction } from "../_actions/transaction";
 import CategoryPicker from "./CategoryPicker";
 
 interface Props {
@@ -138,10 +139,19 @@ const CreateTransactionDialog = ({
   const members = membersQuery.data ?? [];
 
   const queryClient = useQueryClient();
+  const mutationClient = getMutationClient();
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (input: Parameters<typeof CreateTransaction>[0]) => {
-      return unwrapAction(await CreateTransaction(input));
+    mutationFn: async (input: CreateTransactionActionInput) => {
+      const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
+      return unwrapAction(
+        await mutationClient.submit({
+          kind: "create-transaction",
+          url: window.location.pathname,
+          payload: { ...input, idempotencyKey },
+          idempotencyKey,
+        }),
+      );
     },
     onMutate: async (input) => {
       toast.loading("Adding transaction…", {
