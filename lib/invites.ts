@@ -131,7 +131,9 @@ export async function joinHouseholdByInviteToken(
         userId: true,
       },
     });
+    const actor = { actorId: userId, actorName: userName };
     await notifyMembers(
+      actor,
       inviteLink.householdId,
       otherMembers.map((membership) => membership.userId),
       "member_joined",
@@ -139,6 +141,7 @@ export async function joinHouseholdByInviteToken(
     );
     if (inviteLink.createdById !== userId) {
       await notify(
+        actor,
         inviteLink.householdId,
         inviteLink.createdById,
         "invite_accepted",

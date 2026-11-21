@@ -13,14 +13,10 @@ export async function UpdateUserCurrency(
 ): Promise<ActionResult<Household>> {
   return withHouseholdAction(
     "That currency is not supported. Choose one from the list.",
-    async ({ household, membership }) => {
-      const updated = await updateHouseholdCurrency(
-        household.id,
-        currency,
-        membership.role,
-      );
+    async ({ caller }) => {
+      const updated = await updateHouseholdCurrency(caller, currency);
 
-      revalidateHousehold(household.id, [CACHE_RESOURCE.household]);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.household]);
       revalidatePath("/", "layout");
 
       return updated;

@@ -9,9 +9,9 @@ import { deleteTransaction } from "@/lib/transactions";
 export async function DeleteTransaction(form: DeleteIdSchemaType) {
   return withHouseholdAction(
     "Unable to delete the transaction. Refresh the page and try again.",
-    async ({ household, membership }) => {
-      await deleteTransaction(household.id, form.id, membership.role);
-      revalidateHousehold(household.id, [
+    async ({ caller }) => {
+      await deleteTransaction(caller, form.id);
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.transactions,
         CACHE_RESOURCE.balances,
         CACHE_RESOURCE.budgets,

@@ -12,14 +12,11 @@ import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
-import {
-  FULL_MEMBER_ROLE,
-  READ_WRITE_SCOPE,
-  VIEW_ONLY_ROLE,
-} from "@/lib/constants";
+import { assertCallerFullMember, type Caller } from "@/lib/caller";
+import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
+import { parseMemberRole } from "@/lib/roles";
 import {
   CreateApiTokenSchema,
   RevokeApiTokenSchema,
@@ -45,6 +42,7 @@ export type TokenAuth =
       user: User;
       membership: HouseholdMembership;
       token: ApiToken;
+      caller: Caller;
     }
   | { ok: false; status: number; error: string };
 
@@ -96,16 +94,33 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     };
   }
 
-  if (scope === READ_WRITE_SCOPE && token.scope !== READ_WRITE_SCOPE) {
-    return { ok: false, status: 403, error: "This token is read-only" };
-  }
+  const caller: Caller = {
+    householdId: token.householdId,
+    userId: token.userId,
+    role: parseMemberRole(membership.role),
+    scope: token.scope as TokenScope,
+    actorName: token.user.name,
+  };
 
-  if (scope === READ_WRITE_SCOPE && membership.role === VIEW_ONLY_ROLE) {
-    return {
-      ok: false,
-      status: 403,
-      error: "View-only members cannot use a read-write token",
-    };
+  if (scope === READ_WRITE_SCOPE) {
+    if (token.scope !== READ_WRITE_SCOPE) {
+      return { ok: false, status: 403, error: "This token is read-only" };
+    }
+    try {
+      assertCallerFullMember(
+        caller,
+        "View-only members cannot use a read-write token",
+      );
+    } catch (cause) {
+      if (!(cause instanceof DomainError)) {
+        throw cause;
+      }
+      return {
+        ok: false,
+        status: 403,
+        error: "View-only members cannot use a read-write token",
+      };
+    }
   }
 
   return {
@@ -114,6 +129,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     user: token.user,
     membership,
     token,
+    caller,
   };
 }
 
@@ -136,9 +152,7 @@ export type ApiTokenSummary = Prisma.ApiTokenGetPayload<{
 }>;
 
 export async function createApiToken(
-  householdId: string,
-  userId: string,
-  role: MemberRole,
+  caller: Caller,
   input: CreateApiTokenSchemaType,
 ): Promise<{ id: string; token: string }> {
   const parsed = CreateApiTokenSchema.safeParse(input);
@@ -149,7 +163,7 @@ export async function createApiToken(
   }
 
   const household = await prisma.household.findUnique({
-    where: { id: householdId },
+    where: { id: caller.householdId },
     select: { agentAccessEnabled: true },
   });
   if (!household?.agentAccessEnabled) {
@@ -159,18 +173,17 @@ export async function createApiToken(
   }
 
   if (parsed.data.scope === READ_WRITE_SCOPE) {
-    if (role !== FULL_MEMBER_ROLE) {
-      throw new DomainError(
-        "View-only members cannot create a read-write token. Choose read only instead.",
-      );
-    }
+    assertCallerFullMember(
+      caller,
+      "View-only members cannot create a read-write token. Choose read only instead.",
+    );
   }
 
   const { token, tokenHash } = generateApiToken();
   const created = await prisma.apiToken.create({
     data: {
-      householdId,
-      userId,
+      householdId: caller.householdId,
+      userId: caller.userId,
       name: parsed.data.name,
       scope: parsed.data.scope,
       tokenHash,
@@ -201,9 +214,7 @@ export async function listApiTokens(
 }
 
 export async function revokeApiToken(
-  householdId: string,
-  userId: string,
-  role: MemberRole,
+  caller: Caller,
   input: RevokeApiTokenSchemaType,
 ) {
   const parsed = RevokeApiTokenSchema.safeParse(input);
@@ -216,7 +227,7 @@ export async function revokeApiToken(
   const token = await prisma.apiToken.findFirst({
     where: {
       id: parsed.data.id,
-      householdId,
+      householdId: caller.householdId,
     },
     select: {
       id: true,
@@ -230,8 +241,9 @@ export async function revokeApiToken(
     );
   }
 
-  if (role !== FULL_MEMBER_ROLE && token.userId !== userId) {
-    throw new DomainError(
+  if (token.userId !== caller.userId) {
+    assertCallerFullMember(
+      caller,
       "View-only members can only revoke their own tokens. Ask a full member to revoke it.",
     );
   }
@@ -246,11 +258,10 @@ export async function revokeApiToken(
 }
 
 export async function setAgentAccess(
-  householdId: string,
+  caller: Caller,
   enabled: SetAgentAccessSchemaType["enabled"],
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
 
   const parsed = SetAgentAccessSchema.safeParse({ enabled });
   if (!parsed.success) {
@@ -259,14 +270,14 @@ export async function setAgentAccess(
 
   await prisma.$transaction(async (tx) => {
     await tx.household.update({
-      where: { id: householdId },
+      where: { id: caller.householdId },
       data: { agentAccessEnabled: enabled },
     });
 
     if (!enabled) {
       await tx.apiToken.updateMany({
         where: {
-          householdId,
+          householdId: caller.householdId,
           revokedAt: null,
         },
         data: { revokedAt: new Date() },

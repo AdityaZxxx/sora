@@ -40,7 +40,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdGoal(context.householdId, id, context.role);
+        await deleteHouseholdGoal(context, id);
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return { deleted: id, memberId: context.userId };
@@ -61,7 +61,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdBudget(context.householdId, id, context.role);
+        await deleteHouseholdBudget(context, id);
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.budgets]);
 
         return { deleted: id, memberId: context.userId };
@@ -88,15 +88,11 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ name, target, deadline }) =>
       runWriteTool(async () => {
-        const goal = await createHouseholdGoal(
-          context.householdId,
-          {
-            name,
-            target,
-            deadline: deadline ? parseDate(deadline) : undefined,
-          },
-          context.role,
-        );
+        const goal = await createHouseholdGoal(context, {
+          name,
+          target,
+          deadline: deadline ? parseDate(deadline) : undefined,
+        });
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return {
@@ -150,11 +146,7 @@ export function registerGoalBudgetWriteTools(
             deadline === null || deadline === "" ? null : parseDate(deadline);
         }
 
-        const goal = await updateHouseholdGoal(
-          context.householdId,
-          update,
-          context.role,
-        );
+        const goal = await updateHouseholdGoal(context, update);
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.goals]);
 
         return {
@@ -190,11 +182,11 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ category, amount, mode }) =>
       runWriteTool(async () => {
-        const budget = await setHouseholdBudget(
-          context.householdId,
-          { category, amount, mode },
-          context.role,
-        );
+        const budget = await setHouseholdBudget(context, {
+          category,
+          amount,
+          mode,
+        });
         revalidateHousehold(context.householdId, [CACHE_RESOURCE.budgets]);
 
         return {

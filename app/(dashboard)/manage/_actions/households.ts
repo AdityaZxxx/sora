@@ -32,13 +32,9 @@ export async function renameHousehold(
 ): Promise<ActionResult<Household>> {
   return withHouseholdAction(
     "Unable to rename this space. Check the name and try again.",
-    async ({ household, membership }) => {
-      const renamed = await renameHouseholdSeam(
-        household.id,
-        name,
-        membership.role,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.household]);
+    async ({ caller }) => {
+      const renamed = await renameHouseholdSeam(caller, name);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.household]);
       revalidatePath("/", "layout");
       return renamed;
     },

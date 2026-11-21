@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 
 import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { actorFor } from "@/lib/caller";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import {
   clearActiveHouseholdCookie,
@@ -28,19 +29,15 @@ import { notify, notifyHouseholdExcept } from "@/lib/notifications";
 export async function leaveHousehold(): Promise<ActionResult> {
   return withHouseholdAction(
     "Unable to leave this household. Refresh the page and try again.",
-    async ({ household, session }) => {
-      await leaveHouseholdSeam(
-        household.id,
-        session.user.id,
-        session.user.name,
-      );
-      revalidateHousehold(household.id, [
+    async ({ caller }) => {
+      await leaveHouseholdSeam(caller);
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.members,
         CACHE_RESOURCE.household,
         CACHE_RESOURCE.balances,
       ]);
 
-      const nextHouseholdId = await firstHouseholdIdForUser(session.user.id);
+      const nextHouseholdId = await firstHouseholdIdForUser(caller.userId);
       if (nextHouseholdId) {
         await setActiveHouseholdCookie(nextHouseholdId);
       } else {
@@ -57,21 +54,17 @@ export async function removeMember(
 ): Promise<ActionResult> {
   return withHouseholdAction(
     "Unable to remove this member. Try again.",
-    async ({ household, session, membership }) => {
-      const removedName = await removeMemberSeam(
-        household.id,
-        session.user.id,
-        membership.role,
-        form,
-      );
+    async ({ caller }) => {
+      const removedName = await removeMemberSeam(caller, form);
 
       await notifyHouseholdExcept(
-        household.id,
-        session.user.id,
+        actorFor(caller),
+        caller.householdId,
+        caller.userId,
         "member_left",
         `${removedName} was removed from the household.`,
       );
-      revalidateHousehold(household.id, [
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.members,
         CACHE_RESOURCE.household,
         CACHE_RESOURCE.balances,
@@ -86,23 +79,19 @@ export async function setMemberRole(
 ): Promise<ActionResult> {
   return withHouseholdAction(
     "Unable to change this member's access. Try again.",
-    async ({ household, session, membership }) => {
-      const { role: nextRole } = await setMemberRoleSeam(
-        household.id,
-        session.user.id,
-        membership.role,
-        form,
-      );
+    async ({ caller }) => {
+      const { role: nextRole } = await setMemberRoleSeam(caller, form);
 
       await notify(
-        household.id,
+        actorFor(caller),
+        caller.householdId,
         form.userId,
         "member_role",
         nextRole === VIEW_ONLY_ROLE
-          ? `${session.user.name} set your access to view-only in this household.`
-          : `${session.user.name} gave you full edit access in this household.`,
+          ? `${caller.actorName} set your access to view-only in this household.`
+          : `${caller.actorName} gave you full edit access in this household.`,
       );
-      revalidateHousehold(household.id, [
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.members,
         CACHE_RESOURCE.notifications,
       ]);
@@ -115,13 +104,13 @@ export async function setEmailDigest(
 ): Promise<ActionResult<HouseholdMembership>> {
   return withHouseholdAction(
     "Unable to update the email digest. Try again.",
-    async ({ household, session }) => {
+    async ({ caller }) => {
       const updated = await setEmailDigestSeam(
-        household.id,
-        session.user.id,
+        caller.householdId,
+        caller.userId,
         form,
       );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.members]);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.members]);
       return updated;
     },
   );

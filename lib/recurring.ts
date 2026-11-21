@@ -4,13 +4,13 @@ import type { z } from "zod";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
   CreateRecurringItemSchema,
@@ -206,24 +206,23 @@ function scheduleFields(input: ParsedRecurringItem) {
 }
 
 export async function createRecurringItem(
-  householdId: string,
+  caller: Caller,
   input: CreateRecurringItemType,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = CreateRecurringItemSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid bill");
   }
 
   const category = await requireCategory(
-    householdId,
+    caller.householdId,
     parsed.data.category,
     parsed.data.type,
   );
   const item = await prisma.recurringItem.create({
     data: {
-      householdId,
+      householdId: caller.householdId,
       name: parsed.data.name,
       amount: parsed.data.amount,
       category: category.name,
@@ -237,7 +236,8 @@ export async function createRecurringItem(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "recurring",
     message: `added the ${item.name} bill`,
   });
@@ -246,11 +246,10 @@ export async function createRecurringItem(
 }
 
 export async function updateRecurringItem(
-  householdId: string,
+  caller: Caller,
   input: UpdateRecurringItemType,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = UpdateRecurringItemSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid bill");
@@ -259,14 +258,14 @@ export async function updateRecurringItem(
   const existing = await prisma.recurringItem.findFirst({
     where: {
       id: parsed.data.id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (!existing) {
     throw new DomainError("Bill not found");
   }
   const category = await requireCategory(
-    householdId,
+    caller.householdId,
     parsed.data.category,
     parsed.data.type,
   );
@@ -292,7 +291,8 @@ export async function updateRecurringItem(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "recurring",
     message: `changed the ${item.name} bill`,
   });
@@ -301,12 +301,11 @@ export async function updateRecurringItem(
 }
 
 export async function setRecurringItemPaused(
-  householdId: string,
+  caller: Caller,
   id: string,
   paused: boolean,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
 
   const parsedBody = SetRecurringItemPausedSchema.safeParse({ id, paused });
   if (!parsedBody.success) {
@@ -317,7 +316,7 @@ export async function setRecurringItemPaused(
   const result = await prisma.recurringItem.updateMany({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
     data: {
       paused,
@@ -328,18 +327,15 @@ export async function setRecurringItemPaused(
   }
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "recurring",
     message: "changed a bill",
   });
 }
 
-export async function deleteRecurringItem(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function deleteRecurringItem(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -350,7 +346,7 @@ export async function deleteRecurringItem(
   const result = await prisma.recurringItem.deleteMany({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (result.count === 0) {
@@ -358,7 +354,8 @@ export async function deleteRecurringItem(
   }
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "recurring",
     message: "removed a bill",
   });

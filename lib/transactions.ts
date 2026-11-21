@@ -6,6 +6,7 @@ import { after } from "next/server";
 
 import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -17,7 +18,6 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import {
@@ -258,12 +258,12 @@ export type CreateTransactionInput = {
 };
 
 export async function createTransaction(
-  householdId: string,
-  userId: string,
+  caller: Caller,
   input: CreateTransactionInput,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
+  const actor = actorFor(caller);
+  const { householdId, userId } = caller;
 
   const idempotencyKey =
     input.idempotencyKey && IDEMPOTENCY_KEY_PATTERN.test(input.idempotencyKey)
@@ -309,51 +309,42 @@ export async function createTransaction(
     existing.goalId === (goalId ?? null) &&
     existing.addedVia === addedVia;
 
-  const [household, actor, goal, memberships, recurringItem] =
-    await Promise.all([
-      prisma.household.findUnique({
-        where: {
-          id: householdId,
-        },
-        select: {
-          currency: true,
-        },
-      }),
-      prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
-        select: {
-          name: true,
-        },
-      }),
-      goalId
-        ? prisma.goal.findFirst({
-            where: {
-              id: goalId,
-              householdId,
-            },
-          })
-        : null,
-      shareInput.length > 0
-        ? prisma.householdMembership.findMany({
-            where: {
-              householdId,
-            },
-            select: {
-              userId: true,
-            },
-          })
-        : [],
-      recurringItemId
-        ? prisma.recurringItem.findFirst({
-            where: {
-              id: recurringItemId,
-              householdId,
-            },
-          })
-        : null,
-    ]);
+  const [household, goal, memberships, recurringItem] = await Promise.all([
+    prisma.household.findUnique({
+      where: {
+        id: householdId,
+      },
+      select: {
+        currency: true,
+      },
+    }),
+    goalId
+      ? prisma.goal.findFirst({
+          where: {
+            id: goalId,
+            householdId,
+          },
+        })
+      : null,
+    shareInput.length > 0
+      ? prisma.householdMembership.findMany({
+          where: {
+            householdId,
+          },
+          select: {
+            userId: true,
+          },
+        })
+      : [],
+    recurringItemId
+      ? prisma.recurringItem.findFirst({
+          where: {
+            id: recurringItemId,
+            householdId,
+          },
+        })
+      : null,
+  ]);
 
   if (goalId && !goal) {
     throw new DomainError("Goal not found");
@@ -455,6 +446,7 @@ export async function createTransaction(
       await incrementRollups(tx, { householdId, date, type, amount });
       await publishHouseholdChange({
         householdId,
+        actor,
         resource: "transactions",
         message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
         executor: tx,
@@ -482,6 +474,7 @@ export async function createTransaction(
     const message = thresholdMessage;
     after(async () => {
       await notifyHouseholdExcept(
+        actor,
         householdId,
         userId,
         "budget_threshold",
@@ -492,9 +485,15 @@ export async function createTransaction(
   }
 
   if (shared) {
-    const message = `${actor?.name ?? "A member"} added a shared ${type} of ${formatAmount(amount)} (${description || categoryRow.name}).`;
+    const message = `${caller.actorName} added a shared ${type} of ${formatAmount(amount)} (${description || categoryRow.name}).`;
     after(async () => {
-      await notifyHouseholdExcept(householdId, userId, "transaction", message);
+      await notifyHouseholdExcept(
+        actor,
+        householdId,
+        userId,
+        "transaction",
+        message,
+      );
       revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
     });
   }
@@ -529,6 +528,7 @@ export async function createTransaction(
         },
       });
       await notifyMembers(
+        actor,
         householdId,
         members.map((member) => member.userId),
         "goal_reached",
@@ -540,6 +540,7 @@ export async function createTransaction(
 
   after(async () => {
     const result = await evaluateUnusualSpending({
+      actor,
       amount,
       category: categoryRow.name,
       description: description ?? "",
@@ -556,12 +557,9 @@ export async function createTransaction(
   return created;
 }
 
-export async function deleteTransaction(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function deleteTransaction(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
+  const { householdId } = caller;
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -604,6 +602,7 @@ export async function deleteTransaction(
     });
     await publishHouseholdChange({
       householdId,
+      actor: actorFor(caller),
       resource: "transactions",
       message: `removed ${transaction.description || transaction.category}`,
       executor: tx,

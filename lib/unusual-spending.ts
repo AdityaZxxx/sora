@@ -1,3 +1,5 @@
+import type { Actor } from "@/lib/caller";
+
 import {
   FULL_MEMBER_ROLE,
   UNUSUAL_SPENDING_TYPE,
@@ -13,6 +15,7 @@ const INCOME_FLOOR_RATIO = 0.005;
 const SPIKE_MULTIPLIER = 2;
 
 export type SpendingCandidate = {
+  actor: Actor;
   amount: number;
   category: string;
   description: string;
@@ -118,6 +121,7 @@ export async function evaluateUnusualSpending(
   const message = `Unusual spending: ${format(transaction.amount)} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average)}.`;
 
   await notifyMembers(
+    transaction.actor,
     transaction.householdId,
     recipients.map((recipient) => recipient.userId),
     UNUSUAL_SPENDING_TYPE,

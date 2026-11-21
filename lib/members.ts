@@ -1,12 +1,12 @@
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notifyHouseholdExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import {
   RemoveMemberSchema,
   SetEmailDigestSchema,
@@ -42,25 +42,22 @@ export async function listMembers(householdId: string) {
 }
 
 // seam-parse-exempt: inputs are session values, never user input.
-export async function leaveHousehold(
-  householdId: string,
-  userId: string,
-  userName: string,
-) {
+export async function leaveHousehold(caller: Caller) {
+  const actor = actorFor(caller);
   await prisma.$transaction(async (tx) => {
     await tx.householdMembership.delete({
       where: {
         householdId_userId: {
-          householdId,
-          userId,
+          householdId: caller.householdId,
+          userId: caller.userId,
         },
       },
     });
 
     await tx.apiToken.updateMany({
       where: {
-        householdId,
-        userId,
+        householdId: caller.householdId,
+        userId: caller.userId,
         revokedAt: null,
       },
       data: { revokedAt: new Date() },
@@ -68,28 +65,30 @@ export async function leaveHousehold(
 
     const remaining = await tx.householdMembership.count({
       where: {
-        householdId,
+        householdId: caller.householdId,
       },
     });
 
     if (remaining === 0) {
       await tx.household.delete({
         where: {
-          id: householdId,
+          id: caller.householdId,
         },
       });
     }
   });
 
   await notifyHouseholdExcept(
-    householdId,
-    userId,
+    actor,
+    caller.householdId,
+    caller.userId,
     "member_left",
-    `${userName} left the household.`,
+    `${caller.actorName} left the household.`,
   );
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor,
     resource: "members",
     message: "left the household",
   });
@@ -119,12 +118,10 @@ export async function setEmailDigest(
 }
 
 export async function removeMember(
-  householdId: string,
-  callerId: string,
-  role: MemberRole,
+  caller: Caller,
   input: RemoveMemberSchemaType,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
 
   const parsed = RemoveMemberSchema.safeParse(input);
   if (!parsed.success) {
@@ -133,14 +130,14 @@ export async function removeMember(
 
   const { userId } = parsed.data;
 
-  if (userId === callerId) {
+  if (userId === caller.userId) {
     throw new DomainError("Use leave household to remove yourself");
   }
 
   const removed = await prisma.householdMembership.findUnique({
     where: {
       householdId_userId: {
-        householdId,
+        householdId: caller.householdId,
         userId,
       },
     },
@@ -160,14 +157,14 @@ export async function removeMember(
   await prisma.$transaction(async (tx) => {
     await tx.householdMembership.deleteMany({
       where: {
-        householdId,
+        householdId: caller.householdId,
         userId,
       },
     });
 
     await tx.apiToken.updateMany({
       where: {
-        householdId,
+        householdId: caller.householdId,
         userId,
         revokedAt: null,
       },
@@ -176,21 +173,22 @@ export async function removeMember(
 
     const remaining = await tx.householdMembership.count({
       where: {
-        householdId,
+        householdId: caller.householdId,
       },
     });
 
     if (remaining === 0) {
       await tx.household.delete({
         where: {
-          id: householdId,
+          id: caller.householdId,
         },
       });
     }
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "members",
     message: `removed ${removed.user.name} from the household`,
   });
@@ -199,9 +197,7 @@ export async function removeMember(
 }
 
 export async function setMemberRole(
-  householdId: string,
-  callerId: string,
-  role: MemberRole,
+  caller: Caller,
   input: SetMemberRoleSchemaType,
 ) {
   const parsed = SetMemberRoleSchema.safeParse(input);
@@ -211,7 +207,7 @@ export async function setMemberRole(
 
   const { userId, role: nextRole } = parsed.data;
 
-  if (userId === callerId) {
+  if (userId === caller.userId) {
     if (nextRole !== FULL_MEMBER_ROLE) {
       throw new DomainError(
         "Use leave household to give up your own edit access",
@@ -219,7 +215,7 @@ export async function setMemberRole(
     }
     const fullMemberCount = await prisma.householdMembership.count({
       where: {
-        householdId,
+        householdId: caller.householdId,
         role: FULL_MEMBER_ROLE,
       },
     });
@@ -227,13 +223,13 @@ export async function setMemberRole(
       throw new DomainError("Only another member can change your role");
     }
   } else {
-    assertFullMemberRole(role);
+    assertCallerFullMember(caller);
   }
 
   const target = await prisma.householdMembership.findUnique({
     where: {
       householdId_userId: {
-        householdId,
+        householdId: caller.householdId,
         userId,
       },
     },
@@ -246,7 +242,7 @@ export async function setMemberRole(
   await prisma.householdMembership.update({
     where: {
       householdId_userId: {
-        householdId,
+        householdId: caller.householdId,
         userId,
       },
     },
@@ -256,7 +252,8 @@ export async function setMemberRole(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "members",
     message: "changed a member's role",
   });
