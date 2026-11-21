@@ -20,18 +20,3 @@ export const CreateTransactionSchema = z.object({
   ...transactionFields(true),
   date: z.date(),
 });
-
-export type CreateTransactionSchemaType = {
-  amount: number;
-  description?: string;
-  date: Date;
-  category: string;
-  type: "income" | "expense";
-  shared: boolean;
-  goalId?: string;
-  shares?: { userId: string; amount: number }[];
-  recurringItemId?: string;
-};
-export type CreateTransactionSchemaOutput = z.output<
-  typeof CreateTransactionSchema
->;

@@ -1,16 +1,18 @@
 "use server";
 
-import type { CreateTransactionSchemaType } from "@/schemas/transaction";
-
 import { headers } from "next/headers";
 
 import { withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-import { createTransaction } from "@/lib/transactions";
+import {
+  createTransaction,
+  type CreateTransactionInput,
+} from "@/lib/transactions";
 
-export type CreateTransactionActionInput = CreateTransactionSchemaType & {
-  idempotencyKey?: string;
-};
+export type CreateTransactionActionInput = Omit<
+  CreateTransactionInput,
+  "addedVia"
+>;
 
 export async function CreateTransaction(form: CreateTransactionActionInput) {
   return withHouseholdAction(
