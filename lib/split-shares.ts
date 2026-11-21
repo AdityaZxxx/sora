@@ -4,25 +4,34 @@ export type SplitMember = { user: { id: string } };
 
 export type SplitMode = "equal" | "amounts" | "percent";
 
+export type SharePlan = {
+  shares: ShareDraft[];
+  matchesAmount: boolean;
+};
+
 function parseAmountInput(raw: string | undefined) {
   const parsed = Number.parseFloat((raw ?? "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function toCents(amount: number) {
+function toCents(amount: number) {
   return Math.round(amount * 100);
 }
 
-export function fromCents(cents: number) {
+function fromCents(cents: number) {
   return cents / 100;
 }
 
-export function finalizeShares(
-  mode: "amounts" | "percent",
+export function buildShares(
+  mode: SplitMode,
   inputs: Record<string, string>,
   members: SplitMember[],
   amount: number,
-): ShareDraft[] {
+): SharePlan {
+  if (mode === "equal") {
+    return { shares: [], matchesAmount: true };
+  }
+
   const rounded = members.map((member) => {
     const raw = parseAmountInput(inputs[member.user.id]);
     return {
@@ -41,13 +50,10 @@ export function finalizeShares(
     largest.amount = fromCents(toCents(largest.amount) + remainder);
   }
 
-  return rounded.filter((share) => share.amount > 0);
-}
-
-export function sharesTotalCents(shares: ShareDraft[]) {
-  return shares.reduce((sum, share) => sum + toCents(share.amount), 0);
-}
-
-export function sharesMatchExpense(shares: ShareDraft[], amount: number) {
-  return shares.length === 0 || sharesTotalCents(shares) === toCents(amount);
+  const shares = rounded.filter((share) => share.amount > 0);
+  const totalCents = shares.reduce(
+    (sum, share) => sum + toCents(share.amount),
+    0,
+  );
+  return { shares, matchesAmount: totalCents === toCents(amount) };
 }
