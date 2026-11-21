@@ -8,6 +8,11 @@ export type SplitMember = { user: { id: string } };
 
 export type SplitMode = "equal" | "amounts" | "percent";
 
+export type SharePlan = {
+  shares: ShareDraft[];
+  matchesAmount: boolean;
+};
+
 function parseAmountInput(raw: string | undefined): Money {
   const text = (raw ?? "").replace(",", ".").trim();
   if (!text) return zeroMoney();
@@ -19,12 +24,16 @@ function parseAmountInput(raw: string | undefined): Money {
   }
 }
 
-export function finalizeShares(
-  mode: "amounts" | "percent",
+export function buildShares(
+  mode: SplitMode,
   inputs: Record<string, string>,
   members: SplitMember[],
   amount: number,
-): ShareDraft[] {
+): SharePlan {
+  if (mode === "equal") {
+    return { shares: [], matchesAmount: true };
+  }
+
   const total = toMoney(amount);
   const rounded = members.map((member) => {
     const raw = parseAmountInput(inputs[member.user.id]);
@@ -43,7 +52,8 @@ export function finalizeShares(
     largest.amount = toMoney(largest.amount).plus(remainder).toNumber();
   }
 
-  return rounded.filter((share) => share.amount > 0);
+  const shares = rounded.filter((share) => share.amount > 0);
+  return { shares, matchesAmount: sharesTotal(shares).eq(total) };
 }
 
 export function sharesTotal(shares: ShareDraft[]): Money {

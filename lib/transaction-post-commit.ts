@@ -4,7 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { notifyIfGoalReached } from "@/lib/goals";
 import { toMoney } from "@/lib/money";
-import { notifyHouseholdExcept } from "@/lib/notifications";
+import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
+import prisma from "@/lib/prisma";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 
 export type PostCommitEffect = () => Promise<void>;
@@ -76,15 +77,22 @@ export function buildPostCommitEffects(
   }
 
   effects.push(async () => {
-    const result = await evaluateUnusualSpending({
-      amount: toMoney(amount),
-      category: categoryName,
-      description,
-      type,
-      shared,
-      householdId,
-      userId,
-    });
+    const result = await evaluateUnusualSpending(
+      {
+        amount: toMoney(amount),
+        category: categoryName,
+        description,
+        type,
+        shared,
+        householdId,
+        userId,
+      },
+      {
+        clock: () => new Date(),
+        repo: prisma,
+        notifier: notifyMembers,
+      },
+    );
     if (result.notified > 0) {
       revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
     }
