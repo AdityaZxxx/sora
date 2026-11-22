@@ -18,9 +18,9 @@ import {
 export async function CreateRecurringItem(form: CreateRecurringItemType) {
   return withHouseholdAction(
     "Unable to add the bill. Check the name, amount and category, then try again.",
-    async ({ household, membership }) => {
-      await createRecurringItem(household.id, form, membership.role);
-      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
+    async ({ caller }) => {
+      await createRecurringItem(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -28,9 +28,9 @@ export async function CreateRecurringItem(form: CreateRecurringItemType) {
 export async function UpdateRecurringItem(form: UpdateRecurringItemType) {
   return withHouseholdAction(
     "Unable to update the bill. Check the name, amount and category, then try again.",
-    async ({ household, membership }) => {
-      await updateRecurringItem(household.id, form, membership.role);
-      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
+    async ({ caller }) => {
+      await updateRecurringItem(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -41,14 +41,9 @@ export async function SetRecurringItemPaused(form: {
 }) {
   return withHouseholdAction(
     "Unable to update the bill. Check the bill and try again.",
-    async ({ household, membership }) => {
-      await setRecurringItemPaused(
-        household.id,
-        form.id,
-        form.paused,
-        membership.role,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
+    async ({ caller }) => {
+      await setRecurringItemPaused(caller, form.id, form.paused);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -56,9 +51,9 @@ export async function SetRecurringItemPaused(form: {
 export async function DeleteRecurringItem(form: DeleteIdSchemaType) {
   return withHouseholdAction(
     "Unable to delete the bill. Check the bill and try again.",
-    async ({ household, membership }) => {
-      await deleteRecurringItem(household.id, form.id, membership.role);
-      revalidateHousehold(household.id, [CACHE_RESOURCE.recurring]);
+    async ({ caller }) => {
+      await deleteRecurringItem(caller, form.id);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
     },
   );
 }

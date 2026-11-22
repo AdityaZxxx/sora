@@ -19,14 +19,9 @@ export async function createApiToken(
 ): Promise<ActionResult<{ id: string; token: string }>> {
   return withHouseholdAction(
     "Unable to create the token. Check the details and try again.",
-    async ({ household, session, membership }) => {
-      const created = await createApiTokenSeam(
-        household.id,
-        session.user.id,
-        membership.role,
-        form,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.apiTokens]);
+    async ({ caller }) => {
+      const created = await createApiTokenSeam(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.apiTokens]);
       return created;
     },
   );
@@ -37,14 +32,9 @@ export async function revokeApiToken(
 ): Promise<ActionResult> {
   return withHouseholdAction(
     "Unable to revoke the token. Try again.",
-    async ({ household, session, membership }) => {
-      await revokeApiTokenSeam(
-        household.id,
-        session.user.id,
-        membership.role,
-        form,
-      );
-      revalidateHousehold(household.id, [CACHE_RESOURCE.apiTokens]);
+    async ({ caller }) => {
+      await revokeApiTokenSeam(caller, form);
+      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.apiTokens]);
     },
   );
 }
@@ -54,9 +44,9 @@ export async function setAgentAccess(
 ): Promise<ActionResult> {
   return withHouseholdAction(
     "Unable to change agent access. Try again.",
-    async ({ household, membership }) => {
-      await setAgentAccessSeam(household.id, form.enabled, membership.role);
-      revalidateHousehold(household.id, [
+    async ({ caller }) => {
+      await setAgentAccessSeam(caller, form.enabled);
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.household,
         CACHE_RESOURCE.apiTokens,
       ]);

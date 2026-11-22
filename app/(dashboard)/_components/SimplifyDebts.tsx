@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
-import { fetchJson } from "@/lib/fetch-json";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -29,10 +29,12 @@ const SimplifyDebts = ({ currency }: Props) => {
   const { data: transfers = [] } = useSuspenseQuery<SimplifiedTransfer[]>({
     queryKey: queryKeys.simplifiedDebts,
     queryFn: () =>
-      fetchJson(
+      fetchReadJson(
         "/api/simplified-debts",
-        SimplifiedTransfersSchema,
         "Failed to fetch simplified debts",
+        {
+          schema: SimplifiedTransfersSchema,
+        },
       ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,

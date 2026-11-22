@@ -1,21 +1,24 @@
+import type { Actor } from "@/lib/caller";
 import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { EventEmitter } from "node:events";
 
-import { getSession } from "@/lib/auth";
+import { revalidateHousehold } from "@/lib/cache";
 import {
   HOUSEHOLD_EVENT_CHANNEL,
+  householdChangeEffects,
   householdChangeSchema,
   type HouseholdChange,
   type HouseholdChangeResource,
-} from "@/lib/household-events";
+} from "@/lib/household-change";
 import prisma, { stripSslMode } from "@/lib/prisma";
 
 type QueryExecutor = Prisma.TransactionClient | PrismaClient;
 
 type PublishInput = {
   householdId: string;
+  actor: Actor;
   resource: HouseholdChangeResource;
   message: string;
   executor?: QueryExecutor;
@@ -23,38 +26,21 @@ type PublishInput = {
 
 export async function publishHouseholdChange({
   householdId,
+  actor,
   resource,
   message,
   executor = prisma,
 }: PublishInput) {
-  const session = await getSession();
   const change = householdChangeSchema.parse({
     householdId,
-    actorId: session?.user.id ?? "",
+    actorId: actor.actorId,
     resource,
-    message: `${session?.user.name ?? "A member"} ${message}`,
+    message: `${actor.actorName} ${message}`,
     at: new Date().toISOString(),
   });
 
   await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
-}
-
-export async function hasHouseholdMembership(
-  householdId: string,
-  userId: string,
-) {
-  const membership = await prisma.householdMembership.findUnique({
-    where: {
-      householdId_userId: {
-        householdId,
-        userId,
-      },
-    },
-    select: {
-      householdId: true,
-    },
-  });
-  return membership !== null;
+  revalidateHousehold(householdId, householdChangeEffects(resource).serverTags);
 }
 
 type HouseholdListener = {

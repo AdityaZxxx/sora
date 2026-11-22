@@ -4,15 +4,12 @@ import { cache } from "react";
 
 import { getSession } from "@/lib/auth";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
-import { ACTIVE_HOUSEHOLD_COOKIE } from "@/lib/constants";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import { ACTIVE_HOUSEHOLD_COOKIE, READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import {
-  assertFullMemberRole,
-  parseMemberRole,
-  type MemberRole,
-} from "@/lib/roles";
+import { parseMemberRole } from "@/lib/roles";
 import { HouseholdNameSchema } from "@/schemas/household";
 import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
 
@@ -91,19 +88,23 @@ export const requireHousehold = cache(async () => {
   if (!membership) {
     return null;
   }
+  const role = parseMemberRole(membership.role);
   return {
     session,
     household: membership.household,
-    membership: { ...membership, role: parseMemberRole(membership.role) },
+    membership: { ...membership, role },
+    caller: {
+      householdId: membership.householdId,
+      userId: session.user.id,
+      role,
+      scope: READ_WRITE_SCOPE,
+      actorName: session.user.name,
+    } satisfies Caller,
   };
 });
 
-export async function renameHousehold(
-  householdId: string,
-  name: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function renameHousehold(caller: Caller, name: string) {
+  assertCallerFullMember(caller);
   const parsed = HouseholdNameSchema.safeParse(name);
   if (!parsed.success) {
     throw new DomainError(
@@ -111,12 +112,13 @@ export async function renameHousehold(
     );
   }
   const household = await prisma.household.update({
-    where: { id: householdId },
+    where: { id: caller.householdId },
     data: { name: parsed.data || null },
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "household",
     message: "renamed the household",
   });
@@ -125,11 +127,10 @@ export async function renameHousehold(
 }
 
 export async function updateHouseholdCurrency(
-  householdId: string,
+  caller: Caller,
   currency: string,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = UpdateUserCurrencySchema.safeParse({ currency });
   if (!parsed.success) {
     throw new DomainError(
@@ -137,12 +138,13 @@ export async function updateHouseholdCurrency(
     );
   }
   const household = await prisma.household.update({
-    where: { id: householdId },
+    where: { id: caller.householdId },
     data: { currency: parsed.data.currency },
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "household",
     message: "changed the household currency",
   });

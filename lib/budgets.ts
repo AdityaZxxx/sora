@@ -2,32 +2,16 @@ import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
-
-export function sharedSpendingFilter(
-  householdId: string,
-  range: { from: Date; to: Date },
-) {
-  return {
-    householdId,
-    shared: true,
-    type: "expense" as const,
-    category: settlementCategoryExclusion(),
-    date: {
-      gte: range.from,
-      lte: range.to,
-    },
-  };
-}
 
 export async function getSharedSpending(householdId: string) {
   "use cache";
@@ -40,7 +24,16 @@ export async function getSharedSpending(householdId: string) {
   const [thisMonth, lastMonth] = await Promise.all(
     ranges.map((range) =>
       prisma.transaction.aggregate({
-        where: sharedSpendingFilter(householdId, range),
+        where: {
+          householdId,
+          shared: true,
+          type: "expense" as const,
+          category: settlementCategoryExclusion(),
+          date: {
+            gte: range.from,
+            lte: range.to,
+          },
+        },
         _sum: {
           amount: true,
         },
@@ -65,7 +58,16 @@ export async function getMonthSpentByCategory(
   const { from, to } = utcMonthRangeFor(date);
   const rows = await prisma.transaction.groupBy({
     by: ["category"],
-    where: sharedSpendingFilter(householdId, { from, to }),
+    where: {
+      householdId,
+      shared: true,
+      type: "expense" as const,
+      category: settlementCategoryExclusion(),
+      date: {
+        gte: from,
+        lte: to,
+      },
+    },
     _sum: {
       amount: true,
     },
@@ -130,11 +132,10 @@ export type UpdateBudgetInput = CreateBudgetInput & {
 };
 
 export async function createHouseholdBudget(
-  householdId: string,
+  caller: Caller,
   input: CreateBudgetInput,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = CreateBudgetSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid budget");
@@ -142,14 +143,14 @@ export async function createHouseholdBudget(
 
   const { category, amount, mode } = parsed.data;
   const expenseCategory = await requireCategory(
-    householdId,
+    caller.householdId,
     category,
     "expense",
   );
 
   const budget = await prisma.budget.create({
     data: {
-      householdId,
+      householdId: caller.householdId,
       category: expenseCategory.name,
       amount,
       mode,
@@ -157,7 +158,8 @@ export async function createHouseholdBudget(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "budgets",
     message: `added a ${expenseCategory.name} budget`,
   });
@@ -166,11 +168,10 @@ export async function createHouseholdBudget(
 }
 
 export async function updateHouseholdBudget(
-  householdId: string,
+  caller: Caller,
   input: UpdateBudgetInput,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = UpdateBudgetSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid budget");
@@ -178,7 +179,7 @@ export async function updateHouseholdBudget(
 
   const { id, category, amount, mode } = parsed.data;
   const expenseCategory = await requireCategory(
-    householdId,
+    caller.householdId,
     category,
     "expense",
   );
@@ -186,7 +187,7 @@ export async function updateHouseholdBudget(
   const budget = await prisma.budget.update({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
     data: {
       category: expenseCategory.name,
@@ -196,7 +197,8 @@ export async function updateHouseholdBudget(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "budgets",
     message: `changed the ${expenseCategory.name} budget`,
   });
@@ -205,9 +207,8 @@ export async function updateHouseholdBudget(
 }
 
 export async function setHouseholdBudget(
-  householdId: string,
+  caller: Caller,
   input: CreateBudgetInput,
-  role: MemberRole,
 ) {
   const parsed = CreateBudgetSchema.safeParse(input);
   if (!parsed.success) {
@@ -216,28 +217,20 @@ export async function setHouseholdBudget(
 
   const existing = await prisma.budget.findFirst({
     where: {
-      householdId,
+      householdId: caller.householdId,
       category: parsed.data.category,
     },
   });
 
   if (existing) {
-    return await updateHouseholdBudget(
-      householdId,
-      { ...input, id: existing.id },
-      role,
-    );
+    return await updateHouseholdBudget(caller, { ...input, id: existing.id });
   }
 
-  return await createHouseholdBudget(householdId, input, role);
+  return await createHouseholdBudget(caller, input);
 }
 
-export async function deleteHouseholdBudget(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function deleteHouseholdBudget(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -249,7 +242,7 @@ export async function deleteHouseholdBudget(
   const budget = await prisma.budget.findFirst({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (!budget) {
@@ -259,7 +252,7 @@ export async function deleteHouseholdBudget(
   const deleted = await prisma.budget.deleteMany({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (deleted.count === 0) {
@@ -267,7 +260,8 @@ export async function deleteHouseholdBudget(
   }
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "budgets",
     message: `removed the ${budget.category} budget`,
   });

@@ -27,20 +27,54 @@ export function hasTwoDecimals(value: number) {
 const localeForCurrency = (currency: string) =>
   Currencies.find((c) => c.value === currency)?.locale;
 
-export function getFormatterForCurrency(currency: string) {
-  const locale = localeForCurrency(currency);
+type CurrencyFormatters = {
+  whole: Intl.NumberFormat;
+  fractional: Intl.NumberFormat;
+};
 
-  return {
-    format: (value: number) => {
-      const formatter = new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-        minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-        maximumFractionDigits: 2,
-      });
-      return formatter.format(value);
-    },
+const currencyFormatters = new Map<string, CurrencyFormatters>();
+
+function cachedFormatters(currency: string): CurrencyFormatters {
+  const existing = currencyFormatters.get(currency);
+  if (existing) return existing;
+
+  const locale = localeForCurrency(currency);
+  const options = {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  } satisfies Intl.NumberFormatOptions;
+  const formatters = {
+    whole: new Intl.NumberFormat(locale, {
+      ...options,
+      minimumFractionDigits: 0,
+    }),
+    fractional: new Intl.NumberFormat(locale, {
+      ...options,
+      minimumFractionDigits: 2,
+    }),
   };
+  currencyFormatters.set(currency, formatters);
+  return formatters;
+}
+
+export function getFormatterForCurrency(currency: string) {
+  const formatters = cachedFormatters(currency);
+  return {
+    format: (value: number) =>
+      (value % 1 === 0 ? formatters.whole : formatters.fractional).format(
+        value,
+      ),
+  };
+}
+
+export function formatDateForDisplay(date: Date) {
+  return date.toLocaleDateString("default", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
 }
 
 export function getNumberFlowCurrencyProps(currency: string) {

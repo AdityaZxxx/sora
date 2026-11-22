@@ -17,6 +17,7 @@ import {
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
@@ -60,13 +61,11 @@ const Insights = ({ currency, memberCount }: Props) => {
 
   const { data: queryMonths } = useSuspenseQuery<GetInsightsResponseType>({
     queryKey: queryKeys.insights,
-    queryFn: async () => {
-      const response = await fetch("/api/insights");
-      if (!response.ok) {
-        throw new Error("Failed to fetch insights");
-      }
-      return response.json();
-    },
+    queryFn: () =>
+      fetchReadJson<GetInsightsResponseType>(
+        "/api/insights",
+        "Failed to fetch insights",
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });

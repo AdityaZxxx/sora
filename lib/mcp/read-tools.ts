@@ -10,6 +10,7 @@ import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
+import { moneyText } from "@/lib/money";
 import {
   getBalanceStats,
   getTransactionsHistory,
@@ -45,9 +46,9 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
           currency: context.currency,
-          income: stats.income,
-          expenses: stats.expense,
-          net: stats.income - stats.expense,
+          income: moneyText(stats.income),
+          expenses: moneyText(stats.expense),
+          net: moneyText(stats.net),
         });
       } catch (error) {
         return toolError(toolErrorMessage(error));
@@ -102,7 +103,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             id: transaction.id,
             date: transaction.date.toISOString(),
             description: transaction.description,
-            amount: transaction.amount,
+            amount: moneyText(transaction.amount),
             type: transaction.type,
             category: transaction.category,
             shared: transaction.shared,
@@ -135,7 +136,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           balances: balances.map((balance) => ({
             memberId: balance.userId,
             memberName: balance.name,
-            balance: balance.balance,
+            balance: moneyText(balance.balance),
             status:
               balance.balance === 0
                 ? "settled"
@@ -167,10 +168,10 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           budgets: budgets.map((budget) => ({
             id: budget.id,
             category: budget.category,
-            amount: budget.amount,
+            amount: moneyText(budget.amount),
             mode: budget.mode,
-            spent: budget.spent,
-            remaining: budget.remaining,
+            spent: moneyText(budget.spent),
+            remaining: moneyText(budget.remaining),
             percent: budget.percent,
           })),
         });
@@ -197,8 +198,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           goals: goals.map((goal) => ({
             id: goal.id,
             name: goal.name,
-            target: goal.target,
-            contributed: goal.contributed,
+            target: moneyText(goal.target),
+            contributed: moneyText(goal.contributed),
             deadline: goal.deadline?.toISOString() ?? null,
           })),
         });

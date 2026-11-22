@@ -1,6 +1,7 @@
 import { withHouseholdRoute } from "@/lib/api-route";
+import { assertCallerFullMember } from "@/lib/caller";
+import { moneyText } from "@/lib/money";
 import prisma from "@/lib/prisma";
-import { assertFullMemberRole } from "@/lib/roles";
 
 const EXPORT_PAGE_SIZE = 500;
 
@@ -78,7 +79,10 @@ async function writeArrayProperty(
 export async function GET() {
   return withHouseholdRoute(async (result) => {
     try {
-      assertFullMemberRole(result.membership.role);
+      assertCallerFullMember(
+        result.caller,
+        "Only full members can export household data",
+      );
     } catch {
       return Response.json(
         { message: "Only full members can export household data" },
@@ -134,7 +138,7 @@ export async function GET() {
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
         }),
       (row) => row.id,
-      (row) => ({ ...row, amount: row.amount.toNumber() }),
+      (row) => ({ ...row, amount: moneyText(row.amount) }),
     );
 
     const categories = paginate(
@@ -158,7 +162,7 @@ export async function GET() {
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
         }),
       (row) => row.id,
-      (row) => ({ ...row, target: row.target.toNumber() }),
+      (row) => ({ ...row, target: moneyText(row.target) }),
     );
 
     const budgets = paginate(
@@ -170,7 +174,7 @@ export async function GET() {
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
         }),
       (row) => row.id,
-      (row) => ({ ...row, amount: row.amount.toNumber() }),
+      (row) => ({ ...row, amount: moneyText(row.amount) }),
     );
 
     const notifications = paginate(
@@ -215,7 +219,7 @@ export async function GET() {
           }),
         }),
       (row) => ({ transactionId: row.transactionId, userId: row.userId }),
-      (row) => ({ ...row, amount: row.amount.toNumber() }),
+      (row) => ({ ...row, amount: moneyText(row.amount) }),
     );
 
     const encoder = new TextEncoder();

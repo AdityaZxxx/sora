@@ -1,19 +1,15 @@
 "use client";
 import type { ReactNode } from "react";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { logClientError } from "@/instrumentation-client";
-import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
+import { useBalanceStats } from "@/hooks/use-balance-stats";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
-import { queryKeys } from "@/lib/query-keys";
-import { type GetBalanceStatsResponseType } from "@/lib/transactions";
 
 interface Props {
   from: Date;
@@ -22,31 +18,7 @@ interface Props {
 }
 
 const StatsCards = ({ from, to, currency }: Props) => {
-  const { data, isPending } = useQuery<GetBalanceStatsResponseType>({
-    queryKey: queryKeys.overview.stats(from, to),
-    queryFn: async () => {
-      try {
-        const response = await fetch(
-          `/api/stats/balance?from=${format(from, "yyyy-MM-dd")}&to=${format(
-            to,
-            "yyyy-MM-dd",
-          )}`,
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch balance stats");
-        }
-        return await response.json();
-      } catch (cause) {
-        logClientError("stats.fetch-failed", {
-          error: cause instanceof Error ? cause.message : String(cause),
-        });
-        throw cause;
-      }
-    },
-    staleTime: QUERY_STALE_TIME,
-    refetchOnWindowFocus: true,
-    placeholderData: keepPreviousData,
-  });
+  const { data, isPending } = useBalanceStats(from, to);
 
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
@@ -54,8 +26,7 @@ const StatsCards = ({ from, to, currency }: Props) => {
     return <Skeleton className="h-32 w-full" />;
   }
 
-  const { income = 0, expense = 0 } = data ?? {};
-  const balance = income - expense;
+  const { income = 0, expense = 0, net = 0 } = data ?? {};
 
   return (
     <div className="space-y-4">
@@ -84,9 +55,9 @@ const StatsCards = ({ from, to, currency }: Props) => {
         />
         <StatCard
           currencyFlow={currencyFlow}
-          value={balance}
+          value={net}
           title="Balance"
-          trend={balance >= 0 ? "up" : "down"}
+          trend={net >= 0 ? "up" : "down"}
           icon={
             <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
               <Wallet className="h-6 w-6 text-primary" />

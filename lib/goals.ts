@@ -1,11 +1,17 @@
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
+import {
+  actorFor,
+  assertCallerFullMember,
+  type Actor,
+  type Caller,
+} from "@/lib/caller";
 import { DomainError } from "@/lib/errors";
+import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
   CreateGoalSchema,
@@ -67,11 +73,10 @@ export type GoalWithProgress = Awaited<
 >[number];
 
 export async function updateHouseholdGoal(
-  householdId: string,
+  caller: Caller,
   input: UpdateGoalSchemaType,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = UpdateGoalSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid goal");
@@ -96,13 +101,14 @@ export async function updateHouseholdGoal(
   const goal = await prisma.goal.update({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
     data,
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "goals",
     message: `changed the ${goal.name} goal`,
   });
@@ -117,11 +123,10 @@ export type CreateGoalInput = {
 };
 
 export async function createHouseholdGoal(
-  householdId: string,
+  caller: Caller,
   input: CreateGoalInput,
-  role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCallerFullMember(caller);
   const parsed = CreateGoalSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid goal");
@@ -131,7 +136,7 @@ export async function createHouseholdGoal(
 
   const goal = await prisma.goal.create({
     data: {
-      householdId,
+      householdId: caller.householdId,
       name,
       target,
       deadline: deadline ?? null,
@@ -139,7 +144,8 @@ export async function createHouseholdGoal(
   });
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "goals",
     message: `added the ${goal.name} goal`,
   });
@@ -147,12 +153,49 @@ export async function createHouseholdGoal(
   return { ...goal, target: goal.target.toNumber() };
 }
 
-export async function deleteHouseholdGoal(
-  householdId: string,
-  id: string,
-  role: MemberRole,
-) {
-  assertFullMemberRole(role);
+export async function notifyIfGoalReached(input: {
+  actor: Actor;
+  householdId: string;
+  goal: { id: string; name: string; target: Prisma.Decimal };
+  amount: number;
+  formatAmount: (amount: number) => string;
+}) {
+  const { actor, householdId, goal, amount, formatAmount } = input;
+  const contributed = await prisma.transaction.aggregate({
+    where: {
+      householdId,
+      goalId: goal.id,
+      shared: true,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+  const total = contributed._sum.amount ?? new Prisma.Decimal(0);
+  if (total.minus(amount).gte(goal.target) || total.lt(goal.target)) {
+    return;
+  }
+
+  const members = await prisma.householdMembership.findMany({
+    where: {
+      householdId,
+    },
+    select: {
+      userId: true,
+    },
+  });
+  await notifyMembers(
+    actor,
+    householdId,
+    members.map((member) => member.userId),
+    "goal_reached",
+    `${goal.name} reached its target: ${formatAmount(total.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
+  );
+  revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+}
+
+export async function deleteHouseholdGoal(caller: Caller, id: string) {
+  assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -164,7 +207,7 @@ export async function deleteHouseholdGoal(
   const goal = await prisma.goal.findFirst({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (!goal) {
@@ -174,7 +217,7 @@ export async function deleteHouseholdGoal(
   const deleted = await prisma.goal.deleteMany({
     where: {
       id,
-      householdId,
+      householdId: caller.householdId,
     },
   });
   if (deleted.count === 0) {
@@ -182,7 +225,8 @@ export async function deleteHouseholdGoal(
   }
 
   await publishHouseholdChange({
-    householdId,
+    householdId: caller.householdId,
+    actor: actorFor(caller),
     resource: "goals",
     message: `removed the ${goal.name} goal`,
   });

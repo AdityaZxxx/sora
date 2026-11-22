@@ -9,14 +9,12 @@ import { recordSettlement } from "@/lib/settlements";
 export async function RecordSettlement(form: RecordSettlementSchemaType) {
   return withHouseholdAction(
     "Unable to record the settlement. Select the member and enter a valid amount, then try again.",
-    async ({ household, session, membership }) => {
-      await recordSettlement(
-        household.id,
-        session.user.id,
-        { memberId: form.memberId, amount: form.amount },
-        membership.role,
-      );
-      revalidateHousehold(household.id, [
+    async ({ caller }) => {
+      await recordSettlement(caller, {
+        memberId: form.memberId,
+        amount: form.amount,
+      });
+      revalidateHousehold(caller.householdId, [
         CACHE_RESOURCE.balances,
         CACHE_RESOURCE.transactions,
       ]);

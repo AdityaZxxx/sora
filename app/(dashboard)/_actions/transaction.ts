@@ -1,52 +1,32 @@
 "use server";
 
-import type { CreateTransactionSchemaType } from "@/schemas/transaction";
-
-import { headers } from "next/headers";
-
 import { withHouseholdAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-import { createTransaction } from "@/lib/transactions";
+import {
+  createTransaction,
+  type CreateTransactionInput,
+} from "@/lib/transactions";
 
-export type CreateTransactionActionInput = CreateTransactionSchemaType & {
-  idempotencyKey?: string;
-};
+export type CreateTransactionActionInput = Omit<
+  CreateTransactionInput,
+  "addedVia"
+>;
 
 export async function CreateTransaction(form: CreateTransactionActionInput) {
   return withHouseholdAction(
     "Unable to add the transaction. Check the amount, category and date, then try again.",
-    async ({ household, session, membership }) => {
-      const requestHeaders = await headers();
-      const idempotencyKey =
-        form.idempotencyKey ??
-        requestHeaders.get("x-sora-idempotency-key") ??
-        undefined;
-
-      await createTransaction(
-        household.id,
-        session.user.id,
-        {
-          amount: form.amount,
-          category: form.category,
-          description: form.description,
-          date: form.date,
-          type: form.type,
-          shared: form.shared,
-          goalId: form.goalId || undefined,
-          shares: form.shares,
-          recurringItemId: form.recurringItemId,
-          idempotencyKey,
-        },
-        membership.role,
-      );
-      revalidateHousehold(household.id, [
-        CACHE_RESOURCE.transactions,
-        CACHE_RESOURCE.balances,
-        CACHE_RESOURCE.budgets,
-        CACHE_RESOURCE.goals,
-        CACHE_RESOURCE.insights,
-        CACHE_RESOURCE.history,
-      ]);
+    async ({ caller }) => {
+      await createTransaction(caller, {
+        amount: form.amount,
+        category: form.category,
+        description: form.description,
+        date: form.date,
+        type: form.type,
+        shared: form.shared,
+        goalId: form.goalId || undefined,
+        shares: form.shares,
+        recurringItemId: form.recurringItemId,
+        idempotencyKey: form.idempotencyKey,
+      });
     },
   );
 }
