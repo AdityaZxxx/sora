@@ -395,31 +395,33 @@ export function EChartsBarChart<TData extends Record<string, unknown>>({
         />
       </div>
 
-      <table className="sr-only">
-        <caption>{chartLabel}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{tableCategoryLabel}</th>
-            {seriesLabels.map((label, index) => (
-              <th scope="col" key={seriesKeys[index]}>
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, index) => (
-            <tr key={index}>
-              <th scope="row">{formatCategory(row, index)}</th>
-              {seriesKeys.map((key) => (
-                <td key={key}>
-                  {row[key] == null ? "" : formatValue(Number(row[key]) || 0)}
-                </td>
+      <div className="sr-only">
+        <table>
+          <caption>{chartLabel}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{tableCategoryLabel}</th>
+              {seriesLabels.map((label, index) => (
+                <th scope="col" key={seriesKeys[index]}>
+                  {label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((row, index) => (
+              <tr key={index}>
+                <th scope="row">{formatCategory(row, index)}</th>
+                {seriesKeys.map((key) => (
+                  <td key={key}>
+                    {row[key] == null ? "" : formatValue(Number(row[key]) || 0)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
