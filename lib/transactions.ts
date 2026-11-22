@@ -184,12 +184,17 @@ export async function getBalanceStats(
     },
   });
 
-  return {
-    expense:
-      totals.find((t) => t.type === "expense")?._sum.amount?.toNumber() ?? 0,
+  const income =
+    totals.find((t) => t.type === "income")?._sum.amount ??
+    new Prisma.Decimal(0);
+  const expense =
+    totals.find((t) => t.type === "expense")?._sum.amount ??
+    new Prisma.Decimal(0);
 
-    income:
-      totals.find((t) => t.type === "income")?._sum.amount?.toNumber() ?? 0,
+  return {
+    expense: expense.toNumber(),
+    income: income.toNumber(),
+    net: income.minus(expense).toNumber(),
   };
 }
 
