@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { QUERY_STALE_TIME } from "@/lib/constants";
+import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -55,13 +56,14 @@ const CategoryPicker = ({
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories(type),
-    queryFn: async () => {
-      const res = await fetch(`api/categories?type=${type}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch categories");
-      }
-      return res.json();
-    },
+    queryFn: () =>
+      fetchReadJson<Category[]>(
+        "/api/categories",
+        "Failed to fetch categories",
+        {
+          params: { type },
+        },
+      ),
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
   });
