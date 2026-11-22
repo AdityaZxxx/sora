@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const readAsset = (path: string) => readFile(join(process.cwd(), path));
-
 export const ogColors = {
   background: "#0E0F10",
   card: "#1A1A1A",
@@ -16,11 +14,11 @@ export const ogColors = {
 };
 
 const [logoSvg, regular, semiBold] = await Promise.all([
-  readAsset("public/logo.svg").then((file) =>
+  readFile(join(process.cwd(), "public", "logo.svg")).then((file) =>
     file.toString("utf8").replaceAll("currentColor", ogColors.foreground),
   ),
-  readAsset("assets/fonts/Geist-Regular.ttf"),
-  readAsset("assets/fonts/Geist-SemiBold.ttf"),
+  readFile(join(process.cwd(), "assets", "fonts", "Geist-Regular.ttf")),
+  readFile(join(process.cwd(), "assets", "fonts", "Geist-SemiBold.ttf")),
 ]);
 
 export const logoSrc = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`;
