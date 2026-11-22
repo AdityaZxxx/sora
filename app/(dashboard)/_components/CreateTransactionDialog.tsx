@@ -242,7 +242,7 @@ const CreateTransactionDialog = ({
       mutate({
         ...value,
         date: dateToUtcDate(value.date),
-        shared: memberCount > 1 ? value.shared : true,
+        shared: value.shared,
         shares:
           value.type !== "expense" || !value.shared
             ? undefined

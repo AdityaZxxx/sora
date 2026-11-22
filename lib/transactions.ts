@@ -364,15 +364,12 @@ async function createTransactionWithDeps(
     );
   }
 
-  const { amount, date, description, type, shared } = parsedBody.data;
+  const { amount, date, description, type } = parsedBody.data;
   const moneyAmount = toMoney(amount);
   const goalId = parsedBody.data.goalId || undefined;
   const addedVia = input.addedVia ?? null;
   const recurringItemId = input.recurringItemId || undefined;
   const shareInput = parsedBody.data.shares ?? [];
-  if (shareInput.length > 0 && (type !== "expense" || !shared)) {
-    throw new DomainError("Shares are only valid for shared expenses");
-  }
 
   const [household, actor, goal, memberships, recurringItem] =
     await Promise.all([
@@ -400,16 +397,14 @@ async function createTransactionWithDeps(
             },
           })
         : null,
-      shareInput.length > 0
-        ? prisma.householdMembership.findMany({
-            where: {
-              householdId,
-            },
-            select: {
-              userId: true,
-            },
-          })
-        : [],
+      prisma.householdMembership.findMany({
+        where: {
+          householdId,
+        },
+        select: {
+          userId: true,
+        },
+      }),
       recurringItemId
         ? prisma.recurringItem.findFirst({
             where: {
@@ -419,6 +414,12 @@ async function createTransactionWithDeps(
           })
         : null,
     ]);
+
+  const shared = memberships.length === 1 ? true : parsedBody.data.shared;
+
+  if (shareInput.length > 0 && (type !== "expense" || !shared)) {
+    throw new DomainError("Shares are only valid for shared expenses");
+  }
 
   if (goalId && !goal) {
     throw new DomainError("Goal not found");
