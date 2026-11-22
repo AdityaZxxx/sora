@@ -6,11 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { usePendingSync } from "@/hooks/use-pending-sync";
-import {
-  installWriteInterceptor,
-  replayWrites,
-  uninstallWriteInterceptor,
-} from "@/lib/offline-write-queue";
+import { describeMutation } from "@/lib/mutation";
 
 function label(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -22,14 +18,9 @@ export default function PendingSyncIndicator() {
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    installWriteInterceptor();
-    return () => uninstallWriteInterceptor();
-  }, []);
-
-  useEffect(() => {
     const replay = () => {
       if (!navigator.onLine) return;
-      void replayWrites().then(({ synced }) => {
+      void retry().then(({ synced }) => {
         if (synced > 0) router.refresh();
         return undefined;
       });
@@ -37,7 +28,7 @@ export default function PendingSyncIndicator() {
     replay();
     window.addEventListener("online", replay);
     return () => window.removeEventListener("online", replay);
-  }, [router]);
+  }, [retry, router]);
 
   const handleRetry = async () => {
     setSyncing(true);
@@ -57,12 +48,16 @@ export default function PendingSyncIndicator() {
     return null;
   }
 
+  const firstPending = pending[0];
+  const firstFailed = failed[0];
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-muted px-4 py-2 text-center text-sm font-medium">
       {pending.length > 0 && (
         <p role="status" className="flex items-center gap-2 text-amber-950">
           <CloudUpload className="h-4 w-4 shrink-0" aria-hidden="true" />
           {label(pending.length, "change", "changes")} pending sync
+          {firstPending ? ` (${describeMutation(firstPending.mutation)})` : ""}
         </p>
       )}
       {failed.length > 0 && (
@@ -70,7 +65,8 @@ export default function PendingSyncIndicator() {
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
             {label(failed.length, "change", "changes")} failed to sync
-            {failed[0]?.error ? `: ${failed[0].error}` : ""}
+            {firstFailed ? ` (${describeMutation(firstFailed.mutation)})` : ""}
+            {firstFailed?.error ? `: ${firstFailed.error}` : ""}
           </span>
           <button
             type="button"
