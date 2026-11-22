@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { notifyIfGoalReached } from "@/lib/goals";
+import { toMoney } from "@/lib/money";
 import { notifyHouseholdExcept } from "@/lib/notifications";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 
@@ -76,7 +77,7 @@ export function buildPostCommitEffects(
 
   effects.push(async () => {
     const result = await evaluateUnusualSpending({
-      amount,
+      amount: toMoney(amount),
       category: categoryName,
       description,
       type,

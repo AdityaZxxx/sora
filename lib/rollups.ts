@@ -1,12 +1,14 @@
 import type { Prisma } from "@prisma/client";
 
+import { zeroMoney, type Money } from "@/lib/money";
+
 type RollupClient = Prisma.TransactionClient;
 
 export type RollupEntry = {
   householdId: string;
   date: Date;
   type: string;
-  amount: number;
+  amount: Money;
 };
 
 function monthBucket(date: Date) {
@@ -24,12 +26,12 @@ function yearBucket(date: Date) {
   };
 }
 
-function expensePart({ type, amount }: RollupEntry) {
-  return type === "expense" ? amount : 0;
+function expensePart({ type, amount }: RollupEntry): Money {
+  return type === "expense" ? amount : zeroMoney();
 }
 
-function incomePart({ type, amount }: RollupEntry) {
-  return type === "income" ? amount : 0;
+function incomePart({ type, amount }: RollupEntry): Money {
+  return type === "income" ? amount : zeroMoney();
 }
 
 // seam-parse-exempt: called only by the transaction seam with values it already parsed.

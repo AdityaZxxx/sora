@@ -15,16 +15,13 @@ import {
 } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
-import {
-  fromCents,
-  sharesMatchExpense,
-  sharesTotalCents,
-} from "@/lib/split-shares";
+import { sharesMatchExpense, sharesTotal } from "@/lib/split-shares";
 import {
   buildPostCommitEffects,
   type PostCommitEffect,
@@ -301,7 +298,7 @@ function readIdempotencyKey(raw: string | undefined) {
 
 function isSameTransaction(existing: StoredTransaction, next: NewTransaction) {
   return (
-    existing.amount.toNumber() === next.amount &&
+    existing.amount.eq(toMoney(next.amount)) &&
     existing.date.getTime() === next.date.getTime() &&
     existing.type === next.type &&
     existing.shared === next.shared &&
@@ -368,6 +365,7 @@ async function createTransactionWithDeps(
   }
 
   const { amount, date, description, type, shared } = parsedBody.data;
+  const moneyAmount = toMoney(amount);
   const goalId = parsedBody.data.goalId || undefined;
   const addedVia = input.addedVia ?? null;
   const recurringItemId = input.recurringItemId || undefined;
@@ -446,7 +444,7 @@ async function createTransactionWithDeps(
 
   if (!sharesMatchExpense(shareInput, amount)) {
     throw new DomainError(
-      `The member shares add up to ${formatAmount(fromCents(sharesTotalCents(shareInput)))} but the expense is ${formatAmount(amount)}.`,
+      `The member shares add up to ${formatAmount(sharesTotal(shareInput).toNumber())} but the expense is ${formatAmount(amount)}.`,
     );
   }
 
@@ -514,7 +512,12 @@ async function createTransactionWithDeps(
 
       if (!shared) return transaction;
 
-      await incrementRollups(tx, { householdId, date, type, amount });
+      await incrementRollups(tx, {
+        householdId,
+        date,
+        type,
+        amount: moneyAmount,
+      });
       await publishHouseholdChange({
         householdId,
         resource: "transactions",
@@ -611,7 +614,7 @@ export async function deleteTransaction(
       householdId,
       date: transaction.date,
       type: transaction.type,
-      amount: transaction.amount.toNumber(),
+      amount: transaction.amount,
     });
     await publishHouseholdChange({
       householdId,
