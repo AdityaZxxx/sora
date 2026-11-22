@@ -1,9 +1,9 @@
-import type { CreateTransactionSchemaType } from "@/schemas/transaction";
+import type { CreateTransactionInput } from "@/lib/transactions";
 
 export type MutationKind = "create-transaction";
 
 export type MutationPayloads = {
-  "create-transaction": CreateTransactionSchemaType & {
+  "create-transaction": CreateTransactionInput & {
     idempotencyKey: string;
   };
 };

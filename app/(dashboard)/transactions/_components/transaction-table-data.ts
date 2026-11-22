@@ -1,16 +1,15 @@
 import type { TransactionHistoryRow } from "@/lib/transactions";
 
 import { categoryIconLabel } from "@/lib/category-icons";
+import { formatDateForDisplay } from "@/lib/helpers";
 
 export function getCsvData(
   transactions: TransactionHistoryRow[],
   formatAmount: (value: number) => string,
   currency: string,
 ) {
-  if (!transactions) return [];
-
   return transactions.map((transaction) => ({
-    Date: new Date(transaction.date).toLocaleDateString(),
+    Date: formatDateForDisplay(new Date(transaction.date)),
     Category: transaction.category,
     Description: transaction.description,
     Type: transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1),

@@ -1,4 +1,5 @@
 import type { TransactionType } from "@/lib/types";
+import type { z } from "zod";
 
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
@@ -248,17 +249,10 @@ export type GetCategoriesStatsResponseType = Awaited<
   ReturnType<typeof getCategoriesStats>
 >;
 
-export type CreateTransactionInput = {
-  amount: number;
-  category: string;
-  description?: string;
-  type: TransactionType;
-  date: Date;
-  shared?: boolean;
-  goalId?: string;
-  shares?: { userId: string; amount: number }[];
+export type CreateTransactionInput = z.output<
+  typeof CreateTransactionSchema
+> & {
   addedVia?: "agent" | null;
-  recurringItemId?: string;
   idempotencyKey?: string;
 };
 
