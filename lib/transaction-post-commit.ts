@@ -1,3 +1,4 @@
+import type { Actor } from "@/lib/caller";
 import type { TransactionType } from "@/lib/types";
 import type { Prisma } from "@prisma/client";
 
@@ -11,6 +12,7 @@ import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 export type PostCommitEffect = () => Promise<void>;
 
 export type PostCommitInput = {
+  actor: Actor;
   householdId: string;
   userId: string;
   actorName: string;
@@ -29,6 +31,7 @@ export function buildPostCommitEffects(
   input: PostCommitInput,
 ): PostCommitEffect[] {
   const {
+    actor,
     householdId,
     userId,
     actorName,
@@ -48,6 +51,7 @@ export function buildPostCommitEffects(
   if (thresholdMessage) {
     effects.push(async () => {
       await notifyHouseholdExcept(
+        actor,
         householdId,
         userId,
         "budget_threshold",
@@ -60,7 +64,13 @@ export function buildPostCommitEffects(
   if (shared) {
     const message = `${actorName} added a shared ${type} of ${formattedAmount} (${description || categoryName}).`;
     effects.push(async () => {
-      await notifyHouseholdExcept(householdId, userId, "transaction", message);
+      await notifyHouseholdExcept(
+        actor,
+        householdId,
+        userId,
+        "transaction",
+        message,
+      );
       revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
     });
   }
@@ -68,6 +78,7 @@ export function buildPostCommitEffects(
   if (goal && shared) {
     effects.push(() =>
       notifyIfGoalReached({
+        actor,
         householdId,
         goal,
         amount,
@@ -88,6 +99,7 @@ export function buildPostCommitEffects(
         userId,
       },
       {
+        actor,
         clock: () => new Date(),
         repo: prisma,
         notifier: notifyMembers,

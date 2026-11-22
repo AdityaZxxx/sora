@@ -1,3 +1,4 @@
+import type { Actor } from "@/lib/caller";
 import type { PrismaClient } from "@prisma/client";
 
 import { Prisma } from "@prisma/client";
@@ -29,12 +30,14 @@ export type SpendingCandidate = {
 type Window = { start: Date; end: Date };
 
 export type UnusualSpendingDeps = {
+  actor: Actor;
   clock: () => Date;
   repo: Pick<
     PrismaClient,
     "transaction" | "monthHistory" | "household" | "householdMembership"
   >;
   notifier: (
+    actor: Actor,
     householdId: string,
     userIds: string[],
     type: string,
@@ -139,6 +142,7 @@ export async function evaluateUnusualSpending(
   const message = `Unusual spending: ${format(transaction.amount.toNumber())} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average.toNumber())}.`;
 
   await deps.notifier(
+    deps.actor,
     transaction.householdId,
     recipients.map((recipient) => recipient.userId),
     UNUSUAL_SPENDING_TYPE,
