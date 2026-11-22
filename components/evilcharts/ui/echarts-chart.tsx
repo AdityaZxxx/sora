@@ -1,19 +1,9 @@
 import type { ComponentType, ReactNode } from "react";
 
 import * as echarts from "echarts/core";
-import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
+import { CanvasRenderer } from "echarts/renderers";
 
-export const ECHARTS_RENDERERS = {
-  canvas: "canvas",
-  svg: "svg",
-} as const;
-
-export type EChartsRenderer =
-  (typeof ECHARTS_RENDERERS)[keyof typeof ECHARTS_RENDERERS];
-
-export const DEFAULT_ECHARTS_RENDERER = ECHARTS_RENDERERS.canvas;
-
-echarts.use([CanvasRenderer, SVGRenderer]);
+echarts.use([CanvasRenderer]);
 
 export const THEMES = { light: "", dark: ".dark" } as const;
 export type ThemeKey = keyof typeof THEMES;
@@ -154,17 +144,6 @@ export function resolveColors(
   container.removeChild(probe);
 
   return { series, tokens };
-}
-
-export function seriesPaint(
-  slots: string[],
-): string | echarts.graphic.LinearGradient {
-  if (slots.length <= 1) return slots[0] ?? "rgba(120, 120, 120, 1)";
-  const stops = slots.map((color, i) => ({
-    offset: i / (slots.length - 1),
-    color,
-  }));
-  return new echarts.graphic.LinearGradient(0, 0, 1, 0, stops);
 }
 
 export function indicatorBackground(key: string, colorsCount: number): string {
