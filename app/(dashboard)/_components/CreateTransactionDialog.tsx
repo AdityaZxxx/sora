@@ -51,11 +51,7 @@ import { Currencies } from "@/lib/currencies";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
-import {
-  finalizeShares,
-  sharesTotal,
-  type SplitMode,
-} from "@/lib/split-shares";
+import { buildShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
@@ -237,7 +233,15 @@ const CreateTransactionDialog = ({
         ...value,
         date: dateToUtcDate(value.date),
         shared: memberCount > 1 ? value.shared : true,
-        shares: buildShares(value),
+        shares:
+          value.type !== "expense" || !value.shared
+            ? undefined
+            : buildShares(
+                splitMode,
+                splitMode === "percent" ? splitPercents : splitAmounts,
+                members,
+                value.amount,
+              ).shares,
         recurringItemId,
       });
     },
@@ -257,30 +261,14 @@ const CreateTransactionDialog = ({
     {},
   );
 
-  const buildShares = (value: CreateTransactionFormValues) => {
-    if (value.type !== "expense" || !value.shared || splitMode === "equal") {
-      return undefined;
-    }
-    return finalizeShares(
-      splitMode,
-      splitMode === "percent" ? splitPercents : splitAmounts,
-      members,
-      value.amount,
-    );
-  };
-
-  const previewShares =
-    !showSplitOptions || splitMode === "equal"
-      ? null
-      : finalizeShares(
-          splitMode,
-          splitMode === "percent" ? splitPercents : splitAmounts,
-          members,
-          amountValue,
-        );
-
-  const splitInvalid =
-    previewShares !== null && !sharesTotal(previewShares).eq(amountValue);
+  const sharePlan = buildShares(
+    splitMode,
+    splitMode === "percent" ? splitPercents : splitAmounts,
+    members,
+    amountValue,
+  );
+  const previewShares = showSplitOptions ? sharePlan.shares : [];
+  const splitInvalid = showSplitOptions && !sharePlan.matchesAmount;
 
   const resetSplitInputs = () => {
     setSplitMode("equal");
