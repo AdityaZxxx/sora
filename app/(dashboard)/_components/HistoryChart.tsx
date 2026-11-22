@@ -141,18 +141,10 @@ export default function HistoryChart({
         />
       )}
       {hidden.has("income") ? null : (
-        <EChartsBarChart.Bar
-          dataKey="income"
-          variant="default"
-          enableHoverHighlight
-        />
+        <EChartsBarChart.Bar dataKey="income" enableHoverHighlight />
       )}
       {hidden.has("expense") ? null : (
-        <EChartsBarChart.Bar
-          dataKey="expense"
-          variant="default"
-          enableHoverHighlight
-        />
+        <EChartsBarChart.Bar dataKey="expense" enableHoverHighlight />
       )}
     </EChartsBarChart>
   );
