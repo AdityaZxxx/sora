@@ -3,9 +3,10 @@ import type { TransactionType } from "@/lib/types";
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { after } from "next/server";
+import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
-import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -14,7 +15,6 @@ import {
 } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
-import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -25,7 +25,10 @@ import {
   sharesMatchExpense,
   sharesTotalCents,
 } from "@/lib/split-shares";
-import { evaluateUnusualSpending } from "@/lib/unusual-spending";
+import {
+  buildPostCommitEffects,
+  type PostCommitEffect,
+} from "@/lib/transaction-post-commit";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateTransactionSchema } from "@/schemas/transaction";
 
@@ -262,18 +265,91 @@ export type CreateTransactionInput = {
   idempotencyKey?: string;
 };
 
+type Clock = () => Date;
+type EffectPublisher = (effect: PostCommitEffect) => void;
+
+const systemClock: Clock = () => new Date();
+const afterPublisher: EffectPublisher = (effect) => {
+  after(effect);
+};
+
+type CreateTransactionDeps = {
+  clock: Clock;
+  publisher: EffectPublisher;
+};
+
+type StoredTransaction = NonNullable<
+  Awaited<ReturnType<typeof prisma.transaction.findFirst>>
+>;
+
+type NewTransaction = {
+  householdId: string;
+  addedById: string;
+  amount: number;
+  date: Date;
+  description: string;
+  type: TransactionType;
+  shared: boolean;
+  category: string;
+  goalId: string | null;
+  addedVia: "agent" | null;
+};
+
+function readIdempotencyKey(raw: string | undefined) {
+  return raw && IDEMPOTENCY_KEY_PATTERN.test(raw) ? raw : undefined;
+}
+
+function isSameTransaction(existing: StoredTransaction, next: NewTransaction) {
+  return (
+    existing.amount.toNumber() === next.amount &&
+    existing.date.getTime() === next.date.getTime() &&
+    existing.type === next.type &&
+    existing.shared === next.shared &&
+    existing.category === next.category &&
+    existing.addedById === next.addedById &&
+    existing.description === next.description &&
+    existing.goalId === next.goalId &&
+    existing.addedVia === next.addedVia
+  );
+}
+
+async function resolveIdempotentWrite(
+  tx: Prisma.TransactionClient,
+  householdId: string,
+  key: string | undefined,
+  next: NewTransaction,
+): Promise<{ existing: StoredTransaction } | { id: string | undefined }> {
+  if (!key) return { id: undefined };
+  const existing = await tx.transaction.findFirst({
+    where: { id: key, householdId },
+  });
+  if (!existing) return { id: key };
+  if (isSameTransaction(existing, next)) return { existing };
+  return { id: randomUUID() };
+}
+
 export async function createTransaction(
   householdId: string,
   userId: string,
   input: CreateTransactionInput,
   role: MemberRole,
 ) {
+  return createTransactionWithDeps(householdId, userId, input, role, {
+    clock: systemClock,
+    publisher: afterPublisher,
+  });
+}
+
+async function createTransactionWithDeps(
+  householdId: string,
+  userId: string,
+  input: CreateTransactionInput,
+  role: MemberRole,
+  deps: CreateTransactionDeps,
+) {
   assertFullMemberRole(role);
 
-  const idempotencyKey =
-    input.idempotencyKey && IDEMPOTENCY_KEY_PATTERN.test(input.idempotencyKey)
-      ? input.idempotencyKey
-      : undefined;
+  const key = readIdempotencyKey(input.idempotencyKey);
 
   const categoryRow = await requireCategory(
     householdId,
@@ -299,20 +375,6 @@ export async function createTransaction(
   if (shareInput.length > 0 && (type !== "expense" || !shared)) {
     throw new DomainError("Shares are only valid for shared expenses");
   }
-
-  type StoredTransaction = NonNullable<
-    Awaited<ReturnType<typeof prisma.transaction.findFirst>>
-  >;
-  const matchesKeyedTransaction = (existing: StoredTransaction) =>
-    existing.amount.toNumber() === amount &&
-    existing.date.getTime() === date.getTime() &&
-    existing.type === type &&
-    existing.shared === shared &&
-    existing.category === categoryRow.name &&
-    existing.addedById === userId &&
-    existing.description === (description || "") &&
-    existing.goalId === (goalId ?? null) &&
-    existing.addedVia === addedVia;
 
   const [household, actor, goal, memberships, recurringItem] =
     await Promise.all([
@@ -398,37 +460,34 @@ export async function createTransaction(
     date,
   });
 
-  let created;
-  try {
-    created = await prisma.$transaction(async (tx) => {
-      if (idempotencyKey) {
-        const existing = await tx.transaction.findFirst({
-          where: { id: idempotencyKey, householdId },
-        });
-        if (existing) {
-          if (!matchesKeyedTransaction(existing)) {
-            throw new DomainError(
-              "This idempotency key belongs to a different transaction",
-            );
-          }
-          return existing;
-        }
-      }
+  const next: NewTransaction = {
+    householdId,
+    addedById: userId,
+    amount,
+    date,
+    description: description || "",
+    type,
+    shared,
+    category: categoryRow.name,
+    goalId: goalId ?? null,
+    addedVia,
+  };
+
+  const attemptWrite = async (writeKey: string | undefined) =>
+    prisma.$transaction(async (tx) => {
+      const resolved = await resolveIdempotentWrite(
+        tx,
+        householdId,
+        writeKey,
+        next,
+      );
+      if ("existing" in resolved) return resolved.existing;
 
       const transaction = await tx.transaction.create({
         data: {
-          id: idempotencyKey,
-          householdId,
-          addedById: userId,
-          amount,
-          date,
-          description: description || "",
-          type,
-          shared,
-          category: categoryRow.name,
+          id: resolved.id,
+          ...next,
           ...categoryIconSnapshot(categoryRow),
-          goalId,
-          addedVia,
         },
       });
 
@@ -448,14 +507,12 @@ export async function createTransaction(
             id: recurringItem.id,
           },
           data: {
-            lastPostedAt: new Date(),
+            lastPostedAt: deps.clock(),
           },
         });
       }
 
-      if (!shared) {
-        return transaction;
-      }
+      if (!shared) return transaction;
 
       await incrementRollups(tx, { householdId, date, type, amount });
       await publishHouseholdChange({
@@ -467,96 +524,45 @@ export async function createTransaction(
 
       return transaction;
     });
+
+  let created: StoredTransaction;
+  try {
+    created = await attemptWrite(key);
   } catch (cause) {
     if (
-      idempotencyKey &&
+      key &&
       cause instanceof Prisma.PrismaClientKnownRequestError &&
       cause.code === "P2002"
     ) {
       const existing = await prisma.transaction.findFirst({
-        where: { id: idempotencyKey, householdId },
+        where: { id: key, householdId },
       });
-      if (existing && matchesKeyedTransaction(existing)) {
-        return existing;
-      }
+      created =
+        existing && isSameTransaction(existing, next)
+          ? existing
+          : await attemptWrite(undefined);
+    } else {
+      throw cause;
     }
-    throw cause;
   }
 
-  if (thresholdMessage) {
-    const message = thresholdMessage;
-    after(async () => {
-      await notifyHouseholdExcept(
-        householdId,
-        userId,
-        "budget_threshold",
-        message,
-      );
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
-    });
-  }
-
-  if (shared) {
-    const message = `${actor?.name ?? "A member"} added a shared ${type} of ${formatAmount(amount)} (${description || categoryRow.name}).`;
-    after(async () => {
-      await notifyHouseholdExcept(householdId, userId, "transaction", message);
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
-    });
-  }
-
-  if (goal && shared) {
-    after(async () => {
-      const contributed = await prisma.transaction.aggregate({
-        where: {
-          householdId,
-          goalId: goal.id,
-          shared: true,
-        },
-        _sum: {
-          amount: true,
-        },
-      });
-      const contributedTotal = contributed._sum.amount ?? new Prisma.Decimal(0);
-      const contributedBefore = contributedTotal.minus(amount);
-      if (
-        contributedBefore.gte(goal.target) ||
-        contributedTotal.lt(goal.target)
-      ) {
-        return;
-      }
-
-      const members = await prisma.householdMembership.findMany({
-        where: {
-          householdId,
-        },
-        select: {
-          userId: true,
-        },
-      });
-      await notifyMembers(
-        householdId,
-        members.map((member) => member.userId),
-        "goal_reached",
-        `${goal.name} reached its target: ${formatAmount(contributedTotal.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
-      );
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
-    });
-  }
-
-  after(async () => {
-    const result = await evaluateUnusualSpending({
-      amount,
-      category: categoryRow.name,
-      description: description ?? "",
-      type,
-      shared,
-      householdId,
-      userId,
-    });
-    if (result.notified > 0) {
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
-    }
+  const effects = buildPostCommitEffects({
+    householdId,
+    userId,
+    actorName: actor?.name ?? "A member",
+    categoryName: categoryRow.name,
+    amount,
+    description: description ?? "",
+    type,
+    shared,
+    formattedAmount: formatAmount(amount),
+    formatAmount,
+    thresholdMessage,
+    goal: goal ? { id: goal.id, name: goal.name, target: goal.target } : null,
   });
+  for (const effect of effects) {
+    deps.publisher(effect);
+  }
 
   return created;
 }

@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
+import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
@@ -145,6 +146,45 @@ export async function createHouseholdGoal(
   });
 
   return { ...goal, target: goal.target.toNumber() };
+}
+
+export async function notifyIfGoalReached(input: {
+  householdId: string;
+  goal: { id: string; name: string; target: Prisma.Decimal };
+  amount: number;
+  formatAmount: (amount: number) => string;
+}) {
+  const { householdId, goal, amount, formatAmount } = input;
+  const contributed = await prisma.transaction.aggregate({
+    where: {
+      householdId,
+      goalId: goal.id,
+      shared: true,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+  const total = contributed._sum.amount ?? new Prisma.Decimal(0);
+  if (total.minus(amount).gte(goal.target) || total.lt(goal.target)) {
+    return;
+  }
+
+  const members = await prisma.householdMembership.findMany({
+    where: {
+      householdId,
+    },
+    select: {
+      userId: true,
+    },
+  });
+  await notifyMembers(
+    householdId,
+    members.map((member) => member.userId),
+    "goal_reached",
+    `${goal.name} reached its target: ${formatAmount(total.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
+  );
+  revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
 }
 
 export async function deleteHouseholdGoal(
