@@ -47,7 +47,7 @@ const DashboardPage = async () => {
 
   return (
     <HydrationBoundary state={state}>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-8">
         <div className="container pt-6">
           <div className="rounded-xl border bg-card px-6 py-8">
             <div className="flex flex-wrap items-center justify-between gap-6">
