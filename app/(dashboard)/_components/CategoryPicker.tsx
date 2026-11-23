@@ -3,7 +3,7 @@ import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, PlusSquare } from "lucide-react";
 import { useDeferredValue, useId, useState } from "react";
 
 import CategoryIcon from "@/components/CategoryIcon";
@@ -46,7 +46,6 @@ const CategoryPicker = ({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue ?? "");
   const [search, setSearch] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
   const listId = useId();
 
@@ -117,50 +116,47 @@ const CategoryPicker = ({
             onValueChange={setSearch}
             placeholder="Search category…"
           />
-          <CreateCategoryDialog
-            key="add-new"
-            type={type}
-            successCallback={SuccessCallback}
-          />
           <CommandGroup>
             <CommandList id={listId}>
-              {categories.length === 0 ? (
+              {categories.map((category) => (
                 <CommandItem
-                  className="justify-center"
-                  onSelect={() => setCreateOpen(true)}
+                  key={category.name}
+                  onSelect={() => {
+                    selectCategory(category.name);
+                    setOpen((prev) => !prev);
+                  }}
                 >
-                  Create {search.trim()}
+                  <CategoryRow category={category} />
+                  <Check
+                    className={cn(
+                      "me-2 h-4 w-4 opacity-0",
+                      value === category.name && "opacity-100",
+                    )}
+                  />
                 </CommandItem>
-              ) : (
-                categories.map((category) => (
-                  <CommandItem
-                    key={category.name}
-                    onSelect={() => {
-                      selectCategory(category.name);
-                      setOpen((prev) => !prev);
-                    }}
+              ))}
+              <CreateCategoryDialog
+                key={`create-${search.trim()}`}
+                type={type}
+                successCallback={SuccessCallback}
+                defaultName={search.trim()}
+                trigger={
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm whitespace-nowrap text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
                   >
-                    <CategoryRow category={category} />
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 opacity-0",
-                        value === category.name && "opacity-100",
-                      )}
-                    />
-                  </CommandItem>
-                ))
-              )}
+                    <PlusSquare className="size-4 shrink-0 text-muted-foreground" />
+                    <span>
+                      {categories.length === 0 && search.trim()
+                        ? `Create ${search.trim()}`
+                        : "Add new"}
+                    </span>
+                  </button>
+                }
+              />
             </CommandList>
           </CommandGroup>
         </Command>
-        <CreateCategoryDialog
-          key={`create-${search.trim()}`}
-          type={type}
-          successCallback={SuccessCallback}
-          defaultName={search.trim()}
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-        />
       </PopoverContent>
     </Popover>
   );
