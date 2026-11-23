@@ -3,7 +3,7 @@
 import type { MemberBalance } from "@/schemas/balances";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useBalanceStats } from "@/hooks/use-balance-stats";
 import { useHouseholds } from "@/hooks/use-households";
@@ -18,6 +18,12 @@ const SNAPSHOT_SCHEMA = 1;
 const KEY_PREFIX = "sora:offline:snapshot:";
 const ACTIVE_KEY = "sora:offline:active";
 const CLEAR_COOKIE = "sora_clear_offline";
+const PENDING_RANGE = { from: new Date(0), to: new Date(0) };
+let clientRange: { from: Date; to: Date } | undefined;
+
+const subscribeToRange = () => () => {};
+const getClientRange = () => (clientRange ??= resolveDateRange());
+const getServerRange = () => PENDING_RANGE;
 
 type OfflineSnapshot = {
   schema: number;
@@ -56,12 +62,11 @@ export function clearOfflineSnapshot() {
 }
 
 function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
+    update();
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
     return () => {
@@ -77,7 +82,11 @@ export function useOfflineSnapshot() {
   const isOnline = useOnlineStatus();
   const { data: households } = useHouseholds();
   const { data: session } = useSession();
-  const [range] = useState(() => resolveDateRange());
+  const range = useSyncExternalStore(
+    subscribeToRange,
+    getClientRange,
+    getServerRange,
+  );
 
   const householdId = households?.active.id;
   const currency =
@@ -98,6 +107,7 @@ export function useOfflineSnapshot() {
   const { data: stats, isFetching: statsFetching } = useBalanceStats(
     range.from,
     range.to,
+    range !== PENDING_RANGE,
   );
 
   const activeHousehold = useRef<string | undefined>(undefined);
