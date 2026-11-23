@@ -9,7 +9,7 @@ import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-export function useBalanceStats(from: Date, to: Date) {
+export function useBalanceStats(from: Date, to: Date, enabled = true) {
   return useQuery<GetBalanceStatsResponseType>({
     queryKey: queryKeys.overview.stats(from, to),
     queryFn: async () => {
@@ -29,5 +29,6 @@ export function useBalanceStats(from: Date, to: Date) {
     staleTime: QUERY_STALE_TIME,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
