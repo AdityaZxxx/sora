@@ -84,6 +84,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           [];
         let cursor: string | null = null;
         do {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- the next page needs this page's cursor
           const page = await getTransactionsHistory(
             context.householdId,
             context.userId,
