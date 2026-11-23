@@ -24,6 +24,7 @@ async function* paginate<TDb, TDto, TCursor>(
 ): AsyncGenerator<TDto> {
   let cursor: TCursor | null = null;
   while (true) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- pages and yielded rows must stay in cursor order
     const rows = await findPage(cursor);
     if (rows.length === 0) return;
 

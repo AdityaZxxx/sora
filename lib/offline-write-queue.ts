@@ -179,6 +179,7 @@ export function createMutationClient(deps: MutationClientDeps): MutationClient {
     let synced = 0;
     let failed = 0;
 
+    // oxlint-disable eslint/no-await-in-loop -- queued writes must replay in order, with each removed after dispatch
     for (const write of writes) {
       try {
         unwrapAction(await deps.dispatch(write.mutation));
@@ -189,6 +190,7 @@ export function createMutationClient(deps: MutationClientDeps): MutationClient {
         failed += 1;
       }
     }
+    // oxlint-enable eslint/no-await-in-loop
 
     notifyChange();
     return { synced, failed };

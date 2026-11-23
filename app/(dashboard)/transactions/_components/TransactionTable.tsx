@@ -108,6 +108,7 @@ async function fetchAllHistory(from: Date, to: Date, limit: number) {
   const rows: TransactionHistoryRow[] = [];
   let cursor: string | null = null;
   do {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- the next page needs this page's cursor
     const page = await fetchHistoryPage(from, to, cursor, limit);
     rows.push(...page.transactions);
     cursor = page.nextCursor;
