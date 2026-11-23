@@ -1,4 +1,5 @@
 "use client";
+import type { ActionResult } from "@/lib/action-result";
 import type { ReactElement, ReactNode } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,11 @@ interface Props {
   currency: string | null;
 }
 
+type SettlementBalances =
+  Awaited<ReturnType<typeof RecordSettlement>> extends ActionResult<infer T>
+    ? T
+    : never;
+
 const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
   const [open, setOpen] = useState(false);
   const [memberId, setMemberId] = useState("");
@@ -58,10 +64,11 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
     mutationFn: async (input: Parameters<typeof RecordSettlement>[0]) => {
       return unwrapAction(await RecordSettlement(input));
     },
-    onSuccess: () => {
+    onSuccess: (balances: SettlementBalances) => {
       toast.success("Settlement recorded", {
         id: "record-settlement",
       });
+      queryClient.setQueryData(queryKeys.balances, balances);
       queryClient.invalidateQueries({
         queryKey: queryKeys.balances,
       });
