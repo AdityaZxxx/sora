@@ -10,13 +10,26 @@ interface Props {
   type: TransactionType;
   successCallback: (category: Category) => void;
   trigger?: ReactNode;
+  defaultName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const CreateCategoryDialog = ({ type, successCallback, trigger }: Props) => (
+const CreateCategoryDialog = ({
+  type,
+  successCallback,
+  trigger,
+  defaultName,
+  open,
+  onOpenChange,
+}: Props) => (
   <CategoryFormDialog
     type={type}
     trigger={trigger}
     successCallback={successCallback}
+    defaultName={defaultName}
+    open={open}
+    onOpenChange={onOpenChange}
   />
 );
 

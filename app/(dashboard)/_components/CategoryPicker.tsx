@@ -46,6 +46,7 @@ const CategoryPicker = ({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue ?? "");
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
   const listId = useId();
 
@@ -116,13 +117,20 @@ const CategoryPicker = ({
             onValueChange={setSearch}
             placeholder="Search category…"
           />
-          <CreateCategoryDialog type={type} successCallback={SuccessCallback} />
+          <CreateCategoryDialog
+            key="add-new"
+            type={type}
+            successCallback={SuccessCallback}
+          />
           <CommandGroup>
             <CommandList id={listId}>
               {categories.length === 0 ? (
-                <p className="py-6 text-center text-sm">
-                  Category not found. Create a new category.
-                </p>
+                <CommandItem
+                  className="justify-center"
+                  onSelect={() => setCreateOpen(true)}
+                >
+                  Create {search.trim()}
+                </CommandItem>
               ) : (
                 categories.map((category) => (
                   <CommandItem
@@ -145,6 +153,14 @@ const CategoryPicker = ({
             </CommandList>
           </CommandGroup>
         </Command>
+        <CreateCategoryDialog
+          key={`create-${search.trim()}`}
+          type={type}
+          successCallback={SuccessCallback}
+          defaultName={search.trim()}
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+        />
       </PopoverContent>
     </Popover>
   );
