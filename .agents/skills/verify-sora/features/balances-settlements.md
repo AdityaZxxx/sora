@@ -10,7 +10,7 @@ Balances answer who owes whom relative to the caller. They are net of shared exp
 - `balances-settlement` records that the caller paid another member back.
 - `balances-personal` settlements are personal transactions against the caller; they do not count towards household totals or budgets.
 - `balances-simplify` the fewest transfers that settle every member (listed only for three or more members).
-- `balances-settlements-category` settlements are booked against the system `Settlement` category and excluded from category stat and budget progress.
+- `balances-settlements-category` settlements are booked against the system `Settlement` category and excluded from category stats and budget progress.
 
 ## How to get to it (user POV)
 
@@ -24,21 +24,22 @@ Balances answer who owes whom relative to the caller. They are net of shared exp
 
 Preconditions:
 
-- Sora is healthy at `http://127.0.0.1:3210`; `control-sora doctor` passes.
-- The seeded household is in place (`control-sora reset`): two members, two months of shared expenses, one settlement already recorded? no — settlements are seeded; verify on instance or use the verify-sora fixture.
-- The browser is signed in as `blake@sora.test` (`control-sora login --as member`).
+- Sora is healthy at `$U`; `control-sora doctor` passes.
+- The seeded household is in place (`control-sora reset`): two members and six shared transactions, all in the current month, with no settlement recorded yet.
+- For the dashboard view, sign in as Blake (`control-sora login --as member`). The MCP token belongs to Avery, so MCP rows are from Avery's perspective.
 
-- **Open the dashboard.** Run `control-sora browser open http://127.0.0.1:3210/`. The `Balances` card reads `You owe $870.25`.
-- **Record a settlement.** Run `control-sora browser find role button click --name "Record settlement"`. The combobox lists the other members; fill `Amount` `100`, click `Record`. The toast reads `Settlement recorded`.
-- **See the change.** Reload; the card reads `You owe $770.25`. The transaction in `/transactions` shows `Settlement With Avery Quinn` with a `Personal` badge.
-- **MCP.** Run `control-sora mcp get_balances`; assert `balance` for avery is `-870.25` and `status` reads `they_owe_you`.
-- **Clean up.** Delete the settlement transaction through the row actions on the transactions page. The card returns to `You owe $870.25`.
+- **Open the dashboard.** Run `control-sora browser open "$U/"`. The `Balances` card reads `You owe $870.25`.
+- **Record a settlement.** Run `control-sora browser find role button click --name "Record settlement"`. The `Member` combobox lists the other members; choose Avery Quinn, fill `Amount` `100`, click `Record`. The toast reads `Settlement recorded`.
+- **See the change.** Reload the dashboard; the card reads `You owe $770.25`. The transaction in `/transactions` shows `Settlement With Avery Quinn` with a `Personal` badge. The UI title-cases the description even though the stored text is `Settlement with Avery Quinn`.
+- **MCP.** Run `control-sora mcp get_balances '{}'` with the Avery token. The result is `{currency, balances: [{memberId, memberName, balance, status}]}`. The row for `Blake Rivera` has `balance` `"-870.25"` as a fixed-2-decimal string and `status` `they_owe_you` before the settlement.
+- **Clean up.** Run `control-sora reset` to restore the seeded ledger, then sign in again.
 - **Proof.** `control-sora browser screenshot <artifact-dir>/balances/card.png` and `browser snapshot -i`.
 
 ## Gotchas
 
-- The shared-spend card and the `Balances` card soft-show different things: one tracks all shared expenses, the other the net of who owes whom.
-- Settlements are `shared: false` transactions with category `Settlement`; personal payees see them, and they do not appear in the household totals or budgets.
+- The shared-spending card and the `Balances` card show different things: one tracks shared expenses, the other the net of who owes whom.
+- Settlements are `shared: false` transactions with category `Settlement`; personal payees see them, and they do not appear in the household totals, category stats, or budgets.
 - The card is only shown on a household with 2+ members; a solo household never sees it.
-- A stale cache can show an older number for up to one poll interval after a settlement.
-- MCP `get_balances` signs the other member's balances from the caller's perspective: negative means that member owes the caller.
+- Changes are pushed over SSE and the client invalidates its queries; there is no 30-second poll. In this run the balance card needed a page reload before it showed the new number, so do not assert instant refresh.
+- MCP `get_balances` signs the other member's balance from the caller's perspective: negative means that member owes the caller, and the amount is a string such as `"-870.25"`.
+- The caller is filtered out of the MCP balance list, so with Avery's token the only row is Blake.
