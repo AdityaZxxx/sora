@@ -35,7 +35,6 @@ export function GET(request: Request) {
 
         cleanup = close;
         request.signal.addEventListener("abort", close, { once: true });
-        send(`event: ready\ndata: ${JSON.stringify({ viewerId: userId })}\n\n`);
 
         try {
           const stop = await subscribeToHouseholdChanges(
@@ -55,6 +54,9 @@ export function GET(request: Request) {
           heartbeat = setInterval(
             () => send(": keepalive\n\n"),
             SSE_HEARTBEAT_INTERVAL,
+          );
+          send(
+            `event: ready\ndata: ${JSON.stringify({ viewerId: userId })}\n\n`,
           );
         } catch {
           close();
