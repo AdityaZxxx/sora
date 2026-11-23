@@ -3,7 +3,7 @@ import type { TransactionType } from "@/lib/types";
 import type { Category } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, PlusSquare } from "lucide-react";
 import { useDeferredValue, useId, useState } from "react";
 
 import CategoryIcon from "@/components/CategoryIcon";
@@ -116,32 +116,44 @@ const CategoryPicker = ({
             onValueChange={setSearch}
             placeholder="Search category…"
           />
-          <CreateCategoryDialog type={type} successCallback={SuccessCallback} />
           <CommandGroup>
             <CommandList id={listId}>
-              {categories.length === 0 ? (
-                <p className="py-6 text-center text-sm">
-                  Category not found. Create a new category.
-                </p>
-              ) : (
-                categories.map((category) => (
-                  <CommandItem
-                    key={category.name}
-                    onSelect={() => {
-                      selectCategory(category.name);
-                      setOpen((prev) => !prev);
-                    }}
+              {categories.map((category) => (
+                <CommandItem
+                  key={category.name}
+                  onSelect={() => {
+                    selectCategory(category.name);
+                    setOpen((prev) => !prev);
+                  }}
+                >
+                  <CategoryRow category={category} />
+                  <Check
+                    className={cn(
+                      "me-2 h-4 w-4 opacity-0",
+                      value === category.name && "opacity-100",
+                    )}
+                  />
+                </CommandItem>
+              ))}
+              <CreateCategoryDialog
+                key={`create-${search.trim()}`}
+                type={type}
+                successCallback={SuccessCallback}
+                defaultName={search.trim()}
+                trigger={
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm whitespace-nowrap text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
                   >
-                    <CategoryRow category={category} />
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 opacity-0",
-                        value === category.name && "opacity-100",
-                      )}
-                    />
-                  </CommandItem>
-                ))
-              )}
+                    <PlusSquare className="size-4 shrink-0 text-muted-foreground" />
+                    <span>
+                      {categories.length === 0 && search.trim()
+                        ? `Create ${search.trim()}`
+                        : "Add new"}
+                    </span>
+                  </button>
+                }
+              />
             </CommandList>
           </CommandGroup>
         </Command>

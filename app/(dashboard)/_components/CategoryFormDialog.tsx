@@ -67,6 +67,7 @@ interface Props {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   successCallback?: (category: Category) => void;
+  defaultName?: string;
 }
 
 const CategoryFormDialog = ({
@@ -76,6 +77,7 @@ const CategoryFormDialog = ({
   open: openProp,
   onOpenChange,
   successCallback,
+  defaultName,
 }: Props) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
@@ -85,7 +87,7 @@ const CategoryFormDialog = ({
   const idPrefix = isEditing ? "edit-" : "";
 
   const defaultValues = () => ({
-    name: category?.name ?? "",
+    name: category?.name ?? defaultName ?? "",
     ...(category
       ? withIconKindDefault(
           category.icon,
@@ -195,7 +197,7 @@ const CategoryFormDialog = ({
     >
       {trigger ? (
         <DialogTrigger render={trigger as ReactElement} />
-      ) : !isEditing && open === undefined ? (
+      ) : !isEditing && openProp === undefined ? (
         <DialogTrigger
           render={
             <Button
