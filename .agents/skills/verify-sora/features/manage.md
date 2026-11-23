@@ -10,13 +10,13 @@ The manage page is the household admin surface: the space name, the agent access
 - `manage-agent-access` covered by [Agent access](./agent-access.md); the card sits above the members section.
 - `manage-members` lists every member with their role; a full member can change roles.
 - `manage-members-leave` a member can leave the household; the last member cannot leave without deleting it.
-- `manage-members-remove` a full member can remove a view-only member.
+- `manage-members-remove` a full member can remove any other member.
 - `manage-members-digest` a member can toggle their own daily email digest.
-- `manage-space-currency` the currency set at the wizard; displayed here, not editable.
+- `manage-space-currency` the household currency, editable here through the currency combobox.
 - `manage-categories` creating, editing, and deleting categories.
 - `manage-budgets` see [Budgets](./budgets.md); the card is placed on this page.
-- `manage-export` a member can download a full export of the household as JSON.
-- `manage-delete-account` a member can delete their sign-in; the household data is preserved.
+- `manage-export` a full member can download a full export of the household as JSON; amounts are fixed-2-decimal strings.
+- `manage-delete-account` a member can delete their sign-in; a household where they are the last member is deleted with all its data.
 
 ## How to get to it (user POV)
 
@@ -28,23 +28,24 @@ The manage page is the household admin surface: the space name, the agent access
 
 Preconditions:
 
-- Sora is healthy at `http://127.0.0.1:3210`; `control-sora doctor` passes.
-- The seeded household is in place (`control-sora reset`): two members; one shared household; agent access is on with two tokens.
+- Sora is healthy at `$U`; `control-sora doctor` passes.
+- The seeded household is in place (`control-sora reset`): two full members; agent access is on with two tokens.
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
-- **Open the manage page.** Run `control-sora browser open http://127.0.0.1:3210/manage`. Assert the cards, in order: `Your space`, `Invite link`, `Agent access`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`, `Your data`, `Delete account`.
-- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear with role badges. A full member sees the role select; a view-only member sees the badges instead.
-- **Rename the space.** Run `control-sora browser find role button click --name "Rename"` (the `Rename` button next to the `House` icon). Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa` and a toast reads `Space renamed`.
+- **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Your space`, `Invite link`, `Agent access`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`, `Your data`, `Delete account`. For a view-only caller the `Invite link` card is absent.
+- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. A full member sees the role combobox `Access for <name>` with `Full edit` and `View only`; a view-only member sees no role controls.
+- **Rename the space.** Run `control-sora browser find role button click --name "Rename"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
+- **Currency.** The `Currency settings` card shows a combobox (`🇺🇸 United States Dollar`). Picking another currency calls the update action immediately; no separate save step exists.
 - **Digest toggle.** Assert the digest switch reflects the current state; toggling flips and persists.
-- **Export.** Run `control-sora browser eval 'window.__export=null;const o=URL.createObjectURL.bind(URL);URL.createObjectURL=b=>{b.text().then(t=>{window.__export=t});return o(b)};"hooked"'`, then `Find role button click --name "Download full export (JSON)"`. `window.__export` matches `transactions` with `id` and `amount` keys; the count matches the fixture.
-- **Delete account.** Confirm dialog flow end-to-end is available in a solo-only dev database; on the shared seed, exercise it only if you can restore the fixture immediately after.
+- **Export.** Run `control-sora browser eval 'fetch("/api/export").then(r=>r.json()).then(d=>JSON.stringify({n:d.transactions.length,amount:d.transactions[0].amount,type:typeof d.transactions[0].amount}))'`. It returns `6` rows and an `amount` such as `"200.00"` with type `string`. A view-only caller gets HTTP 403 from `/api/export`.
+- **Delete account.** The confirm dialog states that every household where the member is the last one is deleted with all its data. Exercise end-to-end only on a disposable database you can reseed immediately after.
 - **Proof.** `control-sora browser screenshot <artifact-dir>/manage/page.png` and `browser snapshot -i`.
 
 ## Gotchas
 
 - The page orders cards top to bottom as listed above; `Agent access` is above `Members`.
-- The currency at the top of the page is the household currency set at the wizard; it is not editable here.
+- The currency is editable here. Changing it applies immediately and changes household formatting everywhere.
 - The invite link's QR code uses an inlined SVG and does not appear in the DOM's responsive snapshot; use the `Copy invite link` button to copy it.
 - `Budgets` and `Transaction categories` are interactive; exercise them via their own feature files.
-- A view-only member cannot `Remove` another member; the server enforces the role and the trash icon hides for view-only members / members whose role is not less than the caller's.
+- A full member can remove any other member; self-removal is rejected. A view-only member sees no `Remove` control.
 - The `Leave household` button only appears when at least one other member exists in the household.

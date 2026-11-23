@@ -4,13 +4,13 @@ A goal is a named household savings target with an optional deadline. It holds n
 
 ## Sub-features
 
-- `goals-create` a member can create a goal with a name, a target, and an optional deadline.
-- `goals-edit` a member can rename a goal, change its target, or set or clear its deadline.
-- `goals-delete` a member can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
-- `goals-progress` the card shows how much has been contributed toward the target.
+- `goals-create` a full member can create a goal with a name, a target, and an optional deadline.
+- `goals-edit` a full member can rename a goal, change its target, or set or clear its deadline.
+- `goals-delete` a full member can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
+- `goals-progress` the card shows the percentage and the contributed and target amounts.
 - `goals-reached-notify` reaching the target fires a one-shot `goal_reached` notification to all members when a shared transaction crosses the line.
 - `goal-tag-transaction` a transaction can be tagged with a goal when adding it.
-- `goals-list-mcp` list goals with the MCP surface.
+- `goals-list-mcp` list goals with the MCP surface; amounts are fixed-2-decimal strings.
 
 ## How to get to it (user POV)
 
@@ -22,16 +22,16 @@ A goal is a named household savings target with an optional deadline. It holds n
 
 Preconditions:
 
-- Sora is healthy at `http://127.0.0.1:3210`; `control-sora doctor` passes.
+- Sora is healthy at `$U`; `control-sora doctor` passes.
 - The seeded household is in place (`control-sora reset`): one goal `Vacation` (target $2,000, deadline 2027-06-01, contributed $300 via `Vacation fund`).
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
-- **Open the dashboard.** Run `control-sora browser open http://127.0.0.1:3210/`. The Goals card shows `Vacation` with a bar below `$300 of $2,000` and `by June 1st, 2027`.
-- **Create a goal.** Run `control-sora browser find role button click --name "New goal"`; the dialog reads `Add a goal`. Fill `Name` `Bike`, `Target amount` `800`, then `control-sora browser find role button click --name "Add"`. The row lists `Bike` and `$0 of $800`.
-- **Tag a transaction to it.** Run `New expense` and tag `Bike` in `Goal (optional)`; pick `Dining Out`, fill `$50`, click `Add`. The `Bike` row reads `$50 of $800`.
-- **Update the target.** Open the actions for the Bike goal, `Edit goal`; set `Target amount` `800` → `600` and save. The row reads `$50 of $600`.
-- **Delete the goal.** Open the actions for the Bike goal, `Delete`; the dialog reads `Delete goal "Bike"?`. Confirm; the row is gone.
-- **MCP.** `control-sora mcp list_goals` returns the same totals.
+- **Open the dashboard.** Run `control-sora browser open "$U/"`. The Goals card shows `Vacation`, `by June 1st, 2027`, the progress bar, and the line `15% · $300 of $2,000`. The bar comes before that line.
+- **Create a goal.** Run `control-sora browser find role button click --name "New goal"`; the dialog reads `Add a goal`. Fill `Name` `Bike`, `Target amount` `800`, then `control-sora browser find role button click --name "Add"`. The row reads `0% · $0 of $800`.
+- **Tag a transaction to it.** Run `New expense` and tag `Bike` in `Goal (optional)`; pick `Dining Out`, fill `$50`, click `Add`. The `Bike` row reads `6% · $50 of $800`.
+- **Update the target.** Open the actions for the Bike goal, `Edit goal`; set `Target amount` `800` → `600` and save. The percentage line changes accordingly.
+- **Delete the goal.** Open the actions for the Bike goal, click `Delete`; the dialog reads `Delete goal "Bike"?`. Confirm with the `Delete goal` button; the row is gone.
+- **MCP.** `control-sora mcp list_goals '{}'` returns the seeded goal with `target` `"2000.00"` and `contributed` `"300.00"`. Goal writes also take decimal strings.
 - **Proof.** Run `control-sora browser snapshot -i` and `control-sora browser screenshot <artifact-dir>/goals/dashboard.png`.
 
 ## Gotchas
@@ -40,4 +40,4 @@ Preconditions:
 - `goal_reached` fires once, when the shared transaction takes the goal over the line; later shared transactions never fire it again.
 - Tagging a transaction does not move any money; it is a label.
 - The progress bar always shows base progress, capped at 100%; an over-target goal reads at 100%.
-- The `Remove from ledger` on delete nulls the goal tag; the transactions stay.
+- Deleting a goal nulls the goal tag on its transactions; the money stays in the ledger. The confirm button is `Delete goal`, not `Remove from ledger`.
