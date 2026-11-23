@@ -180,7 +180,7 @@ function PresetButton({
   return (
     <Button
       className={cn(
-        "h-8 w-full justify-start rounded-md px-2.5 text-[13px] font-normal",
+        "h-8 w-full justify-start rounded-md px-2.5 text-sm font-normal",
         isSelected && "pointer-events-none bg-accent text-foreground",
       )}
       variant="ghost"
