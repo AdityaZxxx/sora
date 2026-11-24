@@ -5,7 +5,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { queryKeys } from "@/lib/query-keys";
 
-import { deleteBudget } from "../../_actions/budgets";
+import { deleteBudgetForm } from "../../_actions/budgets";
 
 interface Props {
   trigger?: ReactNode;
@@ -33,7 +33,7 @@ const DeleteBudgetDialog = ({ trigger, budget, open, onOpenChange }: Props) => (
     errorMessage="Unable to delete budget. Try again."
     toastId={`delete-budget-${budget.id}`}
     input={{ id: budget.id }}
-    action={deleteBudget}
+    formAction={deleteBudgetForm}
     queryKeys={[queryKeys.budgets]}
   />
 );

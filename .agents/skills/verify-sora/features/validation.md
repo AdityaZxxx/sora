@@ -27,7 +27,7 @@ The rules are written once, at the lib/ seam: each writer parses its own schema 
 
 ## How to get to it (user POV)
 
-- The web form; zod runs client-side for feedback, the seam re-parses before anything writes.
+- The web form; the server action parses FormData with zod and field errors return through action state, then the seam re-parses before anything writes.
 - The MCP surface, via an assistant; strict schemas reject non-conforming input before the seam sees it, and money input is text.
 - The CLI, which parses before it calls the tool; the seam re-parses regardless.
 

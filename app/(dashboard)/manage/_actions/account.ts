@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { deleteUserAccount } from "@/lib/account";
 import { type ActionResult } from "@/lib/action-result";
 import { auth, getSession } from "@/lib/auth";
+import { fromActionResult, type FormActionState } from "@/lib/form-action";
 
 export async function deleteAccount(): Promise<ActionResult> {
   const session = await getSession();
@@ -28,4 +29,11 @@ export async function deleteAccount(): Promise<ActionResult> {
   });
 
   redirect("/sign-in");
+}
+
+export async function deleteAccountForm(
+  _previous: FormActionState,
+  _formData: FormData,
+): Promise<FormActionState> {
+  return fromActionResult(await deleteAccount(), "Your account was deleted");
 }

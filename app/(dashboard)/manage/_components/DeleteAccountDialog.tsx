@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 
-import { deleteAccount } from "../_actions/account";
+import { deleteAccountForm } from "../_actions/account";
 
 interface Props {
   trigger: ReactNode;
@@ -24,7 +24,7 @@ const DeleteAccountDialog = ({ trigger }: Props) => {
       successMessage="Your account was deleted"
       errorMessage="Unable to delete your account. Try again."
       toastId="delete-account"
-      action={deleteAccount}
+      formAction={deleteAccountForm}
       queryKeys={[]}
       onSuccess={() => {
         router.replace("/sign-in");

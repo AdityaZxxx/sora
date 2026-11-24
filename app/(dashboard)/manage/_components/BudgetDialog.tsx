@@ -1,13 +1,14 @@
 "use client";
+import type { FormActionState } from "@/lib/form-action";
 import type { Household } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useActionState, useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,13 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { Currencies } from "@/lib/currencies";
-import { hasTwoDecimals } from "@/lib/helpers";
+import { initialFormActionState } from "@/lib/form-action";
 import { queryKeys } from "@/lib/query-keys";
 
-import { createBudget, updateBudget } from "../../_actions/budgets";
+import { createBudgetForm, updateBudgetForm } from "../../_actions/budgets";
 import CategoryPicker from "../../_components/CategoryPicker";
 
 interface Props {
@@ -64,211 +65,223 @@ const BudgetDialog = ({
   const [mode, setMode] = useState<"soft" | "hard">(
     budget?.mode === "hard" ? "hard" : "soft",
   );
-  const [errors, setErrors] = useState<{ category?: string; amount?: string }>(
-    {},
+  const hydrated = useHydrated();
+  const queryClient = useQueryClient();
+  const isEditing = Boolean(budget);
+  const serverAction = budget ? updateBudgetForm : createBudgetForm;
+  const [plainState, plainAction] = useActionState(
+    serverAction,
+    initialFormActionState,
   );
 
-  const queryClient = useQueryClient();
-
-  const isEditing = Boolean(budget);
-
   const currency = Currencies.find((c) => c.value === household?.currency);
-
   const numberParts = new Intl.NumberFormat(currency?.locale, {
     style: "decimal",
   }).formatToParts(1234.5);
   const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
   const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (values: {
-      id?: string;
-      category: string;
-      amount: number;
-      mode: "soft" | "hard";
-    }) => {
-      const res = values.id
-        ? await updateBudget({
-            id: values.id,
-            category: values.category,
-            amount: values.amount,
-            mode: values.mode,
-          })
-        : await createBudget({
-            category: values.category,
-            amount: values.amount,
-            mode: values.mode,
-          });
-      return unwrapAction(res);
-    },
-    onSuccess: () => {
-      toast.success(isEditing ? "Budget updated" : "Budget added", {
-        id: "budget-dialog",
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.budgets,
-      });
-      if (!isEditing) {
-        setCategory("");
-        setAmount(0);
-        setMode("soft");
-        setErrors({});
-      }
-      setOpen(false);
-    },
-    onError: (error) => {
-      toast.error(
-        actionErrorMessage(
-          error,
-          `Unable to ${isEditing ? "update" : "create"} budget. Try again.`,
-        ),
-        {
-          id: "budget-dialog",
-        },
-      );
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const nextErrors: { category?: string; amount?: string } = {};
-    if (!category) nextErrors.category = "Select a category";
-    if (!amount || amount <= 0)
-      nextErrors.amount = "Enter an amount greater than zero";
-    else if (!hasTwoDecimals(amount))
-      nextErrors.amount = "Enter an amount with at most two decimals";
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    toast.loading(isEditing ? "Updating budget…" : "Adding budget…", {
-      id: "budget-dialog",
-    });
-
-    mutate(
-      isEditing && budget
-        ? { id: budget.id, category, amount, mode }
-        : { category, amount, mode },
-    );
+  const resetDraft = () => {
+    setCategory("");
+    setAmount(0);
+    setMode("soft");
   };
 
+  const submit = async (
+    previous: FormActionState,
+    formData: FormData,
+  ): Promise<FormActionState> => {
+    const result = await serverAction(previous, formData);
+    if (result.status === "error") {
+      toast.error(result.message, { id: "budget-dialog" });
+      return result;
+    }
+
+    toast.success(result.message, { id: "budget-dialog" });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
+    if (!isEditing) {
+      resetDraft();
+    }
+    setOpen(false);
+    return result;
+  };
+
+  const [state, action] = useActionState(submit, initialFormActionState);
+
+  const hiddenFields = (
+    <>
+      {budget ? <input type="hidden" name="id" value={budget.id} /> : null}
+      <input type="hidden" name="category" value={category} />
+      <input type="hidden" name="mode" value={mode} />
+    </>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-lg">
-            {isEditing && budget
-              ? `Edit ${budget.category} budget`
-              : "Create a budget"}
-          </DialogTitle>
-        </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <Field data-invalid={Boolean(errors.category)}>
-            <FieldLabel htmlFor="budget-category">Category</FieldLabel>
-            <CategoryPicker
-              key={open ? "open" : "closed"}
-              id="budget-category"
-              type="expense"
-              value={category || undefined}
-              onChange={setCategory}
-              aria-invalid={Boolean(errors.category) || undefined}
-              aria-describedby={
-                errors.category ? "budget-category-error" : undefined
-              }
-            />
-            <FieldDescription className="text-xs sm:text-sm">
-              The monthly limit applies to expenses in this category
-            </FieldDescription>
-            {errors.category && (
-              <FieldError id="budget-category-error">
-                {errors.category}
-              </FieldError>
-            )}
-          </Field>
-
-          <Field data-invalid={Boolean(errors.amount)}>
-            <FieldLabel htmlFor="budget-amount">Monthly limit</FieldLabel>
-            <NumericFormat
-              customInput={Input}
-              id="budget-amount"
-              placeholder="0.00"
-              value={amount}
-              onValueChange={(values) => {
-                setAmount(values.floatValue ?? 0);
-              }}
-              thousandSeparator={thousandSeparator}
-              decimalSeparator={decimalSeparator}
-              decimalScale={2}
-              allowNegative={false}
-              inputMode="decimal"
-              aria-invalid={amount > 0 && !hasTwoDecimals(amount)}
-            />
-            <FieldDescription className="text-xs sm:text-sm">
-              Monthly limit for this category
-            </FieldDescription>
-            {errors.amount && (
-              <FieldError id="budget-amount-error">{errors.amount}</FieldError>
-            )}
-          </Field>
-
+    <>
+      {!hydrated ? (
+        <form action={plainAction} className="space-y-4 rounded-lg border p-4">
+          <h2 className="font-medium">
+            {isEditing ? `Edit ${budget?.category} budget` : "Create a budget"}
+          </h2>
+          {budget ? <input type="hidden" name="id" value={budget.id} /> : null}
           <Field>
-            <FieldLabel htmlFor="budget-mode">Mode</FieldLabel>
-            <Select
-              value={mode}
-              onValueChange={(value) => {
-                if (value === null) return;
-                setMode(value as "soft" | "hard");
-              }}
-              items={{
-                soft: "Soft (warn at 80% and 100%)",
-                hard: "Hard (block expenses over the limit)",
-              }}
-            >
-              <SelectTrigger id="budget-mode" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="soft">
-                  Soft (warn at 80% and 100%)
-                </SelectItem>
-                <SelectItem value="hard">
-                  Hard (block expenses over the limit)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldDescription className="text-xs sm:text-sm">
-              Hard budgets reject shared expenses that would exceed the limit
-            </FieldDescription>
+            <FieldLabel htmlFor="plain-budget-category">Category</FieldLabel>
+            <Input
+              id="plain-budget-category"
+              name="category"
+              defaultValue={category}
+            />
           </Field>
-
-          <DialogFooter>
-            <DialogClose
-              render={
-                <Button type="button" variant="outline" className="w-auto" />
-              }
+          <Field>
+            <FieldLabel htmlFor="plain-budget-amount">Monthly limit</FieldLabel>
+            <Input
+              id="plain-budget-amount"
+              name="amount"
+              type="text"
+              inputMode="decimal"
+              defaultValue={amount}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="plain-budget-mode">Mode</FieldLabel>
+            <select
+              id="plain-budget-mode"
+              name="mode"
+              defaultValue={mode}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
-              Cancel
-            </DialogClose>
-            <Button
-              type="submit"
-              disabled={isPending || !category || !(amount > 0)}
-              className="w-auto"
-            >
-              {!isPending ? (
-                isEditing ? (
-                  "Save"
-                ) : (
-                  "Create"
-                )
-              ) : (
-                <Loader2 className="animate-spin" />
-              )}
-            </Button>
-          </DialogFooter>
+              <option value="soft">Soft</option>
+              <option value="hard">Hard</option>
+            </select>
+          </Field>
+          {plainState.status === "error" ? (
+            <p role="alert" className="text-sm text-destructive">
+              {plainState.message}
+            </p>
+          ) : null}
+          <FormSubmitButton className="w-auto">
+            {isEditing ? "Save" : "Create"}
+          </FormSubmitButton>
         </form>
-      </DialogContent>
-    </Dialog>
+      ) : null}
+      <div className={hydrated ? undefined : "hidden"}>
+        <Dialog open={open} onOpenChange={setOpen}>
+          {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-lg">
+                {isEditing && budget
+                  ? `Edit ${budget.category} budget`
+                  : "Create a budget"}
+              </DialogTitle>
+            </DialogHeader>
+            <form action={action} className="space-y-4">
+              {hiddenFields}
+              <Field data-invalid={Boolean(state.fieldErrors.category)}>
+                <FieldLabel htmlFor="budget-category">Category</FieldLabel>
+                <CategoryPicker
+                  key={open ? "open" : "closed"}
+                  id="budget-category"
+                  type="expense"
+                  value={category || undefined}
+                  onChange={setCategory}
+                  aria-invalid={
+                    Boolean(state.fieldErrors.category) || undefined
+                  }
+                  aria-describedby={
+                    state.fieldErrors.category
+                      ? "budget-category-error"
+                      : undefined
+                  }
+                />
+                <FieldDescription className="text-xs sm:text-sm">
+                  The monthly limit applies to expenses in this category
+                </FieldDescription>
+                {state.fieldErrors.category ? (
+                  <FieldError id="budget-category-error">
+                    {state.fieldErrors.category}
+                  </FieldError>
+                ) : null}
+              </Field>
+
+              <Field data-invalid={Boolean(state.fieldErrors.amount)}>
+                <FieldLabel htmlFor="budget-amount">Monthly limit</FieldLabel>
+                <NumericFormat
+                  customInput={Input}
+                  id="budget-amount"
+                  name="amount"
+                  placeholder="0.00"
+                  value={amount}
+                  onValueChange={(next) => setAmount(next.floatValue ?? 0)}
+                  thousandSeparator={thousandSeparator}
+                  decimalSeparator={decimalSeparator}
+                  decimalScale={2}
+                  allowNegative={false}
+                  inputMode="decimal"
+                  aria-invalid={Boolean(state.fieldErrors.amount)}
+                />
+                <FieldDescription className="text-xs sm:text-sm">
+                  Monthly limit for this category
+                </FieldDescription>
+                {state.fieldErrors.amount ? (
+                  <FieldError id="budget-amount-error">
+                    {state.fieldErrors.amount}
+                  </FieldError>
+                ) : null}
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="budget-mode">Mode</FieldLabel>
+                <Select
+                  value={mode}
+                  onValueChange={(value) => {
+                    if (value === null) return;
+                    setMode(value as "soft" | "hard");
+                  }}
+                  items={{
+                    soft: "Soft (warn at 80% and 100%)",
+                    hard: "Hard (block expenses over the limit)",
+                  }}
+                >
+                  <SelectTrigger id="budget-mode" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="soft">
+                      Soft (warn at 80% and 100%)
+                    </SelectItem>
+                    <SelectItem value="hard">
+                      Hard (block expenses over the limit)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldDescription className="text-xs sm:text-sm">
+                  Hard budgets reject shared expenses that would exceed the
+                  limit
+                </FieldDescription>
+              </Field>
+
+              <DialogFooter>
+                <DialogClose
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-auto"
+                    />
+                  }
+                >
+                  Cancel
+                </DialogClose>
+                <FormSubmitButton className="w-auto">
+                  {isEditing ? "Save" : "Create"}
+                </FormSubmitButton>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };
 

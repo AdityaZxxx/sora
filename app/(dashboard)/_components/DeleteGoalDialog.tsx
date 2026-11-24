@@ -5,7 +5,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { type GoalWithProgress } from "@/lib/goals";
 import { queryKeys } from "@/lib/query-keys";
 
-import { deleteGoal } from "../_actions/goals";
+import { deleteGoalForm } from "../_actions/goals";
 
 interface Props {
   trigger?: ReactNode;
@@ -40,7 +40,7 @@ const DeleteGoalDialog = ({
       errorMessage="Unable to delete the goal. Refresh the page and try again."
       toastId={goalIdentifier}
       input={{ id: goal.id }}
-      action={deleteGoal}
+      formAction={deleteGoalForm}
       queryKeys={[queryKeys.goals]}
     />
   );

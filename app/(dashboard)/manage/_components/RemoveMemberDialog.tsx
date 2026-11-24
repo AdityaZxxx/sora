@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { queryKeys } from "@/lib/query-keys";
 
-import { removeMember } from "../_actions/membership";
+import { removeMemberForm } from "../_actions/membership";
 
 type Member = Awaited<ReturnType<typeof listMembers>>[number];
 
@@ -25,7 +25,7 @@ const RemoveMemberDialog = ({ trigger, member }: Props) => (
     errorMessage="Unable to remove this member. Try again."
     toastId={`remove-member-${member.userId}`}
     input={{ userId: member.userId }}
-    action={removeMember}
+    formAction={removeMemberForm}
     queryKeys={[queryKeys.householdMembers]}
   />
 );
