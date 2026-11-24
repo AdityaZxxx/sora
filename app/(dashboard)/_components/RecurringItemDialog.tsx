@@ -400,15 +400,11 @@ export default function RecurringItemDialog({
 
           <DialogFooter>
             <DialogClose
-              render={<Button variant="outline" className="w-full sm:w-auto" />}
+              render={<Button variant="outline" className="w-auto" />}
             >
               Cancel
             </DialogClose>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="w-full sm:w-auto"
-            >
+            <Button type="submit" disabled={isPending} className="w-auto">
               {isPending ? (
                 <Loader2 className="animate-spin" />
               ) : isEdit ? (

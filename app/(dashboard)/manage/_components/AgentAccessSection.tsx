@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -444,6 +445,11 @@ const CreateApiTokenDialog = ({
               {error && <FieldError>{error}</FieldError>}
 
               <DialogFooter>
+                <DialogClose
+                  render={<Button type="button" variant="outline" />}
+                >
+                  Cancel
+                </DialogClose>
                 <Button
                   type="submit"
                   disabled={

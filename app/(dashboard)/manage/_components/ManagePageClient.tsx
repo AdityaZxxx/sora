@@ -52,6 +52,7 @@ import DeleteCategoryDialog from "../../_components/DeletecategoryDialog";
 import EditCategoryDialog from "../../_components/EditCategoryDialog";
 import AccountSection from "./AccountSection";
 import AgentAccessSection from "./AgentAccessSection";
+import AppearanceSection from "./AppearanceSection";
 import BudgetsSection from "./BudgetsSection";
 import HouseholdSection from "./HouseholdSection";
 import InviteLinkDialog from "./InviteLinkDialog";
@@ -77,32 +78,36 @@ const ManagePageClient = ({ household }: { household: Household }) => {
         <div className="space-y-8">
           <HouseholdSection canEdit={canEdit} />
 
-          {canEdit && (
-            <section>
-              <Card className="transition-all hover:shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-lg">Invite link</CardTitle>
-                  <CardDescription>
-                    Share a revocable link or QR code to add another member to
-                    your household
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <InviteLinkDialog
-                    trigger={
-                      <Button className="gap-2">
-                        <Link2 className="h-4 w-4" />
-                        Manage invite link
-                      </Button>
-                    }
-                  />
-                </CardContent>
-              </Card>
-            </section>
-          )}
+          <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
+            {canEdit && (
+              <section className="h-full">
+                <Card className="h-full transition-all hover:shadow-md">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Invite link</CardTitle>
+                    <CardDescription>
+                      Share a revocable link or QR code to add another member to
+                      your household
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <InviteLinkDialog
+                      trigger={
+                        <Button className="gap-2">
+                          <Link2 className="h-4 w-4" />
+                          Manage invite link
+                        </Button>
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
+            <AppearanceSection />
+          </div>
 
           <AgentAccessSection
-            key={household.id}
+            key={`agent-access-${household.id}`}
             canEdit={canEdit}
             agentAccessEnabled={household.agentAccessEnabled}
           />
@@ -139,7 +144,7 @@ const ManagePageClient = ({ household }: { household: Household }) => {
           </section>
 
           <BudgetsSection
-            key={household.id}
+            key={`budgets-${household.id}`}
             canEdit={canEdit}
             household={household}
           />
