@@ -28,11 +28,13 @@ interface Props {
   from: Date;
   to: Date;
   currency: string | null;
+  initialData?: GetCategoriesStatsResponseType;
 }
 
-const CategoriesStats = ({ from, to, currency }: Props) => {
+const CategoriesStats = ({ from, to, currency, initialData }: Props) => {
   const { data: stats, isPending } = useQuery<GetCategoriesStatsResponseType>({
     queryKey: queryKeys.overview.categories(from, to),
+    initialData,
     queryFn: () =>
       fetchReadJson<GetCategoriesStatsResponseType>(
         "/api/stats/categories",

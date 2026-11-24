@@ -17,7 +17,6 @@ import { countHouseholdMembers, requireHousehold } from "@/lib/household";
 import { getMonthlyRollup } from "@/lib/insights";
 import { queryKeys } from "@/lib/query-keys";
 import { listRecurringItems } from "@/lib/recurring";
-import { getBalanceStats, getCategoriesStats } from "@/lib/transactions";
 
 export type DashboardPayload = {
   userName: string;
@@ -33,8 +32,6 @@ export type DashboardPayload = {
   balances: Awaited<ReturnType<typeof getMemberBalances>>;
   simplifiedDebts: Awaited<ReturnType<typeof getSimplifiedTransfers>>;
   goals: Awaited<ReturnType<typeof getGoalsWithProgress>>;
-  stats: Awaited<ReturnType<typeof getBalanceStats>>;
-  categoriesStats: Awaited<ReturnType<typeof getCategoriesStats>>;
   historyData: Awaited<ReturnType<typeof getHistoryData>>;
 };
 
@@ -68,8 +65,6 @@ export async function loadDashboard(): Promise<DashboardPayload | null> {
     balances,
     simplifiedDebts,
     goals,
-    stats,
-    categoriesStats,
     historyData,
   ] = await Promise.all([
     countHouseholdMembers(householdId),
@@ -80,8 +75,6 @@ export async function loadDashboard(): Promise<DashboardPayload | null> {
     getMemberBalances(householdId, session.user.id),
     getSimplifiedTransfers(householdId),
     getGoalsWithProgress(householdId),
-    getBalanceStats(householdId, dateRange.from, dateRange.to),
-    getCategoriesStats(householdId, dateRange.from, dateRange.to),
     getHistoryData(householdId, historyView.timeframe, historyView.period),
   ]);
 
@@ -99,8 +92,6 @@ export async function loadDashboard(): Promise<DashboardPayload | null> {
     balances,
     simplifiedDebts,
     goals,
-    stats,
-    categoriesStats,
     historyData,
   };
 }
@@ -117,14 +108,6 @@ export function dashboardHydrationState(
   queryClient.setQueryData(queryKeys.balances, payload.balances);
   queryClient.setQueryData(queryKeys.simplifiedDebts, payload.simplifiedDebts);
   queryClient.setQueryData(queryKeys.goals, payload.goals);
-  queryClient.setQueryData(
-    queryKeys.overview.stats(payload.dateRange.from, payload.dateRange.to),
-    payload.stats,
-  );
-  queryClient.setQueryData(
-    queryKeys.overview.categories(payload.dateRange.from, payload.dateRange.to),
-    payload.categoriesStats,
-  );
   queryClient.setQueryData(
     queryKeys.overview.history(
       payload.historyView.timeframe,

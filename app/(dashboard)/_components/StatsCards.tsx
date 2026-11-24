@@ -1,4 +1,5 @@
 "use client";
+import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { ReactNode } from "react";
 
 import { TrendingDown, TrendingUp, Wallet } from "lucide-react";
@@ -15,10 +16,11 @@ interface Props {
   from: Date;
   to: Date;
   currency: string | null;
+  initialData?: GetBalanceStatsResponseType;
 }
 
-const StatsCards = ({ from, to, currency }: Props) => {
-  const { data, isPending } = useBalanceStats(from, to);
+const StatsCards = ({ from, to, currency, initialData }: Props) => {
+  const { data, isPending } = useBalanceStats(from, to, true, initialData);
 
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 

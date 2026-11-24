@@ -9,9 +9,15 @@ import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-export function useBalanceStats(from: Date, to: Date, enabled = true) {
+export function useBalanceStats(
+  from: Date,
+  to: Date,
+  enabled = true,
+  initialData?: GetBalanceStatsResponseType,
+) {
   return useQuery<GetBalanceStatsResponseType>({
     queryKey: queryKeys.overview.stats(from, to),
+    initialData,
     queryFn: async () => {
       try {
         return await fetchReadJson<GetBalanceStatsResponseType>(
