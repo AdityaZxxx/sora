@@ -400,7 +400,9 @@ export default function RecurringItemDialog({
 
           <DialogFooter>
             <DialogClose
-              render={<Button variant="outline" className="w-auto" />}
+              render={
+                <Button type="button" variant="outline" className="w-auto" />
+              }
             >
               Cancel
             </DialogClose>
