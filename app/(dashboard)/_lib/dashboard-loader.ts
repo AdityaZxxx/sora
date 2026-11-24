@@ -110,7 +110,6 @@ export function dashboardHydrationState(
 ): DehydratedState {
   const queryClient = new QueryClient();
 
-  queryClient.setQueryData(queryKeys.memberCount, payload.memberCount);
   queryClient.setQueryData(queryKeys.insights, payload.insights);
   queryClient.setQueryData(queryKeys.budgets, payload.budgets);
   queryClient.setQueryData(queryKeys.recurringItems, payload.recurringItems);

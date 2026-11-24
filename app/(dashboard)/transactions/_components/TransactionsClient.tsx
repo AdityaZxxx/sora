@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInDays, startOfMonth } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,11 +9,14 @@ import { MAX_DATE_RANGE } from "@/lib/constants";
 
 import TransactionTable from "./TransactionTable";
 
-const TransactionsClient = ({ currency }: { currency: string }) => {
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => ({
-    from: startOfMonth(new Date()),
-    to: new Date(),
-  }));
+const TransactionsClient = ({
+  currency,
+  initialDateRange,
+}: {
+  currency: string;
+  initialDateRange: { from: Date; to: Date };
+}) => {
+  const [dateRange, setDateRange] = useState(initialDateRange);
   return (
     <div className="min-h-screen bg-background">
       <header className="container pt-6">

@@ -65,7 +65,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
 import { useSession } from "@/lib/auth-client";
-import { QUERY_STALE_TIME } from "@/lib/constants";
+import {
+  QUERY_STALE_TIME,
+  TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,
+} from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { formatDateForDisplay, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
@@ -240,7 +243,7 @@ const TransactionTable = ({ from, to, currency }: Props) => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,
   });
   const formatAmount = getFormatterForCurrency(currency).format;
   const columns = buildColumns(formatAmount);
