@@ -53,6 +53,13 @@ export function useHouseholdEvents() {
 
       const change = parsed.data;
       if (
+        change.recipientId &&
+        viewerId.current &&
+        change.recipientId !== viewerId.current
+      ) {
+        return;
+      }
+      if (
         change.resource !== "notifications" &&
         change.actorId &&
         change.actorId !== viewerId.current

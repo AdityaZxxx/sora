@@ -21,6 +21,7 @@ type PublishInput = {
   actor: Actor;
   resource: HouseholdChangeResource;
   message: string;
+  recipientId?: string;
   executor?: QueryExecutor;
 };
 
@@ -29,6 +30,7 @@ export async function publishHouseholdChange({
   actor,
   resource,
   message,
+  recipientId,
   executor = prisma,
 }: PublishInput) {
   const change = householdChangeSchema.parse({
@@ -37,6 +39,7 @@ export async function publishHouseholdChange({
     resource,
     message: `${actor.actorName} ${message}`,
     at: new Date().toISOString(),
+    ...(recipientId && { recipientId }),
   });
 
   await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;

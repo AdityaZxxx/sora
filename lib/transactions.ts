@@ -35,6 +35,8 @@ type TransactionCursor = { date: string; id: string };
 const IDEMPOTENCY_KEY_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const PERSONAL_TRANSACTION_CHANGE_MESSAGE = "updated a personal transaction";
+
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(
     JSON.stringify({
@@ -494,7 +496,17 @@ async function createTransactionWithDeps(
         });
       }
 
-      if (!shared) return transaction;
+      if (!shared) {
+        await publishHouseholdChange({
+          householdId,
+          actor,
+          resource: "transactions",
+          message: PERSONAL_TRANSACTION_CHANGE_MESSAGE,
+          recipientId: userId,
+          executor: tx,
+        });
+        return transaction;
+      }
 
       await incrementRollups(tx, {
         householdId,
@@ -590,6 +602,14 @@ export async function deleteTransaction(caller: Caller, id: string) {
     }
 
     if (!transaction.shared) {
+      await publishHouseholdChange({
+        householdId,
+        actor: actorFor(caller),
+        resource: "transactions",
+        message: PERSONAL_TRANSACTION_CHANGE_MESSAGE,
+        recipientId: transaction.addedById,
+        executor: tx,
+      });
       return;
     }
 

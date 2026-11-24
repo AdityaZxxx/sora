@@ -28,6 +28,7 @@ export const householdChangeSchema = z.object({
   resource: z.enum(HOUSEHOLD_CHANGE_RESOURCES),
   message: z.string().min(1),
   at: z.string(),
+  recipientId: z.string().optional(),
 });
 
 export type HouseholdChange = z.infer<typeof householdChangeSchema>;
@@ -75,10 +76,11 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
     clientKeys: [queryKeys.goals, queryKeys.overview.all],
   },
   categories: {
-    serverTags: ["categories"],
+    serverTags: ["categories", "transactions", "budgets", "recurring"],
     clientKeys: [
       queryKeys.categories(),
       queryKeys.transactions.all,
+      queryKeys.budgets,
       queryKeys.overview.all,
       queryKeys.recurringItems,
     ],
