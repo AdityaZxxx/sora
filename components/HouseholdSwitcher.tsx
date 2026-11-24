@@ -208,11 +208,7 @@ export default function HouseholdSwitcher({
           <DialogFooter>
             <DialogClose
               render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                />
+                <Button type="button" variant="outline" className="w-auto" />
               }
             >
               Cancel
@@ -220,7 +216,7 @@ export default function HouseholdSwitcher({
             <Button
               disabled={isCreating || !name.trim()}
               onClick={() => create()}
-              className="w-full sm:w-auto"
+              className="w-auto"
             >
               {isCreating ? <Loader2 className="animate-spin" /> : "Add"}
             </Button>

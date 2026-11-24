@@ -245,11 +245,7 @@ const BudgetDialog = ({
           <DialogFooter>
             <DialogClose
               render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                />
+                <Button type="button" variant="outline" className="w-auto" />
               }
             >
               Cancel
@@ -257,7 +253,7 @@ const BudgetDialog = ({
             <Button
               type="submit"
               disabled={isPending || !category || !(amount > 0)}
-              className="w-full sm:w-auto"
+              className="w-auto"
             >
               {!isPending ? (
                 isEditing ? (

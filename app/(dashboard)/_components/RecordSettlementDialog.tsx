@@ -180,11 +180,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
           <DialogFooter>
             <DialogClose
               render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                />
+                <Button type="button" variant="outline" className="w-auto" />
               }
             >
               Cancel
@@ -197,7 +193,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
                 !(amount > 0) ||
                 !hasTwoDecimals(amount)
               }
-              className="w-full sm:w-auto"
+              className="w-auto"
             >
               {!isPending ? "Record" : <Loader2 className="animate-spin" />}
             </Button>

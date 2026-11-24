@@ -332,18 +332,14 @@ const GoalFormDialog = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-auto"
                   onClick={() => form.reset(goal ? fromGoal(goal) : EMPTY_FORM)}
                 />
               }
             >
               Cancel
             </DialogClose>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="w-full sm:w-auto"
-            >
+            <Button type="submit" disabled={isPending} className="w-auto">
               {!isPending ? copy.submit : <Loader2 className="animate-spin" />}
             </Button>
           </DialogFooter>

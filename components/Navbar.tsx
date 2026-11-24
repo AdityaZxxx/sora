@@ -19,7 +19,6 @@ import { cn } from "../lib/utils";
 import HouseholdSwitcher from "./HouseholdSwitcher";
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
-import { ThemeSwitcherBtn } from "./ThemeSwitcherBtn";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button, buttonVariants } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -193,7 +192,6 @@ function MobileMenu() {
               ) : (
                 <span />
               )}
-              <ThemeSwitcherBtn />
             </div>
           </footer>
         </SheetContent>
@@ -205,7 +203,6 @@ function MobileMenu() {
 function NavbarActions() {
   return (
     <>
-      <ThemeSwitcherBtn />
       <UserMenu />
     </>
   );

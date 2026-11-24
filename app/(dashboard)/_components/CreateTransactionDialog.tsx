@@ -251,7 +251,7 @@ const CreateTransactionDialog = ({
       <DialogTrigger render={trigger as ReactElement} />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-lg">
+          <DialogTitle className="text-xl sm:text-xl">
             Add a{" "}
             <span
               className={cn(
@@ -600,7 +600,7 @@ const CreateTransactionDialog = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-auto"
                   onClick={() => form.reset()}
                 />
               }
@@ -610,7 +610,7 @@ const CreateTransactionDialog = ({
             <Button
               type="submit"
               disabled={isPending || splitInvalid}
-              className="w-full sm:w-auto"
+              className="w-auto"
             >
               {!isPending ? "Add" : <Loader2 className="animate-spin" />}
             </Button>

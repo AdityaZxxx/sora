@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -220,6 +221,9 @@ const InviteLinkDialog = ({ trigger }: Props) => {
         )}
 
         <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" />}>
+            Cancel
+          </DialogClose>
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}

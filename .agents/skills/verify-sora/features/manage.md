@@ -1,11 +1,12 @@
 # Manage
 
-The manage page is the household admin surface: the space name, the agent access switch, members, currency settings, categories, budgets, the privacy/export card, and account deletion.
+The manage page is the household admin surface: the space name, appearance, the agent access switch, members, currency settings, categories, budgets, the privacy/export card, and account deletion.
 
 ## Sub-features
 
 - `manage-space-rename` a full member can rename the household.
 - `manage-invite-link` a full member can create a revocable invite link or QR code.
+- `manage-appearance` a member can choose light, dark, or system theme through icon-only tabs with tooltips. The choice persists on that device.
 - `manage-invite-use` a recipient opens the link, signs in, and is added to the household.
 - `manage-agent-access` covered by [Agent access](./agent-access.md); the card sits above the members section.
 - `manage-members` lists every member with their role; a full member can change roles.
@@ -32,7 +33,8 @@ Preconditions:
 - The seeded household is in place (`control-sora reset`): two full members; agent access is on with two tokens.
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
-- **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Your space`, `Invite link`, `Agent access`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`, `Your data`, `Delete account`. For a view-only caller the `Invite link` card is absent.
+- **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Your space`, `Invite link`, `Appearance`, `Agent access`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`, `Your data`, `Delete account`. For a view-only caller the `Invite link` card is absent.
+- **Appearance.** The `Appearance` card sits beside `Invite link` on desktop and directly below it on mobile. Its `Light theme`, `Dark theme`, and `System theme` tabs show matching tooltips. Selecting a tab applies and stores that theme; light and dark remain selected after a reload, while system follows the device's color-scheme preference. The navbar and mobile navigation sheet have no theme control.
 - **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. A full member sees the role combobox `Access for <name>` with `Full edit` and `View only`; a view-only member sees no role controls.
 - **Rename the space.** Run `control-sora browser find role button click --name "Rename"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
 - **Currency.** The `Currency settings` card shows a combobox (`🇺🇸 United States Dollar`). Picking another currency calls the update action immediately; no separate save step exists.
