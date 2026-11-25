@@ -4,13 +4,13 @@ import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 
 import { unauthorized } from "@/lib/http-error";
+import { safeNext } from "@/lib/safe-next";
 
-type RouteSegments = readonly string[];
+const guestRoutes = [["sign-in"]];
 
-const guestRoutes: readonly RouteSegments[] = [["sign-in"], ["sign-up"]];
-
-const publicRoutes: readonly RouteSegments[] = [
+const publicRoutes = [
   ...guestRoutes,
+  ["sign-up"],
   ["invite"],
   ["privacy"],
   ["api", "auth"],
@@ -22,7 +22,7 @@ const publicRoutes: readonly RouteSegments[] = [
   ["opengraph-image"],
 ];
 
-function matchesRoute(pathname: string, segments: RouteSegments) {
+function matchesRoute(pathname: string, segments: readonly string[]) {
   const parts = pathname.split("/").filter(Boolean);
   return (
     parts.length >= segments.length &&
@@ -30,26 +30,23 @@ function matchesRoute(pathname: string, segments: RouteSegments) {
   );
 }
 
-function matchesAnyRoute(pathname: string, routes: readonly RouteSegments[]) {
-  return routes.some((segments) => matchesRoute(pathname, segments));
-}
-
-function destinationAfterSignIn(request: NextRequest) {
-  const next = request.nextUrl.searchParams.get("next");
-  return next?.startsWith("/") && !next.startsWith("//") ? next : "/";
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
 
-  if (sessionCookie && matchesAnyRoute(pathname, guestRoutes)) {
+  if (
+    sessionCookie &&
+    guestRoutes.some((segments) => matchesRoute(pathname, segments))
+  ) {
     return NextResponse.redirect(
-      new URL(destinationAfterSignIn(request), request.url),
+      new URL(
+        safeNext(request.nextUrl.searchParams.get("next")) ?? "/",
+        request.url,
+      ),
     );
   }
 
-  if (matchesAnyRoute(pathname, publicRoutes)) {
+  if (publicRoutes.some((segments) => matchesRoute(pathname, segments))) {
     return NextResponse.next();
   }
 

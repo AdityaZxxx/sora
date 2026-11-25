@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 
 import { logClientError } from "@/instrumentation-client";
+import { getClientRequestId } from "@/lib/client-request-id";
 import { errorFields } from "@/lib/error-fields";
 
 export default function GlobalError({
@@ -16,21 +17,18 @@ export default function GlobalError({
   retry: () => void;
 }) {
   useEffect(() => {
-    logClientError("client.global-error", errorFields(error));
+    logClientError("client.global-error", {
+      ...errorFields(error),
+      requestId: getClientRequestId(),
+    });
 
-    let storedTheme: string | null;
-    try {
-      storedTheme = window.localStorage.getItem("theme");
-    } catch {
-      storedTheme = null;
-    }
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.documentElement.classList.toggle(
-      "dark",
-      storedTheme === "dark" || (storedTheme !== "light" && prefersDark),
-    );
+    const storedTheme = window.localStorage.getItem("theme");
+    const dark =
+      storedTheme === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        : storedTheme !== "light";
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
   }, [error]);
 
   return (

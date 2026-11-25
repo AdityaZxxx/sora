@@ -2,9 +2,6 @@ import type { Instrumentation } from "next";
 
 import { errorFields } from "@/lib/error-fields";
 
-type RequestInfo = Parameters<Instrumentation.onRequestError>[1];
-type ErrorContext = Parameters<Instrumentation.onRequestError>[2];
-
 const edgeLog = (
   level: "info" | "error",
   event: string,
@@ -22,8 +19,8 @@ const edgeLog = (
 
 function requestErrorFields(
   cause: unknown,
-  request: RequestInfo,
-  context: ErrorContext,
+  request: Parameters<Instrumentation.onRequestError>[1],
+  context: Parameters<Instrumentation.onRequestError>[2],
 ) {
   const details = errorFields(cause);
   return {
@@ -62,14 +59,10 @@ export const onRequestError: Instrumentation.onRequestError = async (
   }
 
   const { logError } = await import("@/lib/log");
-  const { getRequestId, withRequestId } = await import("@/lib/request-id");
+  const { errorRequestId, getRequestId } = await import("@/lib/request-id");
 
-  if (getRequestId()) {
-    logError("request.error", fields);
-    return;
-  }
-
-  await withRequestId(async () => {
-    logError("request.error", fields);
+  logError("request.error", {
+    ...fields,
+    requestId: getRequestId() ?? errorRequestId(error),
   });
 };

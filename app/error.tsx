@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { logClientError } from "@/instrumentation-client";
+import { getClientRequestId } from "@/lib/client-request-id";
 import { errorFields } from "@/lib/error-fields";
 
 export default function Error({
@@ -23,7 +24,10 @@ export default function Error({
   retry: () => void;
 }) {
   useEffect(() => {
-    logClientError("client.render-failed", errorFields(error));
+    logClientError("client.render-failed", {
+      ...errorFields(error),
+      requestId: getClientRequestId(),
+    });
   }, [error]);
 
   return (

@@ -6,7 +6,7 @@ import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { rejection, unauthorized } from "@/lib/http-error";
 import { logError, logInfo, logWarn } from "@/lib/log";
-import { withRequestId } from "@/lib/request-id";
+import { rememberErrorRequestId, withRequestId } from "@/lib/request-id";
 
 export { rejection, unauthorized } from "@/lib/http-error";
 
@@ -69,6 +69,7 @@ export async function withHouseholdRoute(
         durationMs,
         error: cause instanceof Error ? cause.message : String(cause),
       });
+      rememberErrorRequestId(cause);
       throw cause;
     }
   });

@@ -17,6 +17,7 @@ export type LogFields = {
   value?: number;
   rating?: string;
   status?: number;
+  requestId?: string;
 };
 
 export function log(
@@ -46,6 +47,7 @@ export function log(
       "value",
       "rating",
       "status",
+      "requestId",
     ] as const) {
       const value = fields[key];
       if (value !== undefined) line[key] = value;

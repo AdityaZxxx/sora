@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
+import { safeNext } from "@/lib/safe-next";
 
-// `//host` is protocol-relative and leaves the origin, so the guard rejects it.
 export const requireGuest = async (next?: string | string[]) => {
-  const safeNext =
-    typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
-      ? next
-      : undefined;
+  const destination = safeNext(next);
 
   if (await getSession()) {
-    redirect(safeNext ?? "/");
+    redirect(destination ?? "/");
   }
 
-  return safeNext;
+  return destination;
 };
