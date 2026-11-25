@@ -33,6 +33,13 @@ function requestErrorFields(
   };
 }
 
+function headerRequestId(
+  headers: Parameters<Instrumentation.onRequestError>[1]["headers"],
+) {
+  const value = headers["x-request-id"];
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") {
     edgeLog("info", "instrumentation.ready");
@@ -63,6 +70,10 @@ export const onRequestError: Instrumentation.onRequestError = async (
 
   logError("request.error", {
     ...fields,
-    requestId: getRequestId() ?? errorRequestId(error),
+    requestId:
+      getRequestId() ??
+      errorRequestId(error) ??
+      headerRequestId(request.headers) ??
+      crypto.randomUUID(),
   });
 };

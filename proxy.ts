@@ -24,6 +24,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
 
+  // Signed-in visitors are bounced off sign-in at the edge, while sign-up stays open there and is handled by the page-level guest check.
   if (
     sessionCookie &&
     edgeRedirectRoutes.some((segments) => matchesRoute(pathname, segments))
