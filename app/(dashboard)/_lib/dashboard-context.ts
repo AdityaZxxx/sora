@@ -2,8 +2,8 @@ import type { Period, Timeframe } from "@/lib/types";
 
 import { cacheLife } from "next/cache";
 
-import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
+import { canManage, canWrite } from "@/lib/roles";
 import { countWalletMembers, requireWallet } from "@/lib/wallet";
 
 export type DashboardView = {
@@ -18,6 +18,7 @@ export type DashboardContext = DashboardView & {
   userName: string;
   memberCount: number;
   canEdit: boolean;
+  canManage: boolean;
 };
 
 function resolveDashboardView(): DashboardView {
@@ -50,7 +51,8 @@ export async function getDashboardContext(): Promise<DashboardContext | null> {
     userId: result.session.user.id,
     userName: result.session.user.name,
     memberCount: await countWalletMembers(result.wallet.id),
-    canEdit: result.membership.role !== VIEW_ONLY_ROLE,
+    canEdit: canWrite(result.membership.role),
+    canManage: canManage(result.membership.role),
     ...resolveDashboardView(),
   };
 }

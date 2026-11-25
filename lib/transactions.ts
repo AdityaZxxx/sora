@@ -8,7 +8,12 @@ import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import {
+  actorFor,
+  assertCallerCanEditEntry,
+  assertCallerCanWrite,
+  type Caller,
+} from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -319,7 +324,7 @@ async function createTransactionWithDeps(
   input: CreateTransactionInput,
   deps: CreateTransactionDeps,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
   const { walletId, userId } = caller;
   const actor = actorFor(caller);
 
@@ -535,7 +540,6 @@ async function createTransactionWithDeps(
 }
 
 export async function deleteTransaction(caller: Caller, id: string) {
-  assertCallerFullMember(caller);
   const { walletId } = caller;
 
   const parsedId = DeleteIdSchema.safeParse({ id });
@@ -555,6 +559,8 @@ export async function deleteTransaction(caller: Caller, id: string) {
   if (!transaction) {
     throw new DomainError("Transaction not found");
   }
+
+  assertCallerCanEditEntry(caller, transaction.addedById);
 
   await prisma.$transaction(async (tx) => {
     const deleted = await tx.transaction.deleteMany({

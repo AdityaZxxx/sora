@@ -59,7 +59,7 @@ import MembersSection from "./MembersSection";
 import WalletSection from "./WalletSection";
 
 const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
-  const { canEdit } = useCallerRole();
+  const { canEdit, canManage } = useCallerRole();
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,10 +76,10 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
 
       <div className="container py-8">
         <div className="space-y-8">
-          <WalletSection canEdit={canEdit} />
+          <WalletSection canEdit={canManage} />
 
           <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
-            {canEdit && (
+            {canManage ? (
               <section className="h-full">
                 <Card className="h-full transition-all hover:shadow-md">
                   <CardHeader>
@@ -101,6 +101,10 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                   </CardContent>
                 </Card>
               </section>
+            ) : (
+              <p className="self-center text-sm text-muted-foreground">
+                Only an owner or co-owner can manage invite links here.
+              </p>
             )}
 
             <AppearanceSection />
@@ -108,7 +112,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
 
           <AgentAccessSection
             key={`agent-access-${wallet.id}`}
-            canEdit={canEdit}
+            canEdit={canManage}
             agentAccessEnabled={wallet.agentAccessEnabled}
           />
 
@@ -123,12 +127,18 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="max-w-xs">
-                  <CurrencyComboBox
-                    key={wallet.id}
-                    currency={wallet.currency ?? DEFAULT_CURRENCY}
-                  />
-                </div>
+                {canManage ? (
+                  <div className="max-w-xs">
+                    <CurrencyComboBox
+                      key={wallet.id}
+                      currency={wallet.currency ?? DEFAULT_CURRENCY}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Only an owner or co-owner can change the currency.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </section>
@@ -138,14 +148,22 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
               Transaction categories
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
-              <CategoryList type="income" canEdit={canEdit} />
-              <CategoryList type="expense" canEdit={canEdit} />
+              <CategoryList
+                type="income"
+                canEdit={canEdit}
+                canManage={canManage}
+              />
+              <CategoryList
+                type="expense"
+                canEdit={canEdit}
+                canManage={canManage}
+              />
             </div>
           </section>
 
           <BudgetsSection
             key={`budgets-${wallet.id}`}
-            canEdit={canEdit}
+            canEdit={canManage}
             wallet={wallet}
           />
 
@@ -163,9 +181,11 @@ const COLLAPSED_CATEGORIES = 6;
 function CategoryList({
   type,
   canEdit,
+  canManage,
 }: {
   type: TransactionType;
   canEdit: boolean;
+  canManage: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const {
@@ -243,7 +263,7 @@ function CategoryList({
                   <CategoryCard
                     key={category.name}
                     category={category}
-                    canEdit={canEdit}
+                    canManage={canManage}
                   />
                 ))}
               </div>
@@ -314,10 +334,10 @@ function ErrorState({
 
 function CategoryCard({
   category,
-  canEdit,
+  canManage,
 }: {
   category: Category;
-  canEdit: boolean;
+  canManage: boolean;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -335,7 +355,7 @@ function CategoryCard({
           <span className="truncate font-medium">{category.name}</span>
         </div>
 
-        {canEdit && (
+        {canManage && (
           <Tooltip>
             <DropdownMenu>
               <TooltipTrigger
@@ -379,7 +399,7 @@ function CategoryCard({
           </Tooltip>
         )}
       </div>
-      {canEdit && (
+      {canManage && (
         <>
           <EditCategoryDialog
             category={category}

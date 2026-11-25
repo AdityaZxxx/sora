@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import { actorFor, assertCallerCanManage, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
@@ -130,7 +130,7 @@ export async function createWalletBudget(
   caller: Caller,
   input: CreateBudgetInput,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = CreateBudgetSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid budget");
@@ -166,7 +166,7 @@ export async function updateWalletBudget(
   caller: Caller,
   input: UpdateBudgetInput,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = UpdateBudgetSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid budget");
@@ -225,7 +225,7 @@ export async function setWalletBudget(
 }
 
 export async function deleteWalletBudget(caller: Caller, id: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {

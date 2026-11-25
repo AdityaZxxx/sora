@@ -13,8 +13,23 @@ The space where a person keeps their finances, alone or shared. A couple or fami
 _Avoid_: account, family, budget space, and "household" in copy aimed at a solo user
 
 **Member**:
-A user who belongs to a household. A member is either a full member, who can add, edit, and delete transactions, invite others, and remove others, or a view-only member, who can only read the ledger. There is no owner: full members all have equal rights.
-_Avoid_: partner, owner (there is no owner role)
+A user who belongs to a wallet. Every member has one role: owner, co-owner, member or viewer.
+_Avoid_: partner
+
+**Role**:
+A wallet membership's level of access. Owner manages roles and transfers ownership. Co-owner invites, removes non-owners and changes settings. Member writes transactions, categories and settlements, and edits only their own entries. Viewer reads without writing.
+
+**Owner**:
+The single member who manages roles in a shared wallet. The wallet creator becomes owner, and ownership transfers before the owner leaves.
+_Avoid_: admin
+
+**Co-owner**:
+A member who invites, removes non-owners and changes wallet settings, but cannot change roles or remove the owner.
+_Avoid_: admin
+
+**Viewer**:
+A member who reads the ledger, balances, budgets and goals without writing.
+_Avoid_: view-only member
 
 **Invite link**:
 A revocable, shareable link (also shown as a QR code) that adds a person to a household when they sign in through it.

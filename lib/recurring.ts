@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import { actorFor, assertCallerCanWrite, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
@@ -209,7 +209,7 @@ export async function createRecurringItem(
   caller: Caller,
   input: CreateRecurringItemType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
   const parsed = CreateRecurringItemSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid bill");
@@ -249,7 +249,7 @@ export async function updateRecurringItem(
   caller: Caller,
   input: UpdateRecurringItemType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
   const parsed = UpdateRecurringItemSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid bill");
@@ -305,7 +305,7 @@ export async function setRecurringItemPaused(
   id: string,
   paused: boolean,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
 
   const parsedBody = SetRecurringItemPausedSchema.safeParse({ id, paused });
   if (!parsedBody.success) {
@@ -335,7 +335,7 @@ export async function setRecurringItemPaused(
 }
 
 export async function deleteRecurringItem(caller: Caller, id: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {

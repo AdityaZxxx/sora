@@ -4,7 +4,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_RESOURCE, walletTag, revalidateWallet } from "@/lib/cache";
 import {
   actorFor,
-  assertCallerFullMember,
+  assertCallerCanManage,
   type Actor,
   type Caller,
 } from "@/lib/caller";
@@ -75,7 +75,7 @@ export async function updateWalletGoal(
   caller: Caller,
   input: UpdateGoalSchemaType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = UpdateGoalSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid goal");
@@ -122,7 +122,7 @@ export type CreateGoalInput = {
 };
 
 export async function createWalletGoal(caller: Caller, input: CreateGoalInput) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = CreateGoalSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid goal");
@@ -190,7 +190,7 @@ export async function notifyIfGoalReached(input: {
 }
 
 export async function deleteWalletGoal(caller: Caller, id: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {

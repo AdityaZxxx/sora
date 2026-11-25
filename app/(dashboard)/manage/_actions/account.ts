@@ -5,7 +5,7 @@ import type { FormActionState } from "@/lib/form-action";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { deleteUserAccount } from "@/lib/account";
+import { assertAccountDeletable, deleteUserAccount } from "@/lib/account";
 import { auth, getSession } from "@/lib/auth";
 
 export async function deleteAccountForm(
@@ -16,6 +16,8 @@ export async function deleteAccountForm(
   if (!session) {
     redirect("/sign-in");
   }
+
+  await assertAccountDeletable(session.user.id);
 
   await auth.api.signOut({
     headers: await headers(),

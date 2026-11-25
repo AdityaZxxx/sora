@@ -30,15 +30,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useCallerRole } from "@/hooks/use-members";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import {
-  FULL_MEMBER_ROLE,
+  CO_OWNER_ROLE,
+  MEMBER_ROLE,
+  OWNER_ROLE,
   QUERY_STALE_TIME,
-  VIEW_ONLY_ROLE,
+  VIEWER_ROLE,
 } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
+import { MEMBER_ROLES, parseMemberRole } from "@/lib/roles";
 
 import { setEmailDigest, setMemberRole } from "../_actions/membership";
 import LeaveWalletDialog from "./LeaveWalletDialog";
@@ -61,10 +65,7 @@ const MembersSection = () => {
     staleTime: QUERY_STALE_TIME,
   });
 
-  const callerRole = members.find(
-    (member) => member.user.id === session?.user.id,
-  )?.role;
-  const canEdit = callerRole !== VIEW_ONLY_ROLE;
+  const { role: callerRole, canManage, isOwner } = useCallerRole();
 
   const { mutate: toggleDigest, isPending: isTogglingDigest } = useMutation({
     mutationFn: async (input: Parameters<typeof setEmailDigest>[0]) => {
@@ -154,8 +155,8 @@ const MembersSection = () => {
         <CardHeader>
           <CardTitle className="text-lg">Members</CardTitle>
           <CardDescription>
-            Full members can add, edit, and remove transactions; view-only
-            members follow along
+            Owners and co-owners invite and remove members. Only the owner can
+            change roles. Viewers read without writing.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
@@ -193,9 +194,7 @@ const MembersSection = () => {
                     </div>
                     {isSelf ? (
                       <div className="flex shrink-0 items-center gap-2">
-                        {member.role === VIEW_ONLY_ROLE && (
-                          <Badge variant="secondary">View only</Badge>
-                        )}
+                        <Badge variant="secondary">{member.role}</Badge>
                         <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <span className="hidden text-xs whitespace-nowrap text-muted-foreground sm:inline">
                           Email digest
@@ -211,25 +210,29 @@ const MembersSection = () => {
                       </div>
                     ) : (
                       <div className="flex shrink-0 items-center gap-2">
-                        {canEdit ? (
+                        {isOwner ? (
                           <Select
                             value={member.role}
                             onValueChange={(role) => {
                               if (
-                                (role !== FULL_MEMBER_ROLE &&
-                                  role !== VIEW_ONLY_ROLE) ||
-                                role === member.role
+                                !role ||
+                                role === member.role ||
+                                !MEMBER_ROLES.some(
+                                  (allowed) => allowed === role,
+                                )
                               ) {
                                 return;
                               }
                               changeRole({
                                 userId: member.user.id,
-                                role,
+                                role: parseMemberRole(role),
                               });
                             }}
                             items={{
-                              [FULL_MEMBER_ROLE]: "Full edit",
-                              [VIEW_ONLY_ROLE]: "View only",
+                              [OWNER_ROLE]: "Owner",
+                              [CO_OWNER_ROLE]: "Co-owner",
+                              [MEMBER_ROLE]: "Member",
+                              [VIEWER_ROLE]: "Viewer",
                             }}
                           >
                             <SelectTrigger
@@ -239,43 +242,51 @@ const MembersSection = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={FULL_MEMBER_ROLE}>
-                                Full edit
+                              {member.role === CO_OWNER_ROLE && (
+                                <SelectItem value={OWNER_ROLE}>
+                                  Owner (transfer)
+                                </SelectItem>
+                              )}
+                              <SelectItem value={CO_OWNER_ROLE}>
+                                Co-owner
                               </SelectItem>
-                              <SelectItem value={VIEW_ONLY_ROLE}>
-                                View only
+                              <SelectItem value={MEMBER_ROLE}>
+                                Member
+                              </SelectItem>
+                              <SelectItem value={VIEWER_ROLE}>
+                                Viewer
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          member.role === VIEW_ONLY_ROLE && (
-                            <Badge variant="secondary">View only</Badge>
-                          )
+                          <Badge variant="secondary">{member.role}</Badge>
                         )}
-                        {canEdit && (
-                          <Tooltip>
-                            <RemoveMemberDialog
-                              member={member}
-                              trigger={
-                                <TooltipTrigger
-                                  render={
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="text-destructive hover:bg-destructive/10"
-                                      aria-label={`Remove ${member.user.name} from wallet`}
-                                    />
-                                  }
-                                >
-                                  <UserMinus />
-                                </TooltipTrigger>
-                              }
-                            />
-                            <TooltipContent>
-                              Remove {member.user.name} from wallet
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
+                        {canManage &&
+                          member.role !== OWNER_ROLE &&
+                          (member.role !== CO_OWNER_ROLE || isOwner) && (
+                            <Tooltip>
+                              <RemoveMemberDialog
+                                member={member}
+                                trigger={
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className="text-destructive hover:bg-destructive/10"
+                                        aria-label={`Remove ${member.user.name} from wallet`}
+                                      />
+                                    }
+                                  >
+                                    <UserMinus />
+                                  </TooltipTrigger>
+                                }
+                              />
+                              <TooltipContent>
+                                Remove {member.user.name} from wallet
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                       </div>
                     )}
                   </div>
@@ -285,20 +296,27 @@ const MembersSection = () => {
           )}
         </CardContent>
         <CardFooter>
-          {!isLoading && (
-            <LeaveWalletDialog
-              memberCount={members.length}
-              trigger={
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 text-destructive hover:text-destructive sm:w-auto"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {members.length === 1 ? "Delete this space" : "Leave wallet"}
-                </Button>
-              }
-            />
-          )}
+          {!isLoading &&
+            (callerRole === OWNER_ROLE ? (
+              <p className="text-sm text-muted-foreground">
+                Promote a co-owner to owner before leaving this wallet.
+              </p>
+            ) : (
+              <LeaveWalletDialog
+                memberCount={members.length}
+                trigger={
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 text-destructive hover:text-destructive sm:w-auto"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {members.length === 1
+                      ? "Delete this space"
+                      : "Leave wallet"}
+                  </Button>
+                }
+              />
+            ))}
         </CardFooter>
       </Card>
     </section>

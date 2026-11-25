@@ -281,7 +281,7 @@ async function main() {
   const joined = (daysAgo) => new Date(now.getTime() - daysAgo * 86_400_000);
   await prisma.walletMembership.createMany({
     data: [
-      { walletId, userId: averyId, role: "member", joinedAt: joined(224) },
+      { walletId, userId: averyId, role: "owner", joinedAt: joined(224) },
       { walletId, userId: blakeId, role: "member", joinedAt: joined(187) },
     ],
   });

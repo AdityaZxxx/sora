@@ -12,7 +12,11 @@ import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { assertCallerFullMember, type Caller } from "@/lib/caller";
+import {
+  assertCallerCanManage,
+  assertCallerCanWrite,
+  type Caller,
+} from "@/lib/caller";
 import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
@@ -107,10 +111,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
       return { ok: false, status: 403, error: "This token is read-only" };
     }
     try {
-      assertCallerFullMember(
-        caller,
-        "View-only members cannot use a read-write token",
-      );
+      assertCallerCanWrite(caller, "Viewers cannot use a read-write token");
     } catch (cause) {
       if (!(cause instanceof DomainError)) {
         throw cause;
@@ -118,7 +119,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
       return {
         ok: false,
         status: 403,
-        error: "View-only members cannot use a read-write token",
+        error: "Viewers cannot use a read-write token",
       };
     }
   }
@@ -173,9 +174,9 @@ export async function createApiToken(
   }
 
   if (parsed.data.scope === READ_WRITE_SCOPE) {
-    assertCallerFullMember(
+    assertCallerCanWrite(
       caller,
-      "View-only members cannot create a read-write token. Choose read only instead.",
+      "Viewers cannot create a read-write token. Choose read only instead.",
     );
   }
 
@@ -242,9 +243,9 @@ export async function revokeApiToken(
   }
 
   if (token.userId !== caller.userId) {
-    assertCallerFullMember(
+    assertCallerCanManage(
       caller,
-      "View-only members can only revoke their own tokens. Ask a full member to revoke it.",
+      "Only an owner or co-owner can revoke another member's token",
     );
   }
 
@@ -261,7 +262,7 @@ export async function setAgentAccess(
   caller: Caller,
   enabled: SetAgentAccessSchemaType["enabled"],
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
 
   const parsed = SetAgentAccessSchema.safeParse({ enabled });
   if (!parsed.success) {

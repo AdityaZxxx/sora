@@ -3,9 +3,16 @@ import type { listMembers } from "@/lib/members";
 import { useQuery } from "@tanstack/react-query";
 
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL, VIEW_ONLY_ROLE } from "@/lib/constants";
+import { POLL_INTERVAL } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  canManage as roleCanManage,
+  canWrite as roleCanWrite,
+  isOwner as roleIsOwner,
+  parseMemberRole,
+  type MemberRole,
+} from "@/lib/roles";
 
 export function useMembers() {
   return useQuery({
@@ -28,9 +35,14 @@ export function useCallerRole() {
   const self = membersQuery.data?.find(
     (member) => member.user.id === session?.user.id,
   );
+  const role: MemberRole | undefined = self
+    ? parseMemberRole(self.role)
+    : undefined;
 
   return {
-    role: self?.role,
-    canEdit: self ? self.role !== VIEW_ONLY_ROLE : true,
+    role,
+    canEdit: role ? roleCanWrite(role) : false,
+    canManage: role ? roleCanManage(role) : false,
+    isOwner: role ? roleIsOwner(role) : false,
   };
 }

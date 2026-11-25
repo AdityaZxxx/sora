@@ -12,7 +12,7 @@ import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
-import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
+import { assertCanManage, type MemberRole } from "@/lib/roles";
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function createInviteLink(
@@ -20,7 +20,7 @@ export async function createInviteLink(
   userId: string,
   role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCanManage(role);
   return await prisma.inviteLink.create({
     data: {
       token: crypto.randomUUID(),
@@ -43,7 +43,7 @@ export async function revokeInviteLink(
   inviteLinkId: string,
   role: MemberRole,
 ) {
-  assertFullMemberRole(role);
+  assertCanManage(role);
 
   const parsedId = InviteIdSchema.safeParse({ id: inviteLinkId });
   if (!parsedId.success) {

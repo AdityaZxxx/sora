@@ -22,11 +22,11 @@ interface Props {
 
 const DashboardSections = async ({ context }: Props) => {
   const { payload, state } = await loadDashboardState(context);
-  const { currency, canEdit, memberCount } = payload;
+  const { currency, canEdit, canManage, memberCount } = payload;
 
   return (
     <HydrationBoundary state={state}>
-      {canEdit && <AddMemberCta memberCount={memberCount} />}
+      {canManage && <AddMemberCta memberCount={memberCount} />}
       <Suspense
         fallback={
           <Skeleton className="section h-64 w-full" aria-hidden="true" />
@@ -78,7 +78,7 @@ const DashboardSections = async ({ context }: Props) => {
         <Suspense
           fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
         >
-          <Goals currency={currency} canEdit={canEdit} />
+          <Goals currency={currency} canEdit={canManage} />
         </Suspense>
       </div>
       {memberCount > 2 && (
