@@ -11,6 +11,7 @@ import {
   householdChangeSchema,
   type HouseholdChange,
   type HouseholdChangeResource,
+  type HouseholdChangeScope,
 } from "@/lib/household-change";
 import prisma, { stripSslMode } from "@/lib/prisma";
 
@@ -22,6 +23,7 @@ type PublishInput = {
   resource: HouseholdChangeResource;
   message: string;
   recipientId?: string;
+  scope?: HouseholdChangeScope;
   executor?: QueryExecutor;
 };
 
@@ -31,8 +33,10 @@ export async function publishHouseholdChange({
   resource,
   message,
   recipientId,
+  scope,
   executor = prisma,
 }: PublishInput) {
+  const effects = householdChangeEffects(resource, scope);
   const change = householdChangeSchema.parse({
     householdId,
     actorId: actor.actorId,
@@ -40,10 +44,11 @@ export async function publishHouseholdChange({
     message: `${actor.actorName} ${message}`,
     at: new Date().toISOString(),
     ...(recipientId && { recipientId }),
+    ...(scope && { scope }),
   });
 
   await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
-  revalidateHousehold(householdId, householdChangeEffects(resource).serverTags);
+  revalidateHousehold(householdId, effects.serverTags);
 }
 
 type HouseholdListener = {

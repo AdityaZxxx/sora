@@ -2,12 +2,11 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth-client";
 import {
-  eventSourceReadySchema,
   HOUSEHOLD_EVENTS_ENDPOINT,
   householdChangeEffects,
   householdChangeSchema,
@@ -16,28 +15,15 @@ import {
 export function useHouseholdEvents() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const viewerId = useRef<string | null>(null);
   const { data: session } = useSession();
+  const viewerId = session?.user.id;
 
   useEffect(() => {
-    if (!session) {
+    if (!viewerId) {
       return;
     }
 
     const source = new EventSource(HOUSEHOLD_EVENTS_ENDPOINT);
-
-    source.addEventListener("ready", (event) => {
-      let data: unknown;
-      try {
-        data = JSON.parse((event as MessageEvent<string>).data);
-      } catch {
-        return;
-      }
-      const parsed = eventSourceReadySchema.safeParse(data);
-      if (parsed.success) {
-        viewerId.current = parsed.data.viewerId;
-      }
-    });
 
     source.addEventListener("message", (event) => {
       let data: unknown;
@@ -52,27 +38,25 @@ export function useHouseholdEvents() {
       }
 
       const change = parsed.data;
-      if (
-        change.recipientId &&
-        viewerId.current &&
-        change.recipientId !== viewerId.current
-      ) {
+      if (change.recipientId && change.recipientId !== viewerId) {
         return;
       }
       if (
         change.resource !== "notifications" &&
         change.actorId &&
-        change.actorId !== viewerId.current
+        change.actorId !== viewerId
       ) {
         toast(change.message);
       }
-      for (const queryKey of householdChangeEffects(change.resource)
-        .clientKeys) {
+      for (const queryKey of householdChangeEffects(
+        change.resource,
+        change.scope,
+      ).clientKeys) {
         void queryClient.invalidateQueries({ queryKey });
       }
       router.refresh();
     });
 
     return () => source.close();
-  }, [queryClient, router, session]);
+  }, [queryClient, router, viewerId]);
 }

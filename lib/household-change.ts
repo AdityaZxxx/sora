@@ -22,6 +22,14 @@ export const HOUSEHOLD_CHANGE_RESOURCES = [
 export type HouseholdChangeResource =
   (typeof HOUSEHOLD_CHANGE_RESOURCES)[number];
 
+export const HOUSEHOLD_CHANGE_SCOPES = [
+  "personal-transaction",
+  "category-rename",
+  "member-joined",
+] as const;
+
+export type HouseholdChangeScope = (typeof HOUSEHOLD_CHANGE_SCOPES)[number];
+
 export const householdChangeSchema = z.object({
   householdId: z.string().min(1),
   actorId: z.string(),
@@ -29,13 +37,10 @@ export const householdChangeSchema = z.object({
   message: z.string().min(1),
   at: z.string(),
   recipientId: z.string().optional(),
+  scope: z.enum(HOUSEHOLD_CHANGE_SCOPES).optional(),
 });
 
 export type HouseholdChange = z.infer<typeof householdChangeSchema>;
-
-export const eventSourceReadySchema = z.object({
-  viewerId: z.string(),
-});
 
 export type HouseholdChangeEffects = {
   serverTags: readonly CacheResource[];
@@ -76,11 +81,10 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
     clientKeys: [queryKeys.goals, queryKeys.overview.all],
   },
   categories: {
-    serverTags: ["categories", "transactions", "budgets", "recurring"],
+    serverTags: ["categories"],
     clientKeys: [
       queryKeys.categories(),
       queryKeys.transactions.all,
-      queryKeys.budgets,
       queryKeys.overview.all,
       queryKeys.recurringItems,
     ],
@@ -108,8 +112,30 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
   },
 };
 
+const SCOPED_EFFECTS: Record<HouseholdChangeScope, HouseholdChangeEffects> = {
+  "personal-transaction": {
+    serverTags: ["transactions"],
+    clientKeys: [queryKeys.transactions.all],
+  },
+  "category-rename": {
+    serverTags: ["categories", "transactions", "budgets", "recurring"],
+    clientKeys: [
+      queryKeys.categories(),
+      queryKeys.transactions.all,
+      queryKeys.budgets,
+      queryKeys.overview.all,
+      queryKeys.recurringItems,
+    ],
+  },
+  "member-joined": {
+    serverTags: ["members", "balances"],
+    clientKeys: EFFECTS.members.clientKeys,
+  },
+};
+
 export function householdChangeEffects(
   resource: HouseholdChangeResource,
+  scope?: HouseholdChangeScope,
 ): HouseholdChangeEffects {
-  return EFFECTS[resource];
+  return scope ? SCOPED_EFFECTS[scope] : EFFECTS[resource];
 }

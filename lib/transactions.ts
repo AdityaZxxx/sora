@@ -8,7 +8,12 @@ import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import {
+  actorFor,
+  assertCallerFullMember,
+  type Actor,
+  type Caller,
+} from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -35,7 +40,24 @@ type TransactionCursor = { date: string; id: string };
 const IDEMPOTENCY_KEY_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const PERSONAL_TRANSACTION_CHANGE_MESSAGE = "updated a personal transaction";
+const PERSONAL_TRANSACTION_EVENT_MESSAGE = "changed a personal transaction";
+
+function publishPersonalTransactionChange(
+  householdId: string,
+  actor: Actor,
+  recipientId: string,
+  executor: Prisma.TransactionClient,
+) {
+  return publishHouseholdChange({
+    householdId,
+    actor,
+    resource: "transactions",
+    message: PERSONAL_TRANSACTION_EVENT_MESSAGE,
+    recipientId,
+    scope: "personal-transaction",
+    executor,
+  });
+}
 
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(
@@ -497,14 +519,7 @@ async function createTransactionWithDeps(
       }
 
       if (!shared) {
-        await publishHouseholdChange({
-          householdId,
-          actor,
-          resource: "transactions",
-          message: PERSONAL_TRANSACTION_CHANGE_MESSAGE,
-          recipientId: userId,
-          executor: tx,
-        });
+        await publishPersonalTransactionChange(householdId, actor, userId, tx);
         return transaction;
       }
 
@@ -602,14 +617,12 @@ export async function deleteTransaction(caller: Caller, id: string) {
     }
 
     if (!transaction.shared) {
-      await publishHouseholdChange({
+      await publishPersonalTransactionChange(
         householdId,
-        actor: actorFor(caller),
-        resource: "transactions",
-        message: PERSONAL_TRANSACTION_CHANGE_MESSAGE,
-        recipientId: transaction.addedById,
-        executor: tx,
-      });
+        actorFor(caller),
+        transaction.addedById,
+        tx,
+      );
       return;
     }
 

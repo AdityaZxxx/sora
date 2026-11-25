@@ -151,8 +151,8 @@ export async function updateHouseholdCategory(
     iconKind !== existing.iconKind ||
     iconColor !== existing.iconColor;
 
-  return await prisma.$transaction(async (tx) => {
-    const updated = await tx.category.update({
+  const updated = await prisma.$transaction(async (tx) => {
+    const category = await tx.category.update({
       where: {
         name_householdId_type: {
           householdId: caller.householdId,
@@ -171,7 +171,7 @@ export async function updateHouseholdCategory(
       },
       data: {
         ...(name !== originalName && { category: name }),
-        ...(iconChanged && categoryIconSnapshot(updated)),
+        ...(iconChanged && categoryIconSnapshot(category)),
       },
     });
 
@@ -194,21 +194,23 @@ export async function updateHouseholdCategory(
         },
         data: {
           ...(name !== originalName && { category: name }),
-          ...(iconChanged && categoryIconSnapshot(updated)),
+          ...(iconChanged && categoryIconSnapshot(category)),
         },
       });
     }
 
-    await publishHouseholdChange({
-      householdId: caller.householdId,
-      actor: actorFor(caller),
-      resource: "categories",
-      message: `changed the ${updated.name} category`,
-      executor: tx,
-    });
-
-    return updated;
+    return category;
   });
+
+  await publishHouseholdChange({
+    householdId: caller.householdId,
+    actor: actorFor(caller),
+    resource: "categories",
+    message: `changed the ${updated.name} category`,
+    scope: "category-rename",
+  });
+
+  return updated;
 }
 
 export async function deleteHouseholdCategory(caller: Caller, id: string) {

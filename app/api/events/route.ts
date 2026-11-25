@@ -40,6 +40,9 @@ export function GET(request: Request) {
           const stop = await subscribeToHouseholdChanges(
             householdId,
             (change) => {
+              if (change.recipientId && change.recipientId !== userId) {
+                return;
+              }
               if (!closed) {
                 send(`data: ${JSON.stringify(change)}\n\n`);
               }
