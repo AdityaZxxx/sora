@@ -8,10 +8,9 @@ import {
   DEFAULT_CURRENCY,
   TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,
 } from "@/lib/constants";
-import { resolveDateRange } from "@/lib/dates";
+import { resolveDateRange, utcDateValue } from "@/lib/dates";
 import { requireHousehold } from "@/lib/household";
 import { seededHydrationState } from "@/lib/hydration";
-import { listMembers } from "@/lib/members";
 import { queryKeys } from "@/lib/query-keys";
 import { getTransactionsHistory } from "@/lib/transactions";
 
@@ -58,42 +57,39 @@ const SeededTransactions = async () => {
 
   const householdId = result.household.id;
   const dateRange = resolveDateRange();
+  const values = {
+    from: utcDateValue(dateRange.from),
+    to: utcDateValue(dateRange.to),
+  };
   const pageSize = TRANSACTION_HISTORY_INITIAL_PAGE_SIZE;
-  const [page, members] = await Promise.all([
-    getTransactionsHistory(
-      householdId,
-      result.session.user.id,
-      dateRange.from,
-      dateRange.to,
-      { limit: pageSize },
-    ),
-    listMembers(householdId),
-  ]);
+  const page = await getTransactionsHistory(
+    householdId,
+    result.session.user.id,
+    dateRange.from,
+    dateRange.to,
+    { limit: pageSize },
+  );
 
   const state = await seededHydrationState(
     [
       {
         queryKey: queryKeys.transactions.history(
-          dateRange.from,
-          dateRange.to,
+          values.from,
+          values.to,
           pageSize,
         ),
         data: { pages: [page], pageParams: [null] },
         infinite: true,
       },
-      { queryKey: queryKeys.householdMembers, data: members },
     ],
-    [
-      householdTag(householdId, CACHE_RESOURCE.transactions),
-      householdTag(householdId, CACHE_RESOURCE.members),
-    ],
+    [householdTag(householdId, CACHE_RESOURCE.transactions)],
   );
 
   return (
     <HydrationBoundary state={state}>
       <TransactionsClient
         currency={result.household.currency ?? DEFAULT_CURRENCY}
-        initialDateRange={dateRange}
+        initialDateRange={values}
       />
     </HydrationBoundary>
   );

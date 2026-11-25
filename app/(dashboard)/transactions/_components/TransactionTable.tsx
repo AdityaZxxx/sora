@@ -86,8 +86,8 @@ import {
 } from "./transaction-table-data";
 
 interface Props {
-  from: Date;
-  to: Date;
+  from: string;
+  to: string;
   currency: string;
 }
 
@@ -95,8 +95,8 @@ const emptyData: TransactionHistoryRow[] = [];
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 async function fetchHistoryPage(
-  from: Date,
-  to: Date,
+  from: string,
+  to: string,
   cursor: string | null,
   limit: number,
 ): Promise<GetTransactionsHistoryResponseType> {
@@ -107,7 +107,7 @@ async function fetchHistoryPage(
   );
 }
 
-async function fetchAllHistory(from: Date, to: Date, limit: number) {
+async function fetchAllHistory(from: string, to: string, limit: number) {
   const rows: TransactionHistoryRow[] = [];
   let cursor: string | null = null;
   do {
@@ -330,9 +330,7 @@ const TransactionTable = ({ from, to, currency }: Props) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `transactions_${from.toISOString().split("T")[0]}_to_${
-      to.toISOString().split("T")[0]
-    }.csv`;
+    link.download = `transactions_${from}_to_${to}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();

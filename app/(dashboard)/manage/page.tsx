@@ -7,10 +7,9 @@ import { listApiTokens } from "@/lib/api-token";
 import { getBudgetsWithProgress } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { getCategories } from "@/lib/categories";
-import { cachedHouseholdsForMember, requireHousehold } from "@/lib/household";
+import { requireHousehold } from "@/lib/household";
 import { seededHydrationState } from "@/lib/hydration";
 import { listInviteLinks } from "@/lib/invites";
-import { listMembers } from "@/lib/members";
 import { queryKeys } from "@/lib/query-keys";
 
 import ManagePageClient from "./_components/ManagePageClient";
@@ -44,28 +43,17 @@ const SeededManage = async () => {
   }
 
   const householdId = result.household.id;
-  const [
-    households,
-    members,
-    incomeCategories,
-    expenseCategories,
-    budgets,
-    apiTokens,
-    inviteLinks,
-  ] = await Promise.all([
-    cachedHouseholdsForMember(result.session.user.id, householdId),
-    listMembers(householdId),
-    getCategories(householdId, "income"),
-    getCategories(householdId, "expense"),
-    getBudgetsWithProgress(householdId),
-    listApiTokens(householdId),
-    listInviteLinks(householdId),
-  ]);
+  const [incomeCategories, expenseCategories, budgets, apiTokens, inviteLinks] =
+    await Promise.all([
+      getCategories(householdId, "income"),
+      getCategories(householdId, "expense"),
+      getBudgetsWithProgress(householdId),
+      listApiTokens(householdId),
+      listInviteLinks(householdId),
+    ]);
 
   const state = await seededHydrationState(
     [
-      { queryKey: queryKeys.households, data: households },
-      { queryKey: queryKeys.householdMembers, data: members },
       { queryKey: queryKeys.categories("income"), data: incomeCategories },
       { queryKey: queryKeys.categories("expense"), data: expenseCategories },
       { queryKey: queryKeys.budgets, data: budgets },
@@ -73,8 +61,6 @@ const SeededManage = async () => {
       { queryKey: queryKeys.inviteLinks, data: inviteLinks },
     ],
     [
-      householdTag(householdId, CACHE_RESOURCE.household),
-      householdTag(householdId, CACHE_RESOURCE.members),
       householdTag(householdId, CACHE_RESOURCE.categories),
       householdTag(householdId, CACHE_RESOURCE.budgets),
       householdTag(householdId, CACHE_RESOURCE.apiTokens),

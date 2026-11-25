@@ -39,7 +39,7 @@ export const queryKeys = {
   simplifiedDebts: ["simplified-debts"] satisfies QueryKey,
   transactions: {
     all: ["transactions"] satisfies QueryKey,
-    history: (from: Date, to: Date, pageSize: number): QueryKey => [
+    history: (from: string, to: string, pageSize: number): QueryKey => [
       "transactions",
       "history",
       from,

@@ -7,21 +7,21 @@ import {
 } from "@tanstack/react-query";
 import { cacheLife, cacheTag } from "next/cache";
 
-type SeededQuery<TData> = {
+type SeededQuery = {
   queryKey: QueryKey;
-  data: TData;
+  data: unknown;
   infinite?: boolean;
 };
 
-async function cachedHydrationUpdatedAt(tags: string[]) {
+async function cachedHydrationUpdatedAt(tags: readonly string[]) {
   "use cache";
   cacheLife("max");
   cacheTag(...tags);
   return Date.now();
 }
 
-export async function seededHydrationState<TData extends readonly unknown[]>(
-  queries: { [K in keyof TData]: SeededQuery<TData[K]> },
+export async function seededHydrationState(
+  queries: readonly SeededQuery[],
   tags: readonly string[],
 ): Promise<DehydratedState> {
   const updatedAt = await cachedHydrationUpdatedAt([...tags]);
@@ -29,9 +29,7 @@ export async function seededHydrationState<TData extends readonly unknown[]>(
   const seeded: DehydratedState["queries"] = [];
 
   for (const query of queries) {
-    queryClient.setQueryData<TData[number]>(query.queryKey, query.data, {
-      updatedAt,
-    });
+    queryClient.setQueryData(query.queryKey, query.data, { updatedAt });
     const cached = queryClient
       .getQueryCache()
       .find({ queryKey: query.queryKey });

@@ -3,7 +3,11 @@ import type { InviteLink } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import {
+  CACHE_RESOURCE,
+  householdTag,
+  revalidateMemberHouseholds,
+} from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
@@ -148,6 +152,7 @@ export async function joinHouseholdByInviteToken(
         `${userName} accepted your invite and joined the household.`,
       );
     }
+    revalidateMemberHouseholds(userId);
   }
 
   return inviteLink.householdId;

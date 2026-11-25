@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, householdTag, memberHouseholdsTag } from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { ACTIVE_HOUSEHOLD_COOKIE, READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -241,6 +241,7 @@ export async function cachedHouseholdsForMember(
     ...memberships.map((membership) => membership.householdId),
   ]);
   cacheTag(
+    memberHouseholdsTag(userId),
     ...[...householdIds].flatMap((householdId) => [
       householdTag(householdId, CACHE_RESOURCE.household),
       householdTag(householdId, CACHE_RESOURCE.members),

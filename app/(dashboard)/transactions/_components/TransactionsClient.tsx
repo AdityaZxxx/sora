@@ -1,13 +1,12 @@
 "use client";
 
-import type { DateRange } from "@/lib/dates";
-
 import { differenceInDays } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { MAX_DATE_RANGE } from "@/lib/constants";
+import { type DateRangeValues, formatDateValue } from "@/lib/dates";
 
 import TransactionTable from "./TransactionTable";
 
@@ -16,9 +15,11 @@ const TransactionsClient = ({
   initialDateRange,
 }: {
   currency: string;
-  initialDateRange: DateRange;
+  initialDateRange: DateRangeValues;
 }) => {
-  const [dateRange, setDateRange] = useState(initialDateRange);
+  const [dateRange, setDateRange] = useState<DateRangeValues>(
+    () => initialDateRange,
+  );
   return (
     <div className="min-h-screen bg-background">
       <header className="container pt-6">
@@ -46,7 +47,10 @@ const TransactionsClient = ({
                   );
                   return;
                 }
-                setDateRange({ from, to });
+                setDateRange({
+                  from: formatDateValue(from),
+                  to: formatDateValue(to),
+                });
               }}
             />
           </div>
@@ -54,7 +58,7 @@ const TransactionsClient = ({
       </header>
       <div className="container py-8">
         <TransactionTable
-          key={`${dateRange.from.toISOString()}-${dateRange.to.toISOString()}`}
+          key={`${dateRange.from}-${dateRange.to}`}
           from={dateRange.from}
           to={dateRange.to}
           currency={currency}
