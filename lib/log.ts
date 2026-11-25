@@ -10,6 +10,8 @@ export type LogFields = {
   outcome?: LogOutcome;
   durationMs?: number;
   error?: string;
+  stack?: string;
+  digest?: string;
   path?: string;
   route?: string;
   value?: number;
@@ -37,6 +39,8 @@ export function log(
       "outcome",
       "durationMs",
       "error",
+      "stack",
+      "digest",
       "path",
       "route",
       "value",

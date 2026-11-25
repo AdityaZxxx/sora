@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +12,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { logClientError } from "@/instrumentation-client";
+import { errorFields } from "@/lib/error-fields";
 
-export default function Error({ retry }: { retry: () => void }) {
+export default function Error({
+  error,
+  retry,
+}: {
+  error: unknown;
+  retry: () => void;
+}) {
+  useEffect(() => {
+    logClientError("client.render-failed", errorFields(error));
+  }, [error]);
+
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 py-12">
       <Card className="w-[min(400px,calc(100vw-2rem))]">
