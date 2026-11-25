@@ -18,7 +18,3 @@ export async function GET(request: Request): Promise<Response> {
     return jsonReadResponse(request, stats);
   });
 }
-
-export type GetCategoriesStatsResponseType = Awaited<
-  ReturnType<typeof getCategoriesStats>
->;

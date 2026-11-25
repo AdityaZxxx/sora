@@ -19,11 +19,16 @@ export const queryKeys = {
   overview: {
     all: ["overview"] satisfies QueryKey,
     statsAll: ["overview", "stats"] satisfies QueryKey,
-    stats: (from: Date, to: Date): QueryKey => ["overview", "stats", from, to],
-    categories: (from: Date, to: Date): QueryKey => [
+    stats: (
+      householdId: string | undefined,
+      from: Date,
+      to: Date,
+    ): QueryKey => ["overview", "stats", householdId, from, to],
+    categories: (householdId: string, from: Date, to: Date): QueryKey => [
       "overview",
       "stats",
       "categories",
+      householdId,
       from,
       to,
     ],
@@ -62,8 +67,8 @@ export type TransactionOptimisticContext = {
 };
 
 function statsRange(key: QueryKey): DateRange | null {
-  const from = key[2];
-  const to = key[3];
+  const from = key[3];
+  const to = key[4];
   if (!(from instanceof Date) || !(to instanceof Date)) return null;
   return { from, to };
 }

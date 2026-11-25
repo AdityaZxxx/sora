@@ -105,9 +105,10 @@ export function useOfflineSnapshot() {
   });
 
   const { data: stats, isFetching: statsFetching } = useBalanceStats(
+    householdId,
     range.from,
     range.to,
-    range !== PENDING_RANGE,
+    { enabled: range !== PENDING_RANGE && householdId !== undefined },
   );
 
   const activeHousehold = useRef<string | undefined>(undefined);
