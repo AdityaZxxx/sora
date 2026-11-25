@@ -2,6 +2,7 @@ import {
   defaultShouldDehydrateQuery,
   dehydrateQuery,
   QueryClient,
+  queryOptions,
   type DehydratedState,
   type QueryKey,
 } from "@tanstack/react-query";
@@ -9,9 +10,24 @@ import { cacheLife, cacheTag } from "next/cache";
 
 type SeededQuery = {
   queryKey: QueryKey;
-  data: unknown;
+  seed: (queryClient: QueryClient, updatedAt: number) => void;
   infinite?: boolean;
 };
+
+export function seedQuery<TData>(
+  queryKey: QueryKey,
+  data: TData,
+  infinite = false,
+): SeededQuery {
+  const options = queryOptions({ queryKey, initialData: data });
+  return {
+    queryKey: options.queryKey,
+    infinite,
+    seed: (queryClient, updatedAt) => {
+      queryClient.setQueryData(options.queryKey, data, { updatedAt });
+    },
+  };
+}
 
 async function cachedHydrationUpdatedAt(tags: readonly string[]) {
   "use cache";
@@ -29,7 +45,7 @@ export async function seededHydrationState(
   const seeded: DehydratedState["queries"] = [];
 
   for (const query of queries) {
-    queryClient.setQueryData(query.queryKey, query.data, { updatedAt });
+    query.seed(queryClient, updatedAt);
     const cached = queryClient
       .getQueryCache()
       .find({ queryKey: query.queryKey });

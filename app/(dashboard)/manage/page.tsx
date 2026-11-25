@@ -8,7 +8,7 @@ import { getBudgetsWithProgress } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { getCategories } from "@/lib/categories";
 import { requireHousehold } from "@/lib/household";
-import { seededHydrationState } from "@/lib/hydration";
+import { seedQuery, seededHydrationState } from "@/lib/hydration";
 import { listInviteLinks } from "@/lib/invites";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -54,11 +54,11 @@ const SeededManage = async () => {
 
   const state = await seededHydrationState(
     [
-      { queryKey: queryKeys.categories("income"), data: incomeCategories },
-      { queryKey: queryKeys.categories("expense"), data: expenseCategories },
-      { queryKey: queryKeys.budgets, data: budgets },
-      { queryKey: queryKeys.apiTokens, data: apiTokens },
-      { queryKey: queryKeys.inviteLinks, data: inviteLinks },
+      seedQuery(queryKeys.categories("income"), incomeCategories),
+      seedQuery(queryKeys.categories("expense"), expenseCategories),
+      seedQuery(queryKeys.budgets, budgets),
+      seedQuery(queryKeys.apiTokens, apiTokens),
+      seedQuery(queryKeys.inviteLinks, inviteLinks),
     ],
     [
       householdTag(householdId, CACHE_RESOURCE.categories),

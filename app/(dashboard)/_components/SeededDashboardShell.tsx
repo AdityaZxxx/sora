@@ -6,7 +6,7 @@ import { cacheLife } from "next/cache";
 import Navbar from "@/components/Navbar";
 import { CACHE_RESOURCE, householdTag, memberHouseholdsTag } from "@/lib/cache";
 import { cachedHouseholdsForMember, requireHousehold } from "@/lib/household";
-import { seededHydrationState } from "@/lib/hydration";
+import { seedQuery, seededHydrationState } from "@/lib/hydration";
 import { listMembers } from "@/lib/members";
 import { listNotifications } from "@/lib/notifications";
 import { queryKeys } from "@/lib/query-keys";
@@ -35,9 +35,9 @@ const SeededDashboardShell = async ({ children }: { children: ReactNode }) => {
 
   const state = await seededHydrationState(
     [
-      { queryKey: queryKeys.households, data: households },
-      { queryKey: queryKeys.notifications, data: notifications },
-      { queryKey: queryKeys.householdMembers, data: members },
+      seedQuery(queryKeys.households, households),
+      seedQuery(queryKeys.notifications, notifications),
+      seedQuery(queryKeys.householdMembers, members),
     ],
     [
       memberHouseholdsTag(userId),

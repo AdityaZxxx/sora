@@ -3,7 +3,12 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, householdTag, memberHouseholdsTag } from "@/lib/cache";
+import {
+  CACHE_RESOURCE,
+  householdTag,
+  memberHouseholdsTag,
+  revalidateMemberHouseholds,
+} from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { ACTIVE_HOUSEHOLD_COOKIE, READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -279,20 +284,23 @@ export async function createAdditionalHousehold(userId: string, name: string) {
     );
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const created = await tx.household.create({
+  const created = await prisma.$transaction(async (tx) => {
+    const household = await tx.household.create({
       data: {
         name: parsedName.data || null,
       },
     });
     await tx.householdMembership.create({
       data: {
-        householdId: created.id,
+        householdId: household.id,
         userId,
       },
     });
-    return created;
+    return household;
   });
+
+  revalidateMemberHouseholds(userId);
+  return created;
 }
 
 export async function firstHouseholdIdForUser(userId: string) {

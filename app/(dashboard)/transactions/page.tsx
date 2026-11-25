@@ -10,7 +10,7 @@ import {
 } from "@/lib/constants";
 import { resolveDateRange, utcDateValue } from "@/lib/dates";
 import { requireHousehold } from "@/lib/household";
-import { seededHydrationState } from "@/lib/hydration";
+import { seedQuery, seededHydrationState } from "@/lib/hydration";
 import { queryKeys } from "@/lib/query-keys";
 import { getTransactionsHistory } from "@/lib/transactions";
 
@@ -72,15 +72,11 @@ const SeededTransactions = async () => {
 
   const state = await seededHydrationState(
     [
-      {
-        queryKey: queryKeys.transactions.history(
-          values.from,
-          values.to,
-          pageSize,
-        ),
-        data: { pages: [page], pageParams: [null] },
-        infinite: true,
-      },
+      seedQuery(
+        queryKeys.transactions.history(values.from, values.to, pageSize),
+        { pages: [page], pageParams: [null] },
+        true,
+      ),
     ],
     [householdTag(householdId, CACHE_RESOURCE.transactions)],
   );
