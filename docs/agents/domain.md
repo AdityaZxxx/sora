@@ -32,9 +32,11 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## Canonical read path
 
-Initial page data comes from the RSC loader `loadDashboard` in `app/(dashboard)/_lib/dashboard-loader.ts`, hydrated into TanStack Query. Every client-side read and refetch goes through a `GET` route under `app/api/*`, including refetches triggered by SSE invalidation. Server Actions are for writes only. `/api/*` also serves external clients: MCP, CLI, export, cron and auth.
+Initial page data comes from four RSC loaders hydrated into TanStack Query: `loadDashboard` in `app/(dashboard)/_lib/dashboard-loader.ts`, `SeededNavbar` in the shared dashboard layout, `SeededManage`, and `SeededTransactions`. Each seeds tagged `lib/` reads, so the first client render has data without a fetch. Every later client-side read and refetch goes through a `GET` route under `app/api/*`, including refetches triggered by SSE invalidation. Server Actions are for writes only. `/api/*` also serves external clients: MCP, CLI, export, cron and auth.
 
-The route wrappers are thin. Each one calls the same tagged `lib/` seam the loader and external clients call, and returns through `jsonReadResponse` in `lib/api-route.ts` so ETag and Cache-Control stay centralised. Query keys in `lib/query-keys.ts` stay unchanged, so writes invalidate the same keys the hydrated state and SSE stream use.
+The route wrappers are thin. Each one calls the same `lib/` seam the loaders and external clients call, and returns through `jsonReadResponse` in `lib/api-route.ts` so ETag and Cache-Control stay centralised. `/api/households` is deliberately always fresh: its polling clients must see membership changes immediately, so it uses the uncached seam while the seeded loaders use the tagged cached one. Query keys in `lib/query-keys.ts` stay unchanged, so writes invalidate the same keys the hydrated state and SSE stream use.
+
+Seeded loaders share the UTC date calendar with the dashboard and the rollups. The transactions view takes its first range from `resolveDateRange()` so its seeded history key matches the table, rather than starting at the browser's local month boundary. Transaction months are UTC buckets, so a local boundary would split the seeded page from the month the app counted.
 
 ## Use the glossary's vocabulary
 

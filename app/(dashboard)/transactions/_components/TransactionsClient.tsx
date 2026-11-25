@@ -1,5 +1,7 @@
 "use client";
 
+import type { DateRange } from "@/lib/dates";
+
 import { differenceInDays } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +16,7 @@ const TransactionsClient = ({
   initialDateRange,
 }: {
   currency: string;
-  initialDateRange: { from: Date; to: Date };
+  initialDateRange: DateRange;
 }) => {
   const [dateRange, setDateRange] = useState(initialDateRange);
   return (

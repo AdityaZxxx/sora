@@ -7,7 +7,7 @@ import { listApiTokens } from "@/lib/api-token";
 import { getBudgetsWithProgress } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
 import { getCategories } from "@/lib/categories";
-import { listHouseholdsForMember, requireHousehold } from "@/lib/household";
+import { cachedHouseholdsForMember, requireHousehold } from "@/lib/household";
 import { seededHydrationState } from "@/lib/hydration";
 import { listInviteLinks } from "@/lib/invites";
 import { listMembers } from "@/lib/members";
@@ -53,7 +53,7 @@ const SeededManage = async () => {
     apiTokens,
     inviteLinks,
   ] = await Promise.all([
-    listHouseholdsForMember(result.session.user.id, householdId),
+    cachedHouseholdsForMember(result.session.user.id, householdId),
     listMembers(householdId),
     getCategories(householdId, "income"),
     getCategories(householdId, "expense"),

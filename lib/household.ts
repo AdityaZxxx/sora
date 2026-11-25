@@ -13,8 +13,8 @@ import { parseMemberRole } from "@/lib/roles";
 import { HouseholdNameSchema } from "@/schemas/household";
 import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
 
-async function resolveHouseholdMembership(userId: string) {
-  const memberships = await prisma.householdMembership.findMany({
+const listMembershipsForUser = cache(async (userId: string) => {
+  return await prisma.householdMembership.findMany({
     where: {
       userId,
     },
@@ -25,6 +25,10 @@ async function resolveHouseholdMembership(userId: string) {
       joinedAt: "asc",
     },
   });
+});
+
+async function resolveHouseholdMembership(userId: string) {
+  const memberships = await listMembershipsForUser(userId);
 
   const oldest = memberships[0];
   if (!oldest) {
@@ -181,27 +185,10 @@ export async function countHouseholdMembers(householdId: string) {
   });
 }
 
-export async function listHouseholdsForMember(
-  userId: string,
+async function buildHouseholdsPayload(
+  memberships: Awaited<ReturnType<typeof listMembershipsForUser>>,
   activeHouseholdId: string,
 ) {
-  "use cache";
-  cacheLife("hours");
-  cacheTag(
-    householdTag(activeHouseholdId, CACHE_RESOURCE.household),
-    householdTag(activeHouseholdId, CACHE_RESOURCE.members),
-  );
-
-  const memberships = await prisma.householdMembership.findMany({
-    where: { userId },
-    include: {
-      household: true,
-    },
-    orderBy: {
-      joinedAt: "asc",
-    },
-  });
-
   const householdIds = memberships.map((membership) => membership.householdId);
   const memberRows = await prisma.householdMembership.findMany({
     where: {
@@ -231,6 +218,36 @@ export async function listHouseholdsForMember(
       joinedAt: membership.joinedAt,
     })),
   };
+}
+
+export async function listHouseholdsForMember(
+  userId: string,
+  activeHouseholdId: string,
+) {
+  const memberships = await listMembershipsForUser(userId);
+  return await buildHouseholdsPayload(memberships, activeHouseholdId);
+}
+
+export async function cachedHouseholdsForMember(
+  userId: string,
+  activeHouseholdId: string,
+) {
+  "use cache";
+  cacheLife("hours");
+
+  const memberships = await listMembershipsForUser(userId);
+  const householdIds = new Set([
+    activeHouseholdId,
+    ...memberships.map((membership) => membership.householdId),
+  ]);
+  cacheTag(
+    ...[...householdIds].flatMap((householdId) => [
+      householdTag(householdId, CACHE_RESOURCE.household),
+      householdTag(householdId, CACHE_RESOURCE.members),
+    ]),
+  );
+
+  return await buildHouseholdsPayload(memberships, activeHouseholdId);
 }
 
 export async function assertHouseholdMembership(

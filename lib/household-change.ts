@@ -91,7 +91,6 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
     serverTags: ["members"],
     clientKeys: [
       queryKeys.householdMembers,
-      queryKeys.memberCount,
       queryKeys.households,
       queryKeys.balances,
       queryKeys.simplifiedDebts,
@@ -99,11 +98,7 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
   },
   household: {
     serverTags: ["household"],
-    clientKeys: [
-      queryKeys.household,
-      queryKeys.households,
-      queryKeys.memberCount,
-    ],
+    clientKeys: [queryKeys.household, queryKeys.households],
   },
   notifications: {
     serverTags: ["notifications"],

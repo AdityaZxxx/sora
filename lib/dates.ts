@@ -5,6 +5,8 @@ import { DomainError } from "@/lib/errors";
 
 export const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+export type DateRange = { from: Date; to: Date };
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function parseDate(value: string) {
@@ -50,7 +52,7 @@ export function clampToMonth(year: number, month: number, day: number) {
   return Math.min(day, daysInMonth(year, month));
 }
 
-export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
+export function utcMonthRangeFor(date: Date): DateRange {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   return {
@@ -59,7 +61,7 @@ export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
   };
 }
 
-export function previousMonthRange(date: Date): { from: Date; to: Date } {
+export function previousMonthRange(date: Date): DateRange {
   return utcMonthRangeFor(
     new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)),
   );
@@ -103,7 +105,7 @@ export function endOfDay(value: string) {
   return date;
 }
 
-export function resolveDateRange(from?: string, to?: string) {
+export function resolveDateRange(from?: string, to?: string): DateRange {
   const now = new Date();
 
   const start = from

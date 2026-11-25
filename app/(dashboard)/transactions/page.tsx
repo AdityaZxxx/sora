@@ -11,6 +11,7 @@ import {
 import { resolveDateRange } from "@/lib/dates";
 import { requireHousehold } from "@/lib/household";
 import { seededHydrationState } from "@/lib/hydration";
+import { listMembers } from "@/lib/members";
 import { queryKeys } from "@/lib/query-keys";
 import { getTransactionsHistory } from "@/lib/transactions";
 
@@ -58,13 +59,16 @@ const SeededTransactions = async () => {
   const householdId = result.household.id;
   const dateRange = resolveDateRange();
   const pageSize = TRANSACTION_HISTORY_INITIAL_PAGE_SIZE;
-  const page = await getTransactionsHistory(
-    householdId,
-    result.session.user.id,
-    dateRange.from,
-    dateRange.to,
-    { limit: pageSize },
-  );
+  const [page, members] = await Promise.all([
+    getTransactionsHistory(
+      householdId,
+      result.session.user.id,
+      dateRange.from,
+      dateRange.to,
+      { limit: pageSize },
+    ),
+    listMembers(householdId),
+  ]);
 
   const state = await seededHydrationState(
     [
@@ -77,8 +81,12 @@ const SeededTransactions = async () => {
         data: { pages: [page], pageParams: [null] },
         infinite: true,
       },
+      { queryKey: queryKeys.householdMembers, data: members },
     ],
-    [householdTag(householdId, CACHE_RESOURCE.transactions)],
+    [
+      householdTag(householdId, CACHE_RESOURCE.transactions),
+      householdTag(householdId, CACHE_RESOURCE.members),
+    ],
   );
 
   return (
