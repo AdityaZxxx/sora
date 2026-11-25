@@ -58,9 +58,6 @@ export function GET(request: Request) {
             () => send(": keepalive\n\n"),
             SSE_HEARTBEAT_INTERVAL,
           );
-          send(
-            `event: ready\ndata: ${JSON.stringify({ viewerId: userId })}\n\n`,
-          );
         } catch {
           close();
         }

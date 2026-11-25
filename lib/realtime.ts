@@ -27,7 +27,11 @@ type PublishInput = {
   executor?: QueryExecutor;
 };
 
-export async function publishHouseholdChange({
+export type DeferredRevalidation = () => void;
+
+// A tag invalidated before commit can be repopulated by a read of the old row,
+// so the caller runs the returned revalidation after its transaction resolves.
+export async function notifyHouseholdChange({
   householdId,
   actor,
   resource,
@@ -35,7 +39,7 @@ export async function publishHouseholdChange({
   recipientId,
   scope,
   executor = prisma,
-}: PublishInput) {
+}: PublishInput): Promise<DeferredRevalidation> {
   const effects = householdChangeEffects(resource, scope);
   const change = householdChangeSchema.parse({
     householdId,
@@ -48,7 +52,12 @@ export async function publishHouseholdChange({
   });
 
   await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
-  revalidateHousehold(householdId, effects.serverTags);
+  return () => revalidateHousehold(householdId, effects.serverTags);
+}
+
+export async function publishHouseholdChange(input: PublishInput) {
+  const revalidate = await notifyHouseholdChange(input);
+  revalidate();
 }
 
 type HouseholdListener = {

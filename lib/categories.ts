@@ -11,7 +11,7 @@ import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { notifyHouseholdChange, publishHouseholdChange } from "@/lib/realtime";
 import {
   isSettlementCategory,
   settlementCategoryExclusion,
@@ -146,13 +146,15 @@ export async function updateHouseholdCategory(
     throw new DomainError("Category not found");
   }
 
+  const renamed = name !== originalName;
   const iconChanged =
     icon !== existing.icon ||
     iconKind !== existing.iconKind ||
     iconColor !== existing.iconColor;
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const category = await tx.category.update({
+  const { category, revalidate } = await prisma.$transaction(async (tx) => {
+    const scope = renamed ? "category-renamed" : "category-icon-changed";
+    const updatedCategory = await tx.category.update({
       where: {
         name_householdId_type: {
           householdId: caller.householdId,
@@ -170,12 +172,12 @@ export async function updateHouseholdCategory(
         type,
       },
       data: {
-        ...(name !== originalName && { category: name }),
-        ...(iconChanged && categoryIconSnapshot(category)),
+        ...(renamed && { category: name }),
+        ...(iconChanged && categoryIconSnapshot(updatedCategory)),
       },
     });
 
-    if (type === "expense" && name !== originalName) {
+    if (type === "expense" && renamed) {
       await tx.budget.updateMany({
         where: {
           householdId: caller.householdId,
@@ -185,7 +187,7 @@ export async function updateHouseholdCategory(
       });
     }
 
-    if (name !== originalName || iconChanged) {
+    if (renamed || iconChanged) {
       await tx.recurringItem.updateMany({
         where: {
           householdId: caller.householdId,
@@ -193,24 +195,27 @@ export async function updateHouseholdCategory(
           type,
         },
         data: {
-          ...(name !== originalName && { category: name }),
-          ...(iconChanged && categoryIconSnapshot(category)),
+          ...(renamed && { category: name }),
+          ...(iconChanged && categoryIconSnapshot(updatedCategory)),
         },
       });
     }
 
-    return category;
+    const deferRevalidation = await notifyHouseholdChange({
+      householdId: caller.householdId,
+      actor: actorFor(caller),
+      resource: "categories",
+      message: `changed the ${updatedCategory.name} category`,
+      scope,
+      executor: tx,
+    });
+
+    return { category: updatedCategory, revalidate: deferRevalidation };
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
-    actor: actorFor(caller),
-    resource: "categories",
-    message: `changed the ${updated.name} category`,
-    scope: "category-rename",
-  });
+  revalidate();
 
-  return updated;
+  return category;
 }
 
 export async function deleteHouseholdCategory(caller: Caller, id: string) {

@@ -24,7 +24,8 @@ export type HouseholdChangeResource =
 
 export const HOUSEHOLD_CHANGE_SCOPES = [
   "personal-transaction",
-  "category-rename",
+  "category-renamed",
+  "category-icon-changed",
   "member-joined",
 ] as const;
 
@@ -117,15 +118,13 @@ const SCOPED_EFFECTS: Record<HouseholdChangeScope, HouseholdChangeEffects> = {
     serverTags: ["transactions"],
     clientKeys: [queryKeys.transactions.all],
   },
-  "category-rename": {
+  "category-renamed": {
     serverTags: ["categories", "transactions", "budgets", "recurring"],
-    clientKeys: [
-      queryKeys.categories(),
-      queryKeys.transactions.all,
-      queryKeys.budgets,
-      queryKeys.overview.all,
-      queryKeys.recurringItems,
-    ],
+    clientKeys: [...EFFECTS.categories.clientKeys, queryKeys.budgets],
+  },
+  "category-icon-changed": {
+    serverTags: [...EFFECTS.categories.serverTags, "transactions", "recurring"],
+    clientKeys: EFFECTS.categories.clientKeys,
   },
   "member-joined": {
     serverTags: ["members", "balances"],
