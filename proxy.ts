@@ -4,13 +4,11 @@ import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 
 import { unauthorized } from "@/lib/http-error";
+import { edgeRedirectRoutes, guestRoutes, matchesRoute } from "@/lib/routes";
 import { safeNext } from "@/lib/safe-next";
-
-const guestRoutes = [["sign-in"]];
 
 const publicRoutes = [
   ...guestRoutes,
-  ["sign-up"],
   ["invite"],
   ["privacy"],
   ["api", "auth"],
@@ -22,25 +20,17 @@ const publicRoutes = [
   ["opengraph-image"],
 ];
 
-function matchesRoute(pathname: string, segments: readonly string[]) {
-  const parts = pathname.split("/").filter(Boolean);
-  return (
-    parts.length >= segments.length &&
-    segments.every((segment, index) => parts[index] === segment)
-  );
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
 
   if (
     sessionCookie &&
-    guestRoutes.some((segments) => matchesRoute(pathname, segments))
+    edgeRedirectRoutes.some((segments) => matchesRoute(pathname, segments))
   ) {
     return NextResponse.redirect(
       new URL(
-        safeNext(request.nextUrl.searchParams.get("next")) ?? "/",
+        safeNext(request.nextUrl.searchParams.get("next"), guestRoutes) ?? "/",
         request.url,
       ),
     );

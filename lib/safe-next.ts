@@ -1,6 +1,13 @@
+import { matchesRoute } from "@/lib/routes";
+
 const SAFE_ORIGIN = "https://sora.invalid";
 
-export function safeNext(next?: string | string[] | null) {
+type RouteSegments = readonly string[];
+
+export function safeNext(
+  next: string | string[] | null | undefined,
+  guestRoutes: readonly RouteSegments[],
+) {
   if (
     typeof next !== "string" ||
     !next.startsWith("/") ||
@@ -9,5 +16,13 @@ export function safeNext(next?: string | string[] | null) {
     return undefined;
   }
 
-  return new URL(next, SAFE_ORIGIN).origin === SAFE_ORIGIN ? next : undefined;
+  const url = new URL(next, SAFE_ORIGIN);
+  if (
+    url.origin !== SAFE_ORIGIN ||
+    guestRoutes.some((segments) => matchesRoute(url.pathname, segments))
+  ) {
+    return undefined;
+  }
+
+  return next;
 }

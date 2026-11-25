@@ -9,6 +9,21 @@ import { logClientError } from "@/instrumentation-client";
 import { getClientRequestId } from "@/lib/client-request-id";
 import { errorFields } from "@/lib/error-fields";
 
+const prefersDark = () => {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  try {
+    const stored = window.localStorage.getItem("theme");
+    return stored === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : stored !== "light";
+  } catch {
+    return true;
+  }
+};
+
 export default function GlobalError({
   error,
   retry,
@@ -16,23 +31,22 @@ export default function GlobalError({
   error: unknown;
   retry: () => void;
 }) {
+  const dark = prefersDark();
+
   useEffect(() => {
     logClientError("client.global-error", {
       ...errorFields(error),
       requestId: getClientRequestId(),
     });
-
-    const storedTheme = window.localStorage.getItem("theme");
-    const dark =
-      storedTheme === "system"
-        ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        : storedTheme !== "light";
-    document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.style.colorScheme = dark ? "dark" : "light";
   }, [error]);
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={dark ? "dark" : undefined}
+      style={{ colorScheme: dark ? "dark" : "light" }}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta
