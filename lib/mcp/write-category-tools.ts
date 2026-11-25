@@ -1,7 +1,6 @@
 import type { McpContext } from "./context";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   createHouseholdCategory,
   deleteHouseholdCategory,
@@ -49,7 +48,6 @@ export function registerCategoryWriteTools(
           iconColor: iconColor ?? null,
           type,
         });
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.categories]);
 
         return {
           id: category.id,
@@ -100,12 +98,6 @@ export function registerCategoryWriteTools(
           iconColor: iconColor ?? null,
           type,
         });
-        revalidateHousehold(context.householdId, [
-          CACHE_RESOURCE.categories,
-          CACHE_RESOURCE.transactions,
-          CACHE_RESOURCE.budgets,
-          CACHE_RESOURCE.recurring,
-        ]);
 
         return {
           id: category.id,
@@ -134,7 +126,6 @@ export function registerCategoryWriteTools(
     async ({ id }) =>
       runWriteTool(async () => {
         const category = await deleteHouseholdCategory(context, id);
-        revalidateHousehold(context.householdId, [CACHE_RESOURCE.categories]);
 
         return {
           id: category.id,

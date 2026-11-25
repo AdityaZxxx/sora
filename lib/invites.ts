@@ -11,6 +11,7 @@ import {
 import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
+import { publishHouseholdChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 
 // seam-parse-exempt: inputs are session values, never user input.
@@ -124,6 +125,15 @@ export async function joinHouseholdByInviteToken(
       },
     });
 
+    const actor = { actorId: userId, actorName: userName };
+    await publishHouseholdChange({
+      householdId: inviteLink.householdId,
+      actor,
+      resource: "members",
+      message: "joined the household",
+      scope: "member-joined",
+    });
+
     const otherMembers = await prisma.householdMembership.findMany({
       where: {
         householdId: inviteLink.householdId,
@@ -135,7 +145,6 @@ export async function joinHouseholdByInviteToken(
         userId: true,
       },
     });
-    const actor = { actorId: userId, actorName: userName };
     await notifyMembers(
       actor,
       inviteLink.householdId,

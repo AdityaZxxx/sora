@@ -40,6 +40,9 @@ export function GET(request: Request) {
           const stop = await subscribeToHouseholdChanges(
             householdId,
             (change) => {
+              if (change.recipientId && change.recipientId !== userId) {
+                return;
+              }
               if (!closed) {
                 send(`data: ${JSON.stringify(change)}\n\n`);
               }
@@ -54,9 +57,6 @@ export function GET(request: Request) {
           heartbeat = setInterval(
             () => send(": keepalive\n\n"),
             SSE_HEARTBEAT_INTERVAL,
-          );
-          send(
-            `event: ready\ndata: ${JSON.stringify({ viewerId: userId })}\n\n`,
           );
         } catch {
           close();

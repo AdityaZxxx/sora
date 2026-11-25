@@ -27,7 +27,6 @@ export async function joinHouseholdByToken(
     );
     await setActiveHouseholdCookie(householdId);
     revalidateHousehold(householdId, [
-      CACHE_RESOURCE.members,
       CACHE_RESOURCE.household,
       CACHE_RESOURCE.notifications,
       CACHE_RESOURCE.invites,

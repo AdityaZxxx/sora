@@ -8,7 +8,12 @@ import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
 import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import {
+  actorFor,
+  assertCallerFullMember,
+  type Actor,
+  type Caller,
+} from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -19,7 +24,11 @@ import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import {
+  notifyHouseholdChange,
+  publishHouseholdChange,
+  type DeferredRevalidation,
+} from "@/lib/realtime";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
 import { settlementCategoryExclusion } from "@/lib/settlements";
 import { sharesMatchExpense, sharesTotal } from "@/lib/split-shares";
@@ -34,6 +43,24 @@ type TransactionCursor = { date: string; id: string };
 
 const IDEMPOTENCY_KEY_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function notifyPersonalTransactionChange(
+  householdId: string,
+  actor: Actor,
+  recipientId: string,
+  message: string,
+  executor: Prisma.TransactionClient,
+) {
+  return notifyHouseholdChange({
+    householdId,
+    actor,
+    resource: "transactions",
+    message,
+    recipientId,
+    scope: "personal-transaction",
+    executor,
+  });
+}
 
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(
@@ -455,6 +482,8 @@ async function createTransactionWithDeps(
     addedVia,
   };
 
+  let personalRevalidation: DeferredRevalidation | undefined;
+
   const attemptWrite = async (writeKey: string | undefined) =>
     prisma.$transaction(async (tx) => {
       const resolved = await resolveIdempotentWrite(
@@ -494,7 +523,16 @@ async function createTransactionWithDeps(
         });
       }
 
-      if (!shared) return transaction;
+      if (!shared) {
+        personalRevalidation = await notifyPersonalTransactionChange(
+          householdId,
+          actor,
+          userId,
+          "added a personal transaction",
+          tx,
+        );
+        return transaction;
+      }
 
       await incrementRollups(tx, {
         householdId,
@@ -533,6 +571,8 @@ async function createTransactionWithDeps(
       throw cause;
     }
   }
+
+  personalRevalidation?.();
 
   const effects = buildPostCommitEffects({
     actor,
@@ -578,6 +618,8 @@ export async function deleteTransaction(caller: Caller, id: string) {
     throw new DomainError("Transaction not found");
   }
 
+  let personalRevalidation: DeferredRevalidation | undefined;
+
   await prisma.$transaction(async (tx) => {
     const deleted = await tx.transaction.deleteMany({
       where: {
@@ -590,6 +632,13 @@ export async function deleteTransaction(caller: Caller, id: string) {
     }
 
     if (!transaction.shared) {
+      personalRevalidation = await notifyPersonalTransactionChange(
+        householdId,
+        actorFor(caller),
+        transaction.addedById,
+        "removed a personal transaction",
+        tx,
+      );
       return;
     }
 
@@ -607,4 +656,6 @@ export async function deleteTransaction(caller: Caller, id: string) {
       executor: tx,
     });
   });
+
+  personalRevalidation?.();
 }

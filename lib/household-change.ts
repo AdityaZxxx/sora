@@ -22,19 +22,26 @@ export const HOUSEHOLD_CHANGE_RESOURCES = [
 export type HouseholdChangeResource =
   (typeof HOUSEHOLD_CHANGE_RESOURCES)[number];
 
+export const HOUSEHOLD_CHANGE_SCOPES = [
+  "personal-transaction",
+  "category-renamed",
+  "category-icon-changed",
+  "member-joined",
+] as const;
+
+export type HouseholdChangeScope = (typeof HOUSEHOLD_CHANGE_SCOPES)[number];
+
 export const householdChangeSchema = z.object({
   householdId: z.string().min(1),
   actorId: z.string(),
   resource: z.enum(HOUSEHOLD_CHANGE_RESOURCES),
   message: z.string().min(1),
   at: z.string(),
+  recipientId: z.string().optional(),
+  scope: z.enum(HOUSEHOLD_CHANGE_SCOPES).optional(),
 });
 
 export type HouseholdChange = z.infer<typeof householdChangeSchema>;
-
-export const eventSourceReadySchema = z.object({
-  viewerId: z.string(),
-});
 
 export type HouseholdChangeEffects = {
   serverTags: readonly CacheResource[];
@@ -106,8 +113,28 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
   },
 };
 
+const SCOPED_EFFECTS: Record<HouseholdChangeScope, HouseholdChangeEffects> = {
+  "personal-transaction": {
+    serverTags: ["transactions"],
+    clientKeys: [queryKeys.transactions.all],
+  },
+  "category-renamed": {
+    serverTags: ["categories", "transactions", "budgets", "recurring"],
+    clientKeys: [...EFFECTS.categories.clientKeys, queryKeys.budgets],
+  },
+  "category-icon-changed": {
+    serverTags: [...EFFECTS.categories.serverTags, "transactions", "recurring"],
+    clientKeys: EFFECTS.categories.clientKeys,
+  },
+  "member-joined": {
+    serverTags: ["members", "balances"],
+    clientKeys: EFFECTS.members.clientKeys,
+  },
+};
+
 export function householdChangeEffects(
   resource: HouseholdChangeResource,
+  scope?: HouseholdChangeScope,
 ): HouseholdChangeEffects {
-  return EFFECTS[resource];
+  return scope ? SCOPED_EFFECTS[scope] : EFFECTS[resource];
 }
