@@ -4,7 +4,7 @@ import { cacheLife } from "next/cache";
 
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
-import { countHouseholdMembers, requireHousehold } from "@/lib/household";
+import { countWalletMembers, requireWallet } from "@/lib/wallet";
 
 export type DashboardView = {
   dateRange: { from: Date; to: Date };
@@ -12,7 +12,7 @@ export type DashboardView = {
 };
 
 export type DashboardContext = DashboardView & {
-  householdId: string;
+  walletId: string;
   currency: string;
   userId: string;
   userName: string;
@@ -38,18 +38,18 @@ export async function getDashboardContext(): Promise<DashboardContext | null> {
   "use cache: private";
   cacheLife({ stale: 300 });
 
-  const result = await requireHousehold();
-  const currency = result?.household.currency;
+  const result = await requireWallet();
+  const currency = result?.wallet.currency;
   if (!result || !currency) {
     return null;
   }
 
   return {
-    householdId: result.household.id,
+    walletId: result.wallet.id,
     currency,
     userId: result.session.user.id,
     userName: result.session.user.name,
-    memberCount: await countHouseholdMembers(result.household.id),
+    memberCount: await countWalletMembers(result.wallet.id),
     canEdit: result.membership.role !== VIEW_ONLY_ROLE,
     ...resolveDashboardView(),
   };

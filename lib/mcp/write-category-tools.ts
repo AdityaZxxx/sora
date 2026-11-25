@@ -2,9 +2,9 @@ import type { McpContext } from "./context";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import {
-  createHouseholdCategory,
-  deleteHouseholdCategory,
-  updateHouseholdCategory,
+  createWalletCategory,
+  deleteWalletCategory,
+  updateWalletCategory,
 } from "@/lib/categories";
 import { categoryFields, categoryLookupNameSchema } from "@/schemas/categories";
 import { DeleteIdSchema } from "@/schemas/delete";
@@ -22,7 +22,7 @@ export function registerCategoryWriteTools(
     {
       title: "Create category",
       description:
-        "Create a Category in the Household: a label for Transactions, of type expense or income. A Transaction's category must match one of the Household's Categories. The Settlement Category cannot be created.",
+        "Create a Category in the Wallet: a label for Transactions, of type expense or income. A Transaction's category must match one of the Wallet's Categories.",
       inputSchema: {
         name: fields.name.describe("Name of the Category, 3 to 20 characters."),
         icon: fields.icon.describe(
@@ -41,7 +41,7 @@ export function registerCategoryWriteTools(
     },
     async ({ name, icon, iconKind, iconColor, type }) =>
       runWriteTool(async () => {
-        const category = await createHouseholdCategory(context, {
+        const category = await createWalletCategory(context, {
           name,
           icon,
           iconKind: iconKind ?? "emoji",
@@ -66,7 +66,7 @@ export function registerCategoryWriteTools(
     {
       title: "Update category",
       description:
-        "Rename a Category in the Household or change its icon. Transactions and Budgets that used the old name move with it. The Settlement Category cannot be edited.",
+        "Rename a Category in the Wallet or change its icon. Transactions and Budgets that used the old name move with it.",
       inputSchema: {
         originalName: categoryLookupNameSchema.describe(
           "Current name of the Category. Use list_categories to see them.",
@@ -90,7 +90,7 @@ export function registerCategoryWriteTools(
     },
     async ({ originalName, name, icon, iconKind, iconColor, type }) =>
       runWriteTool(async () => {
-        const category = await updateHouseholdCategory(context, {
+        const category = await updateWalletCategory(context, {
           originalName,
           name,
           icon,
@@ -116,7 +116,7 @@ export function registerCategoryWriteTools(
     {
       title: "Delete category",
       description:
-        "Delete a Category from the Household. Use list_categories to find the Category's id. The Settlement Category cannot be deleted.",
+        "Delete a Category from the Wallet. Use list_categories to find the Category's id.",
       inputSchema: {
         id: DeleteIdSchema.shape.id.describe(
           "Id of the Category to delete. Use list_categories to see them.",
@@ -125,7 +125,7 @@ export function registerCategoryWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        const category = await deleteHouseholdCategory(context, id);
+        const category = await deleteWalletCategory(context, id);
 
         return {
           id: category.id,

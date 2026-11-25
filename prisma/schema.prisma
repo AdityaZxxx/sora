@@ -13,7 +13,7 @@ datasource db {
 }
 
 // Better Auth core models (user IDs are referenced by the app tables through
-// HouseholdMembership.userId and Transaction.addedById, migrated from Clerk
+// WalletMembership.userId and Transaction.addedById, migrated from Clerk
 // with their original IDs preserved)
 model User {
   id            String    @id
@@ -26,29 +26,31 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  memberships       HouseholdMembership[]
-  addedTransactions Transaction[]
-  counterpartyTransactions Transaction[] @relation("TransactionCounterparty")
+  memberships        WalletMembership[]
+  addedTransactions  Transaction[]
+  settlementsPaid    Settlement[] @relation("SettlementPayer")
+  settlementsReceived Settlement[] @relation("SettlementReceiver")
   createdInviteLinks InviteLink[]
-  notifications     Notification[]
-  transactionShares TransactionShare[]
-  apiTokens         ApiToken[]
+  notifications      Notification[]
+  transactionShares  TransactionShare[]
+  apiTokens          ApiToken[]
 }
 
-model Household {
+model Wallet {
   id        String   @id @default(uuid())
   name      String?
   currency  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Agent access is opt-in per household. Off means no token can be created
+  // Agent access is opt-in per wallet. Off means no token can be created
   // and no existing token works.
   agentAccessEnabled Boolean @default(false)
 
-  memberships  HouseholdMembership[]
+  memberships  WalletMembership[]
   inviteLinks  InviteLink[]
   transactions Transaction[]
+  settlements  Settlement[]
   categories   Category[]
   goals        Goal[]
   budgets      Budget[]
@@ -59,25 +61,25 @@ model Household {
   recurringItems RecurringItem[]
 }
 
-model HouseholdMembership {
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+model WalletMembership {
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   joinedAt    DateTime  @default(now())
-  // Opt-in to the daily email digest of unread household notifications.
+  // Opt-in to the daily email digest of unread wallet notifications.
   emailDigest Boolean   @default(false)
   role        String    @default("member")
 
-  @@id([householdId, userId])
+  @@id([walletId, userId])
   @@index([userId])
 }
 
 model InviteLink {
   id          String    @id @default(uuid())
   token       String    @unique
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   createdById String
   createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
@@ -88,8 +90,8 @@ model InviteLink {
 // stored, so the plaintext is shown once at creation and never again.
 model ApiToken {
   id          String    @id @default(uuid())
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
@@ -99,7 +101,7 @@ model ApiToken {
   createdAt   DateTime  @default(now())
   revokedAt   DateTime?
 
-  @@index([householdId])
+  @@index([walletId])
 }
 
 model Session {
@@ -152,15 +154,15 @@ model Category {
   id String @id @default(dbgenerated("gen_random_uuid()::text"))
   createdAt DateTime @default(now())
   name String
-  householdId String
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   icon String
   iconKind String @default("emoji")
   iconColor String?
   type String @default("income")
 
-  @@unique([name, householdId, type])
-  @@index([householdId, type])
+  @@unique([name, walletId, type])
+  @@index([walletId, type])
 }
 
 model Transaction {
@@ -171,17 +173,11 @@ model Transaction {
   amount Decimal
   description String @db.VarChar(200)
   date DateTime
-  householdId String
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   addedById String
   addedBy User @relation(fields: [addedById], references: [id], onDelete: Cascade)
-  counterpartyId String?
-  counterparty User? @relation("TransactionCounterparty", fields: [counterpartyId], references: [id], onDelete: SetNull)
   type String @default("income")
-
-  // false = personal: visible only to addedById, excluded from household
-  // totals, budgets, and history rollups (settlements are personal too)
-  shared Boolean @default(true)
 
   category String
   categoryIcon String
@@ -198,9 +194,29 @@ model Transaction {
 
   shares TransactionShare[]
 
-  @@index([householdId, date])
-  @@index([householdId, shared, type])
-  @@index([householdId, goalId])
+  @@index([walletId, date])
+  @@index([walletId, type])
+  @@index([walletId, goalId])
+}
+
+// A settlement records money that moved outside Sora between two members of
+// one wallet. It is not a ledger transaction and never enters wallet totals,
+// budgets, or history rollups.
+model Settlement {
+  id         String   @id @default(uuid())
+  walletId   String
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  payerId    String
+  payer      User     @relation("SettlementPayer", fields: [payerId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("SettlementReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  amount     Decimal
+  date       DateTime
+  note       String?
+  addedVia   String?
+  createdAt  DateTime @default(now())
+
+  @@index([walletId, date])
 }
 
 model TransactionShare {
@@ -213,15 +229,15 @@ model TransactionShare {
   @@id([transactionId, userId])
 }
 
-// A household-level definition of a repeating income or expense. It is a
+// A wallet-level definition of a repeating income or expense. It is a
 // reminder, never a ledger entry: members record the real transaction from
 // the list when it comes due. lastPostedAt is the moment the member last
 // confirmed one; an item is due when it has no posting for the occurrence
 // on or before today.
 model RecurringItem {
   id          String    @id @default(uuid())
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   name        String
   amount      Decimal
   category    String
@@ -238,13 +254,13 @@ model RecurringItem {
   lastPostedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  @@index([householdId])
+  @@index([walletId])
 }
 
 model Goal {
   id          String    @id @default(uuid())
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   name        String
   target      Decimal
   deadline    DateTime?
@@ -254,47 +270,47 @@ model Goal {
 }
 
 model MonthHistory {
-  householdId String
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   day Int
   month Int
   year Int
   income Decimal
   expense Decimal
 
-  @@id([householdId, day, month, year])
+  @@id([walletId, day, month, year])
 }
 
 model YearHistory {
-  householdId String
-  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   month Int
   year Int
   income Decimal
   expense Decimal
 
-  @@id([householdId, month, year])
+  @@id([walletId, month, year])
 }
 
 // Monthly spending limit on one category. "soft" warns at 80%/100% via
-// notifications; "hard" rejects shared expense transactions over the limit.
+// notifications; "hard" rejects expense transactions over the limit.
 model Budget {
   id          String    @id @default(uuid())
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   category    String
   amount      Decimal
   mode        String    @default("soft")
   createdAt   DateTime  @default(now())
 
-  @@unique([householdId, category])
+  @@unique([walletId, category])
 }
 
 // In-app bell entry for one member; userId is the recipient.
 model Notification {
   id          String    @id @default(uuid())
-  householdId String
-  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   type        String
@@ -302,5 +318,5 @@ model Notification {
   readAt      DateTime?
   createdAt   DateTime  @default(now())
 
-  @@index([householdId, userId, createdAt])
+  @@index([walletId, userId, createdAt])
 }

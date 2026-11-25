@@ -4,9 +4,9 @@ import { POLL_INTERVAL } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-export type HouseholdsResponse = {
+export type WalletsResponse = {
   active: { id: string };
-  households: {
+  wallets: {
     id: string;
     name: string | null;
     currency: string | null;
@@ -15,14 +15,11 @@ export type HouseholdsResponse = {
   }[];
 };
 
-export function useHouseholds() {
-  return useQuery<HouseholdsResponse>({
-    queryKey: queryKeys.households,
+export function useWallets() {
+  return useQuery<WalletsResponse>({
+    queryKey: queryKeys.wallets,
     queryFn: () =>
-      fetchReadJson<HouseholdsResponse>(
-        "/api/households",
-        "Failed to load households",
-      ),
+      fetchReadJson<WalletsResponse>("/api/wallets", "Failed to load wallets"),
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,

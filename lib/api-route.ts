@@ -1,12 +1,12 @@
-import type { HouseholdActionContext } from "@/lib/action-result";
+import type { WalletActionContext } from "@/lib/action-result";
 import type { z } from "zod";
 
 import { resolveDateRange } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
 import { rejection, unauthorized } from "@/lib/http-error";
 import { logError, logInfo, logWarn } from "@/lib/log";
 import { rememberErrorRequestId, withRequestId } from "@/lib/request-id";
+import { requireWallet } from "@/lib/wallet";
 
 export { rejection, unauthorized } from "@/lib/http-error";
 
@@ -23,12 +23,12 @@ export function parseQueryParams<TSchema extends z.ZodType>(
   return parsed.data;
 }
 
-export async function withHouseholdRoute(
-  handler: (context: HouseholdActionContext) => Promise<Response> | Response,
+export async function withWalletRoute(
+  handler: (context: WalletActionContext) => Promise<Response> | Response,
 ): Promise<Response> {
   return withRequestId(async () => {
     const startedAt = Date.now();
-    const result = await requireHousehold();
+    const result = await requireWallet();
     if (!result) {
       logWarn("route.unauthorized", {
         outcome: "rejected",
@@ -37,13 +37,13 @@ export async function withHouseholdRoute(
       return unauthorized();
     }
 
-    const householdId = result.household.id;
+    const walletId = result.wallet.id;
     const userId = result.session.user.id;
 
     try {
       const response = await handler(result);
       logInfo("route.completed", {
-        householdId,
+        walletId,
         userId,
         outcome: "ok",
         durationMs: Date.now() - startedAt,
@@ -54,7 +54,7 @@ export async function withHouseholdRoute(
       const durationMs = Date.now() - startedAt;
       if (cause instanceof DomainError) {
         logWarn("route.rejected", {
-          householdId,
+          walletId,
           userId,
           outcome: "rejected",
           durationMs,
@@ -63,7 +63,7 @@ export async function withHouseholdRoute(
         return rejection(cause.message, 400);
       }
       logError("route.failed", {
-        householdId,
+        walletId,
         userId,
         outcome: "failed",
         durationMs,

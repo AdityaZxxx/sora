@@ -1,8 +1,8 @@
 import type { TokenScope } from "@/lib/types";
 import type {
   ApiToken,
-  Household,
-  HouseholdMembership,
+  Wallet,
+  WalletMembership,
   Prisma,
   User,
 } from "@prisma/client";
@@ -11,7 +11,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { assertCallerFullMember, type Caller } from "@/lib/caller";
 import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -38,9 +38,9 @@ export function generateApiToken() {
 export type TokenAuth =
   | {
       ok: true;
-      household: Household;
+      wallet: Wallet;
       user: User;
-      membership: HouseholdMembership;
+      membership: WalletMembership;
       token: ApiToken;
       caller: Caller;
     }
@@ -58,7 +58,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
 
   const token = await prisma.apiToken.findUnique({
     where: { tokenHash: hashApiToken(presented) },
-    include: { household: true, user: true },
+    include: { wallet: true, user: true },
   });
 
   if (!token || token.revokedAt) {
@@ -69,18 +69,18 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     return { ok: false, status: 401, error: "This token has expired" };
   }
 
-  if (!token.household.agentAccessEnabled) {
+  if (!token.wallet.agentAccessEnabled) {
     return {
       ok: false,
       status: 401,
-      error: "Agent access is off for this household",
+      error: "Agent access is off for this wallet",
     };
   }
 
-  const membership = await prisma.householdMembership.findUnique({
+  const membership = await prisma.walletMembership.findUnique({
     where: {
-      householdId_userId: {
-        householdId: token.householdId,
+      walletId_userId: {
+        walletId: token.walletId,
         userId: token.userId,
       },
     },
@@ -90,12 +90,12 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     return {
       ok: false,
       status: 401,
-      error: "The token owner is no longer a member of this household",
+      error: "The token owner is no longer a member of this wallet",
     };
   }
 
   const caller: Caller = {
-    householdId: token.householdId,
+    walletId: token.walletId,
     userId: token.userId,
     role: parseMemberRole(membership.role),
     scope: token.scope as TokenScope,
@@ -125,7 +125,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
 
   return {
     ok: true,
-    household: token.household,
+    wallet: token.wallet,
     user: token.user,
     membership,
     token,
@@ -162,13 +162,13 @@ export async function createApiToken(
     );
   }
 
-  const household = await prisma.household.findUnique({
-    where: { id: caller.householdId },
+  const wallet = await prisma.wallet.findUnique({
+    where: { id: caller.walletId },
     select: { agentAccessEnabled: true },
   });
-  if (!household?.agentAccessEnabled) {
+  if (!wallet?.agentAccessEnabled) {
     throw new DomainError(
-      "Agent access is off for this household. Turn it on and try again.",
+      "Agent access is off for this wallet. Turn it on and try again.",
     );
   }
 
@@ -182,7 +182,7 @@ export async function createApiToken(
   const { token, tokenHash } = generateApiToken();
   const created = await prisma.apiToken.create({
     data: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       userId: caller.userId,
       name: parsed.data.name,
       scope: parsed.data.scope,
@@ -195,15 +195,15 @@ export async function createApiToken(
 }
 
 export async function listApiTokens(
-  householdId: string,
+  walletId: string,
 ): Promise<ApiTokenSummary[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.apiTokens));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.apiTokens));
 
   return await prisma.apiToken.findMany({
     where: {
-      householdId,
+      walletId,
       revokedAt: null,
     },
     select: apiTokenSelect,
@@ -227,7 +227,7 @@ export async function revokeApiToken(
   const token = await prisma.apiToken.findFirst({
     where: {
       id: parsed.data.id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
     select: {
       id: true,
@@ -269,15 +269,15 @@ export async function setAgentAccess(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.household.update({
-      where: { id: caller.householdId },
+    await tx.wallet.update({
+      where: { id: caller.walletId },
       data: { agentAccessEnabled: enabled },
     });
 
     if (!enabled) {
       await tx.apiToken.updateMany({
         where: {
-          householdId: caller.householdId,
+          walletId: caller.walletId,
           revokedAt: null,
         },
         data: { revokedAt: new Date() },

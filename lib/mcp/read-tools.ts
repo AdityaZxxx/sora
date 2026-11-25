@@ -30,14 +30,14 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "Get overview",
       description:
-        "Total income, expenses, and net balance for the Household over a date range. Counts shared Transactions only.",
+        "Total income, expenses, and net balance for the Wallet over a date range. Counts every Transaction in the Wallet's ledger.",
       inputSchema: dateRangeSchema,
     },
     async ({ from, to }) => {
       try {
         const range = resolveDateRange(from, to);
         const stats = await getBalanceStats(
-          context.householdId,
+          context.walletId,
           range.from,
           range.to,
         );
@@ -60,23 +60,16 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     "list_transactions",
     {
       title: "List transactions",
-      description:
-        "Transactions in the Household over a date range. Includes the shared ones and the caller's own personal ones.",
+      description: "Transactions in the Wallet over a date range.",
       inputSchema: {
         ...dateRangeSchema,
         category: z
           .string()
           .optional()
           .describe("Only Transactions in this category."),
-        shared: z
-          .boolean()
-          .optional()
-          .describe(
-            "Only shared Transactions (true) or only personal ones (false).",
-          ),
       },
     },
-    async ({ from, to, category, shared }) => {
+    async ({ from, to, category }) => {
       try {
         const range = resolveDateRange(from, to);
         const currency = context.currency ?? DEFAULT_CURRENCY;
@@ -86,11 +79,10 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         do {
           // oxlint-disable-next-line eslint/no-await-in-loop -- the next page needs this page's cursor
           const page = await getTransactionsHistory(
-            context.householdId,
-            context.userId,
+            context.walletId,
             range.from,
             range.to,
-            { category, shared, cursor },
+            { category, cursor },
           );
           transactions.push(...page.transactions);
           cursor = page.nextCursor;
@@ -107,7 +99,6 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             amount: moneyText(transaction.amount),
             type: transaction.type,
             category: transaction.category,
-            shared: transaction.shared,
             addedBy: transaction.addedByName,
           })),
         });
@@ -122,13 +113,13 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "Get balances",
       description:
-        "What each other Member owes the caller, or what the caller owes them, from shared Transactions and Settlements.",
+        "What each other Member owes the caller, or what the caller owes them, from the Wallet's Transactions and Settlements.",
       inputSchema: {},
     },
     async () => {
       try {
         const balances = await getMemberBalances(
-          context.householdId,
+          context.walletId,
           context.userId,
         );
 
@@ -157,12 +148,12 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "List budgets",
       description:
-        "The Household's monthly Budgets, with what has been spent against each one this month.",
+        "The Wallet's monthly Budgets, with what has been spent against each one this month.",
       inputSchema: {},
     },
     async () => {
       try {
-        const budgets = await getBudgetsWithProgress(context.householdId);
+        const budgets = await getBudgetsWithProgress(context.walletId);
 
         return toolResult({
           currency: context.currency,
@@ -187,12 +178,12 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "List goals",
       description:
-        "The Household's Goals, with how much has been contributed towards each one.",
+        "The Wallet's Goals, with how much has been contributed towards each one.",
       inputSchema: {},
     },
     async () => {
       try {
-        const goals = await getGoalsWithProgress(context.householdId);
+        const goals = await getGoalsWithProgress(context.walletId);
 
         return toolResult({
           currency: context.currency,
@@ -215,12 +206,12 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "List members",
       description:
-        "Every member of the Household with their id, name and role. Use these ids for transactions, settlements and shares.",
+        "Every member of the Wallet with their id, name and role. Use these ids for transactions, settlements and shares.",
       inputSchema: {},
     },
     async () => {
       try {
-        const memberships = await listMembers(context.householdId);
+        const memberships = await listMembers(context.walletId);
 
         return toolResult({
           members: memberships.map((membership) => ({
@@ -240,7 +231,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     {
       title: "List categories",
       description:
-        "The Household's Categories. Use these when adding a Transaction, since a Transaction's category must match one of them.",
+        "The Wallet's Categories. Use these when adding a Transaction, since a Transaction's category must match one of them.",
       inputSchema: {
         type: z
           .enum(["expense", "income"])
@@ -250,7 +241,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     },
     async ({ type }) => {
       try {
-        const categories = await getCategories(context.householdId, type);
+        const categories = await getCategories(context.walletId, type);
 
         return toolResult({
           categories: categories.map((category) => ({

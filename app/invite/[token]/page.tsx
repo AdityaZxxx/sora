@@ -15,7 +15,7 @@ import { getSession } from "@/lib/auth";
 import { getInviteByToken } from "@/lib/invite-context";
 import prisma from "@/lib/prisma";
 
-import JoinHouseholdCard from "./JoinHouseholdCard";
+import JoinWalletCard from "./JoinWalletCard";
 
 export const instant = false;
 
@@ -28,9 +28,9 @@ export async function generateMetadata({
   const invite = await getInviteByToken(token);
 
   return {
-    title: invite ? `Join ${invite.household.name}` : "Household invite",
+    title: invite ? `Join ${invite.wallet.name}` : "Wallet invite",
     description: invite
-      ? `${invite.createdBy.name} invited you to track finances together in ${invite.household.name}.`
+      ? `${invite.createdBy.name} invited you to track finances together in ${invite.wallet.name}.`
       : "This invite link is invalid or has been revoked.",
     robots: {
       index: false,
@@ -57,10 +57,10 @@ const InvitePage = async ({
     redirect(`/sign-in?next=${encodeURIComponent(`/invite/${token}`)}`);
   }
 
-  const existingMembership = await prisma.householdMembership.findUnique({
+  const existingMembership = await prisma.walletMembership.findUnique({
     where: {
-      householdId_userId: {
-        householdId: invite.householdId,
+      walletId_userId: {
+        walletId: invite.walletId,
         userId: session.user.id,
       },
     },
@@ -73,9 +73,9 @@ const InvitePage = async ({
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
       <Logo />
-      <JoinHouseholdCard
+      <JoinWalletCard
         token={token}
-        householdName={invite.household.name}
+        walletName={invite.wallet.name}
         inviterName={invite.createdBy.name}
       />
     </div>
@@ -93,7 +93,7 @@ const InvalidInviteLink = () => {
           <CardTitle className="text-xl">Invite link unavailable</CardTitle>
           <CardDescription>
             This invite link is invalid or has been revoked. Ask a member of the
-            household for a new one.
+            wallet for a new one.
           </CardDescription>
         </CardHeader>
         <CardContent>

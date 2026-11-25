@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 
 import { logoSrc, ogColors, ogFonts, OG_SIZE } from "@/lib/og-assets";
 
-export const alt = "Sora, one shared ledger for your household";
+export const alt = "Sora, one shared ledger for your wallet";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
@@ -119,7 +119,7 @@ export default function Image() {
               marginTop: 20,
             }}
           >
-            Shared finances for couples and households
+            Shared finances for couples and wallets
           </div>
         </div>
       </div>

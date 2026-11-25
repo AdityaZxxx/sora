@@ -24,10 +24,10 @@ export function registerTransactionWriteTools(
     {
       title: "Add transaction",
       description:
-        "Add a Transaction to the Household's ledger: an expense or income, shared with the Household or personal to the caller. A shared Transaction counts towards the Household's balances and Budgets; a personal one stays with the caller.",
+        "Add an expense or income Transaction to the Wallet's ledger. It counts towards the Wallet's balances, Budgets and Goals.",
       inputSchema: {
         amount: transactionInput.amount.describe(
-          "Amount, in the Household's currency.",
+          "Amount, in the Wallet's currency.",
         ),
         description: transactionInput.description.describe(
           "What the Transaction was for, up to 200 characters.",
@@ -37,22 +37,19 @@ export function registerTransactionWriteTools(
           .optional()
           .describe("Date as YYYY-MM-DD. Defaults to today."),
         category: transactionInput.category.describe(
-          "Name of a Category in the Household. Use list_categories to see them.",
+          "Name of a Category in the Wallet. Use list_categories to see them.",
         ),
         type: transactionInput.type
           .default("expense")
           .describe("Expense or income."),
-        shared: transactionInput.shared.describe(
-          "Shared Transactions count towards the Household's balances and Budgets; personal ones stay with the caller.",
-        ),
         goalId: transactionInput.goalId.describe(
-          "Id of a Goal in the Household the Transaction contributes to.",
+          "Id of a Goal in the Wallet the Transaction contributes to.",
         ),
         shares: transactionInput.shares.describe(
-          "Per-member split of a shared expense, as amounts in the Household's currency. The amounts must add up to the Transaction's amount. Use list_members to get the member ids.",
+          "Per-member split of an expense, as amounts in the Wallet's currency. The amounts must add up to the Transaction's amount. Use list_members to get the member ids.",
         ),
         recurringItemId: transactionInput.recurringItemId.describe(
-          "Id of a Recurring item in the Household this Transaction records. Optional; carries the item as posted for this occurrence.",
+          "Id of a Recurring item in the Wallet this Transaction records. Optional; carries the item as posted for this occurrence.",
         ),
       },
     },
@@ -62,7 +59,6 @@ export function registerTransactionWriteTools(
       date,
       category,
       type,
-      shared,
       goalId,
       shares,
       recurringItemId,
@@ -74,7 +70,6 @@ export function registerTransactionWriteTools(
           date: date ? parseDate(date) : todayAtUtcMidnight(),
           category,
           type,
-          shared,
           goalId: goalId || undefined,
           shares,
           recurringItemId,
@@ -89,7 +84,6 @@ export function registerTransactionWriteTools(
           amount: transaction.amount.toNumber(),
           type: transaction.type,
           category: transaction.category,
-          shared: transaction.shared,
           memberId: context.userId,
         };
       }),
@@ -100,7 +94,7 @@ export function registerTransactionWriteTools(
     {
       title: "Delete transaction",
       description:
-        "Delete a Transaction from the Household's ledger. The Household's balances and history rollups move with it. Use list_transactions to find the Transaction's id.",
+        "Delete a Transaction from the Wallet's ledger. The Wallet's balances and history rollups move with it. Use list_transactions to find the Transaction's id.",
       inputSchema: {
         id: DeleteIdSchema.shape.id.describe(
           "Id of the Transaction to delete. Use list_transactions to see them.",
@@ -120,13 +114,13 @@ export function registerTransactionWriteTools(
     {
       title: "Record settlement",
       description:
-        "Record a Settlement: the caller paid the other Member back what the caller owed them. Use it when get_balances shows the caller owes that Member. The Settlement is personal to the caller and clears that debt. No money moves inside the app.",
+        "Record a Settlement: the caller paid the other Member back what the caller owed them. Use it when get_balances shows the caller owes that Member. No money moves inside the app.",
       inputSchema: {
         memberId: settlementInput.memberId.describe(
           "Id of the Member the caller paid back. Use get_balances to see them.",
         ),
         amount: settlementInput.amount.describe(
-          "Amount paid back, in the Household's currency.",
+          "Amount paid back, in the Wallet's currency.",
         ),
       },
     },
@@ -143,7 +137,7 @@ export function registerTransactionWriteTools(
           currency: context.currency,
           date: settlement.date.toISOString(),
           amount: settlement.amount.toNumber(),
-          description: settlement.description,
+          receiverId: settlement.receiverId,
           memberId: context.userId,
         };
       }),

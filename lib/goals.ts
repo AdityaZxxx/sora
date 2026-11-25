@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag, revalidateHousehold } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag, revalidateWallet } from "@/lib/cache";
 import {
   actorFor,
   assertCallerFullMember,
@@ -11,7 +11,7 @@ import {
 import { DomainError } from "@/lib/errors";
 import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
   CreateGoalSchema,
@@ -19,15 +19,15 @@ import {
   UpdateGoalSchema,
 } from "@/schemas/goals";
 
-export async function getGoalsWithProgress(householdId: string) {
+export async function getGoalsWithProgress(walletId: string) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.goals));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.goals));
 
   const [goals, contributionSums] = await Promise.all([
     prisma.goal.findMany({
       where: {
-        householdId,
+        walletId,
       },
       select: {
         id: true,
@@ -42,11 +42,10 @@ export async function getGoalsWithProgress(householdId: string) {
     prisma.transaction.groupBy({
       by: ["goalId"],
       where: {
-        householdId,
+        walletId,
         goalId: {
           not: null,
         },
-        shared: true,
       },
       _sum: {
         amount: true,
@@ -72,7 +71,7 @@ export type GoalWithProgress = Awaited<
   ReturnType<typeof getGoalsWithProgress>
 >[number];
 
-export async function updateHouseholdGoal(
+export async function updateWalletGoal(
   caller: Caller,
   input: UpdateGoalSchemaType,
 ) {
@@ -101,13 +100,13 @@ export async function updateHouseholdGoal(
   const goal = await prisma.goal.update({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
     data,
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "goals",
     message: `changed the ${goal.name} goal`,
@@ -122,10 +121,7 @@ export type CreateGoalInput = {
   deadline?: Date;
 };
 
-export async function createHouseholdGoal(
-  caller: Caller,
-  input: CreateGoalInput,
-) {
+export async function createWalletGoal(caller: Caller, input: CreateGoalInput) {
   assertCallerFullMember(caller);
   const parsed = CreateGoalSchema.safeParse(input);
   if (!parsed.success) {
@@ -136,15 +132,15 @@ export async function createHouseholdGoal(
 
   const goal = await prisma.goal.create({
     data: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       name,
       target,
       deadline: deadline ?? null,
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "goals",
     message: `added the ${goal.name} goal`,
@@ -155,17 +151,16 @@ export async function createHouseholdGoal(
 
 export async function notifyIfGoalReached(input: {
   actor: Actor;
-  householdId: string;
+  walletId: string;
   goal: { id: string; name: string; target: Prisma.Decimal };
   amount: number;
   formatAmount: (amount: number) => string;
 }) {
-  const { actor, householdId, goal, amount, formatAmount } = input;
+  const { actor, walletId, goal, amount, formatAmount } = input;
   const contributed = await prisma.transaction.aggregate({
     where: {
-      householdId,
+      walletId,
       goalId: goal.id,
-      shared: true,
     },
     _sum: {
       amount: true,
@@ -176,9 +171,9 @@ export async function notifyIfGoalReached(input: {
     return;
   }
 
-  const members = await prisma.householdMembership.findMany({
+  const members = await prisma.walletMembership.findMany({
     where: {
-      householdId,
+      walletId,
     },
     select: {
       userId: true,
@@ -186,15 +181,15 @@ export async function notifyIfGoalReached(input: {
   });
   await notifyMembers(
     actor,
-    householdId,
+    walletId,
     members.map((member) => member.userId),
     "goal_reached",
     `${goal.name} reached its target: ${formatAmount(total.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
   );
-  revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+  revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
 }
 
-export async function deleteHouseholdGoal(caller: Caller, id: string) {
+export async function deleteWalletGoal(caller: Caller, id: string) {
   assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
@@ -207,7 +202,7 @@ export async function deleteHouseholdGoal(caller: Caller, id: string) {
   const goal = await prisma.goal.findFirst({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (!goal) {
@@ -217,15 +212,15 @@ export async function deleteHouseholdGoal(caller: Caller, id: string) {
   const deleted = await prisma.goal.deleteMany({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (deleted.count === 0) {
     throw new DomainError("Goal not found");
   }
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "goals",
     message: `removed the ${goal.name} goal`,

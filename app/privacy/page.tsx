@@ -29,10 +29,10 @@ const PrivacyPage = () => {
             </h2>
             <p className="text-muted-foreground">
               To run Sora we store your name and email address (your sign-in),
-              your household membership, and the money records you and your
-              household add: transactions and categories. We use your email only
-              for sign-in, email verification, and password reset. Sora has no
-              ads, no third-party analytics, and we never sell your data.
+              your wallet membership, and the money records you and your wallet
+              add: transactions and categories. We use your email only for
+              sign-in, email verification, and password reset. Sora has no ads,
+              no third-party analytics, and we never sell your data.
             </p>
           </section>
 
@@ -53,7 +53,7 @@ const PrivacyPage = () => {
               Export your data
             </h2>
             <p className="text-muted-foreground">
-              You can download a full JSON export of your household (members,
+              You can download a full JSON export of your wallet (members,
               transactions, categories, and invite-link history) at any time
               from the{" "}
               <Link href="/manage" className="underline underline-offset-4">
@@ -77,10 +77,10 @@ const PrivacyPage = () => {
               <Link href="/manage" className="underline underline-offset-4">
                 Manage page
               </Link>
-              . Deletion removes your sign-in, your sessions, and every
-              household where you are the last member, including its
-              transactions and categories. In a household with other members you
-              are removed; transactions added by other members stay.
+              . Deletion removes your sign-in, your sessions, and every wallet
+              where you are the last member, including its transactions and
+              categories. In a wallet with other members you are removed;
+              transactions added by other members stay.
             </p>
           </section>
 

@@ -2,7 +2,7 @@ import type { TokenAuth } from "@/lib/api-token";
 import type { Caller } from "@/lib/caller";
 
 export type McpContext = Caller & {
-  householdName: string | null;
+  walletName: string | null;
   currency: string | null;
 };
 
@@ -11,7 +11,7 @@ export function contextFromToken(
 ): McpContext {
   return {
     ...auth.caller,
-    householdName: auth.household.name,
-    currency: auth.household.currency,
+    walletName: auth.wallet.name,
+    currency: auth.wallet.currency,
   };
 }

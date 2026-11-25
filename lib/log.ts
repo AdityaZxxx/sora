@@ -5,7 +5,7 @@ export type LogOutcome = "ok" | "rejected" | "failed";
 
 export type LogFields = {
   event: string;
-  householdId?: string;
+  walletId?: string;
   userId?: string;
   outcome?: LogOutcome;
   durationMs?: number;
@@ -35,7 +35,7 @@ export function log(
 
   if (fields) {
     for (const key of [
-      "householdId",
+      "walletId",
       "userId",
       "outcome",
       "durationMs",

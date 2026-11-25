@@ -1,10 +1,10 @@
-import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withWalletRoute } from "@/lib/api-route";
 import { listNotifications } from "@/lib/notifications";
 
 export async function GET(request: Request) {
-  return withHouseholdRoute(async (result) => {
+  return withWalletRoute(async (result) => {
     const notifications = await listNotifications(
-      result.household.id,
+      result.wallet.id,
       result.session.user.id,
     );
     return jsonReadResponse(request, notifications);

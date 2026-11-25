@@ -12,11 +12,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { useHouseholds } from "@/hooks/use-households";
+import { useWallets } from "@/hooks/use-wallets";
 import { authClient } from "@/lib/auth-client";
 
 import { cn } from "../lib/utils";
-import HouseholdSwitcher from "./HouseholdSwitcher";
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -32,6 +31,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSignOut } from "./use-sign-out";
 import UserMenu from "./UserMenu";
+import WalletSwitcher from "./WalletSwitcher";
 
 export default function Navbar() {
   return (
@@ -55,7 +55,7 @@ export default function Navbar() {
           <NotificationBell />
 
           <div className="hidden md:flex md:items-center md:gap-x-2">
-            <HouseholdSwitcher />
+            <WalletSwitcher />
             <NavbarActions />
           </div>
 
@@ -75,10 +75,9 @@ const items = [
 function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = authClient.useSession();
-  const householdsQuery = useHouseholds();
+  const walletsQuery = useWallets();
   const showSwitcher =
-    !householdsQuery.isSuccess ||
-    (householdsQuery.data?.households.length ?? 0) > 1;
+    !walletsQuery.isSuccess || (walletsQuery.data?.wallets.length ?? 0) > 1;
   const signOut = useSignOut();
   const pathname = usePathname();
   const initials = session?.user.name
@@ -129,9 +128,9 @@ function MobileMenu() {
             {showSwitcher && (
               <>
                 <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-                  Household
+                  Wallet
                 </p>
-                <HouseholdSwitcher variant="row" />
+                <WalletSwitcher variant="row" />
               </>
             )}
             <p className="px-2 pt-6 pb-1 text-xs font-medium text-muted-foreground">

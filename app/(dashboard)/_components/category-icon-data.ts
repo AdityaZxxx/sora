@@ -24,7 +24,7 @@ export const CURATED_EMOJIS = [
   { emoji: "🎯", label: "Goal" },
   { emoji: "🧳", label: "Vacation" },
   { emoji: "🚿", label: "Personal care" },
-  { emoji: "🧹", label: "Household" },
+  { emoji: "🧹", label: "Wallet" },
   { emoji: "🛠️", label: "Repairs" },
   { emoji: "📚", label: "Reading" },
   { emoji: "💊", label: "Pharmacy" },

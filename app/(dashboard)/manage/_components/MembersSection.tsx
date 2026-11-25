@@ -41,7 +41,7 @@ import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
 import { setEmailDigest, setMemberRole } from "../_actions/membership";
-import LeaveHouseholdDialog from "./LeaveHouseholdDialog";
+import LeaveWalletDialog from "./LeaveWalletDialog";
 import RemoveMemberDialog from "./RemoveMemberDialog";
 
 type Members = Awaited<ReturnType<typeof listMembers>>;
@@ -52,7 +52,7 @@ const MembersSection = () => {
   const queryClient = useQueryClient();
 
   const { data: members = [], isLoading } = useQuery({
-    queryKey: queryKeys.householdMembers,
+    queryKey: queryKeys.walletMembers,
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",
@@ -72,12 +72,12 @@ const MembersSection = () => {
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.householdMembers,
+        queryKey: queryKeys.walletMembers,
       });
       const previous = queryClient.getQueryData<Members>(
-        queryKeys.householdMembers,
+        queryKeys.walletMembers,
       );
-      queryClient.setQueryData<Members>(queryKeys.householdMembers, (current) =>
+      queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
         current?.map((member) =>
           member.user.id === session?.user.id
             ? { ...member, emailDigest: input.emailDigest }
@@ -88,7 +88,7 @@ const MembersSection = () => {
     },
     onError: (error, _input, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.householdMembers, context.previous);
+        queryClient.setQueryData(queryKeys.walletMembers, context.previous);
       }
       toast.error(
         actionErrorMessage(
@@ -102,7 +102,7 @@ const MembersSection = () => {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.householdMembers,
+        queryKey: queryKeys.walletMembers,
       });
     },
   });
@@ -113,12 +113,12 @@ const MembersSection = () => {
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.householdMembers,
+        queryKey: queryKeys.walletMembers,
       });
       const previous = queryClient.getQueryData<Members>(
-        queryKeys.householdMembers,
+        queryKeys.walletMembers,
       );
-      queryClient.setQueryData<Members>(queryKeys.householdMembers, (current) =>
+      queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
         current?.map((member) =>
           member.userId === input.userId
             ? { ...member, role: input.role }
@@ -129,7 +129,7 @@ const MembersSection = () => {
     },
     onError: (error, _input, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.householdMembers, context.previous);
+        queryClient.setQueryData(queryKeys.walletMembers, context.previous);
       }
       toast.error(
         actionErrorMessage(
@@ -143,7 +143,7 @@ const MembersSection = () => {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.householdMembers,
+        queryKey: queryKeys.walletMembers,
       });
     },
   });
@@ -263,7 +263,7 @@ const MembersSection = () => {
                                       variant="ghost"
                                       size="icon-sm"
                                       className="text-destructive hover:bg-destructive/10"
-                                      aria-label={`Remove ${member.user.name} from household`}
+                                      aria-label={`Remove ${member.user.name} from wallet`}
                                     />
                                   }
                                 >
@@ -272,7 +272,7 @@ const MembersSection = () => {
                               }
                             />
                             <TooltipContent>
-                              Remove {member.user.name} from household
+                              Remove {member.user.name} from wallet
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -286,7 +286,7 @@ const MembersSection = () => {
         </CardContent>
         <CardFooter>
           {!isLoading && (
-            <LeaveHouseholdDialog
+            <LeaveWalletDialog
               memberCount={members.length}
               trigger={
                 <Button
@@ -294,9 +294,7 @@ const MembersSection = () => {
                   className="w-full gap-2 text-destructive hover:text-destructive sm:w-auto"
                 >
                   <LogOut className="h-4 w-4" />
-                  {members.length === 1
-                    ? "Delete this space"
-                    : "Leave household"}
+                  {members.length === 1 ? "Delete this space" : "Leave wallet"}
                 </Button>
               }
             />

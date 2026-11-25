@@ -247,7 +247,6 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
                             category: item.category,
                             amount: item.amount,
                             type: item.type as TransactionType,
-                            shared: true,
                           }}
                           trigger={
                             <Button size="sm" variant="secondary">

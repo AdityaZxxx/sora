@@ -120,8 +120,8 @@ const InviteLinkDialog = ({ trigger }: Props) => {
         <DialogHeader>
           <DialogTitle>Invite link</DialogTitle>
           <DialogDescription>
-            Anyone who signs in through this link joins your household. Revoke
-            it any time to stop new members from joining.
+            Anyone who signs in through this link joins your wallet. Revoke it
+            any time to stop new members from joining.
           </DialogDescription>
         </DialogHeader>
 
@@ -129,8 +129,8 @@ const InviteLinkDialog = ({ trigger }: Props) => {
           <Skeleton className="h-64 w-full" />
         ) : inviteLinks.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No active invite link. Create one to share your household with
-            another member.
+            No active invite link. Create one to share your wallet with another
+            member.
           </p>
         ) : (
           <div className="space-y-4">

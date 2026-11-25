@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Household not found",
+  title: "Wallet not found",
   robots: { index: false, follow: false },
 };
 
@@ -21,10 +21,10 @@ export default function NotFound() {
     <div className="flex min-h-dvh items-center justify-center px-4 py-12">
       <Card className="w-[min(400px,calc(100vw-2rem))]">
         <CardHeader>
-          <CardTitle className="text-xl">Household not found</CardTitle>
+          <CardTitle className="text-xl">Wallet not found</CardTitle>
           <CardDescription>
-            We could not find this household. The invite link may have expired,
-            or you may no longer be a member.
+            We could not find this wallet. The invite link may have expired, or
+            you may no longer be a member.
           </CardDescription>
         </CardHeader>
         <CardContent>

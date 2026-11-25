@@ -3,14 +3,14 @@ import type { z } from "zod";
 
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { DeleteIdSchema } from "@/schemas/delete";
 import {
   CreateRecurringItemSchema,
@@ -167,13 +167,13 @@ function toRow(item: {
   };
 }
 
-export async function listRecurringItems(householdId: string) {
+export async function listRecurringItems(walletId: string) {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.recurring));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.recurring));
 
   const items = await prisma.recurringItem.findMany({
-    where: { householdId },
+    where: { walletId },
     select: {
       id: true,
       name: true,
@@ -216,13 +216,13 @@ export async function createRecurringItem(
   }
 
   const category = await requireCategory(
-    caller.householdId,
+    caller.walletId,
     parsed.data.category,
     parsed.data.type,
   );
   const item = await prisma.recurringItem.create({
     data: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       name: parsed.data.name,
       amount: parsed.data.amount,
       category: category.name,
@@ -235,8 +235,8 @@ export async function createRecurringItem(
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "recurring",
     message: `added the ${item.name} bill`,
@@ -258,14 +258,14 @@ export async function updateRecurringItem(
   const existing = await prisma.recurringItem.findFirst({
     where: {
       id: parsed.data.id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (!existing) {
     throw new DomainError("Bill not found");
   }
   const category = await requireCategory(
-    caller.householdId,
+    caller.walletId,
     parsed.data.category,
     parsed.data.type,
   );
@@ -290,8 +290,8 @@ export async function updateRecurringItem(
     data,
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "recurring",
     message: `changed the ${item.name} bill`,
@@ -316,7 +316,7 @@ export async function setRecurringItemPaused(
   const result = await prisma.recurringItem.updateMany({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
     data: {
       paused,
@@ -326,8 +326,8 @@ export async function setRecurringItemPaused(
     throw new DomainError("Bill not found");
   }
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "recurring",
     message: "changed a bill",
@@ -346,15 +346,15 @@ export async function deleteRecurringItem(caller: Caller, id: string) {
   const result = await prisma.recurringItem.deleteMany({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (result.count === 0) {
     throw new DomainError("Bill not found");
   }
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "recurring",
     message: "removed a bill",

@@ -2,11 +2,11 @@ import type { NextRequest } from "next/server";
 
 import { z } from "zod";
 
-import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withWalletRoute } from "@/lib/api-route";
 import { getCategories } from "@/lib/categories";
 
 export async function GET(request: NextRequest) {
-  return withHouseholdRoute(async (result) => {
+  return withWalletRoute(async (result) => {
     const { searchParams } = new URL(request.url);
     const paramType = searchParams.get("type");
 
@@ -23,10 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const categories = await getCategories(
-      result.household.id,
-      queryParams.data,
-    );
+    const categories = await getCategories(result.wallet.id, queryParams.data);
     return jsonReadResponse(request, categories);
   });
 }

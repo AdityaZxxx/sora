@@ -2,15 +2,15 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import {
   CACHE_RESOURCE,
-  householdTag,
-  revalidateMemberHouseholds,
+  walletTag,
+  revalidateMemberWallets,
 } from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
-import { notifyHouseholdExcept } from "@/lib/notifications";
+import { notifyWalletExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import {
   RemoveMemberSchema,
   SetEmailDigestSchema,
@@ -20,14 +20,14 @@ import {
   type SetMemberRoleSchemaType,
 } from "@/schemas/membership";
 
-export async function listMembers(householdId: string) {
+export async function listMembers(walletId: string) {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.members));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.members));
 
-  return prisma.householdMembership.findMany({
+  return prisma.walletMembership.findMany({
     where: {
-      householdId,
+      walletId,
     },
     include: {
       user: {
@@ -46,13 +46,13 @@ export async function listMembers(householdId: string) {
 }
 
 // seam-parse-exempt: inputs are session values, never user input.
-export async function leaveHousehold(caller: Caller) {
+export async function leaveWallet(caller: Caller) {
   const actor = actorFor(caller);
   await prisma.$transaction(async (tx) => {
-    await tx.householdMembership.delete({
+    await tx.walletMembership.delete({
       where: {
-        householdId_userId: {
-          householdId: caller.householdId,
+        walletId_userId: {
+          walletId: caller.walletId,
           userId: caller.userId,
         },
       },
@@ -60,47 +60,47 @@ export async function leaveHousehold(caller: Caller) {
 
     await tx.apiToken.updateMany({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
         userId: caller.userId,
         revokedAt: null,
       },
       data: { revokedAt: new Date() },
     });
 
-    const remaining = await tx.householdMembership.count({
+    const remaining = await tx.walletMembership.count({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
       },
     });
 
     if (remaining === 0) {
-      await tx.household.delete({
+      await tx.wallet.delete({
         where: {
-          id: caller.householdId,
+          id: caller.walletId,
         },
       });
     }
   });
 
-  await notifyHouseholdExcept(
+  await notifyWalletExcept(
     actor,
-    caller.householdId,
+    caller.walletId,
     caller.userId,
     "member_left",
-    `${caller.actorName} left the household.`,
+    `${caller.actorName} left the wallet.`,
   );
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor,
     resource: "members",
-    message: "left the household",
+    message: "left the wallet",
   });
-  revalidateMemberHouseholds(caller.userId);
+  revalidateMemberWallets(caller.userId);
 }
 
 export async function setEmailDigest(
-  householdId: string,
+  walletId: string,
   userId: string,
   input: SetEmailDigestSchemaType,
 ) {
@@ -109,10 +109,10 @@ export async function setEmailDigest(
     throw new DomainError(parsed.error.issues[0]?.message ?? "Bad request");
   }
 
-  return await prisma.householdMembership.update({
+  return await prisma.walletMembership.update({
     where: {
-      householdId_userId: {
-        householdId,
+      walletId_userId: {
+        walletId,
         userId,
       },
     },
@@ -136,13 +136,13 @@ export async function removeMember(
   const { userId } = parsed.data;
 
   if (userId === caller.userId) {
-    throw new DomainError("Use leave household to remove yourself");
+    throw new DomainError("Use leave wallet to remove yourself");
   }
 
-  const removed = await prisma.householdMembership.findUnique({
+  const removed = await prisma.walletMembership.findUnique({
     where: {
-      householdId_userId: {
-        householdId: caller.householdId,
+      walletId_userId: {
+        walletId: caller.walletId,
         userId,
       },
     },
@@ -160,44 +160,44 @@ export async function removeMember(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.householdMembership.deleteMany({
+    await tx.walletMembership.deleteMany({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
         userId,
       },
     });
 
     await tx.apiToken.updateMany({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
         userId,
         revokedAt: null,
       },
       data: { revokedAt: new Date() },
     });
 
-    const remaining = await tx.householdMembership.count({
+    const remaining = await tx.walletMembership.count({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
       },
     });
 
     if (remaining === 0) {
-      await tx.household.delete({
+      await tx.wallet.delete({
         where: {
-          id: caller.householdId,
+          id: caller.walletId,
         },
       });
     }
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "members",
-    message: `removed ${removed.user.name} from the household`,
+    message: `removed ${removed.user.name} from the wallet`,
   });
-  revalidateMemberHouseholds(userId);
+  revalidateMemberWallets(userId);
 
   return removed.user.name;
 }
@@ -215,13 +215,11 @@ export async function setMemberRole(
 
   if (userId === caller.userId) {
     if (nextRole !== FULL_MEMBER_ROLE) {
-      throw new DomainError(
-        "Use leave household to give up your own edit access",
-      );
+      throw new DomainError("Use leave wallet to give up your own edit access");
     }
-    const fullMemberCount = await prisma.householdMembership.count({
+    const fullMemberCount = await prisma.walletMembership.count({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
         role: FULL_MEMBER_ROLE,
       },
     });
@@ -232,10 +230,10 @@ export async function setMemberRole(
     assertCallerFullMember(caller);
   }
 
-  const target = await prisma.householdMembership.findUnique({
+  const target = await prisma.walletMembership.findUnique({
     where: {
-      householdId_userId: {
-        householdId: caller.householdId,
+      walletId_userId: {
+        walletId: caller.walletId,
         userId,
       },
     },
@@ -245,10 +243,10 @@ export async function setMemberRole(
     throw new DomainError("Member not found");
   }
 
-  await prisma.householdMembership.update({
+  await prisma.walletMembership.update({
     where: {
-      householdId_userId: {
-        householdId: caller.householdId,
+      walletId_userId: {
+        walletId: caller.walletId,
         userId,
       },
     },
@@ -257,8 +255,8 @@ export async function setMemberRole(
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "members",
     message: "changed a member's role",

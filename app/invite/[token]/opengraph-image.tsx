@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { getInviteByToken } from "@/lib/invite-context";
 import { logoSrc, ogColors, ogFonts, OG_SIZE } from "@/lib/og-assets";
 
-export const alt = "A household invite on Sora";
+export const alt = "A wallet invite on Sora";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
@@ -66,10 +66,10 @@ export default async function Image({
 }) {
   const { token } = await params;
   const invite = await getInviteByToken(token);
-  const householdName = invite?.household.name ?? "Track money together";
+  const walletName = invite?.wallet.name ?? "Track money together";
   const nameFontSize =
-    householdName.length > 32 ? 38 : householdName.length > 22 ? 46 : 54;
-  const members = invite?.household.memberships.map((m) => m.user.name) ?? [];
+    walletName.length > 32 ? 38 : walletName.length > 22 ? 46 : 54;
+  const members = invite?.wallet.memberships.map((m) => m.user.name) ?? [];
 
   const image = new ImageResponse(
     <div
@@ -133,7 +133,7 @@ export default async function Image({
               maxWidth: 860,
             }}
           >
-            {householdName}
+            {walletName}
           </div>
           <div
             style={{
@@ -148,8 +148,8 @@ export default async function Image({
             }}
           >
             {invite
-              ? `${invite.createdBy.name} invited you to join this household`
-              : "Open Sora to join a household"}
+              ? `${invite.createdBy.name} invited you to join this wallet`
+              : "Open Sora to join a wallet"}
           </div>
         </div>
         <div

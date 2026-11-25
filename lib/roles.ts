@@ -9,7 +9,7 @@ export function parseMemberRole(role: string): MemberRole {
 
 export function assertFullMemberRole(
   role: MemberRole,
-  message = "View-only members cannot make changes in this household",
+  message = "View-only members cannot make changes in this wallet",
 ) {
   if (role !== FULL_MEMBER_ROLE) {
     throw new DomainError(message);

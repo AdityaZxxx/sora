@@ -3,20 +3,20 @@ import { getBalanceStats, getCategoriesStats } from "@/lib/transactions";
 import OverviewClient from "./OverviewClient";
 
 interface Props {
-  householdId: string;
+  walletId: string;
   currency: string | null;
   initialDateRange: { from: Date; to: Date };
 }
 
-const Overview = async ({ householdId, currency, initialDateRange }: Props) => {
+const Overview = async ({ walletId, currency, initialDateRange }: Props) => {
   const [stats, categories] = await Promise.all([
-    getBalanceStats(householdId, initialDateRange.from, initialDateRange.to),
-    getCategoriesStats(householdId, initialDateRange.from, initialDateRange.to),
+    getBalanceStats(walletId, initialDateRange.from, initialDateRange.to),
+    getCategoriesStats(walletId, initialDateRange.from, initialDateRange.to),
   ]);
 
   return (
     <OverviewClient
-      householdId={householdId}
+      walletId={walletId}
       currency={currency}
       initialDateRange={initialDateRange}
       initialStats={stats}

@@ -3,7 +3,7 @@ import type { TokenScope } from "@/lib/types";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 
 export type Caller = {
-  householdId: string;
+  walletId: string;
   userId: string;
   role: MemberRole;
   scope: TokenScope;

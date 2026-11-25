@@ -1,5 +1,5 @@
 "use client";
-import type { Household } from "@prisma/client";
+import type { Wallet } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Pencil, Target, TrashIcon } from "lucide-react";
@@ -44,10 +44,10 @@ import DeleteBudgetDialog from "./DeleteBudgetDialog";
 
 const BudgetsSection = ({
   canEdit,
-  household,
+  wallet,
 }: {
   canEdit: boolean;
-  household: Household;
+  wallet: Wallet;
 }) => {
   const {
     data: budgets = [],
@@ -66,7 +66,7 @@ const BudgetsSection = ({
   });
 
   const format = getFormatterForCurrency(
-    household.currency ?? DEFAULT_CURRENCY,
+    wallet.currency ?? DEFAULT_CURRENCY,
   ).format;
 
   return (
@@ -82,7 +82,7 @@ const BudgetsSection = ({
             </div>
             {canEdit && (
               <BudgetDialog
-                household={household}
+                wallet={wallet}
                 trigger={<AddIconButton label="Create budget" />}
               />
             )}
@@ -115,7 +115,7 @@ const BudgetsSection = ({
                   <BudgetCard
                     key={budget.id}
                     budget={budget}
-                    household={household}
+                    wallet={wallet}
                     format={format}
                     canEdit={canEdit}
                   />
@@ -133,12 +133,12 @@ export default BudgetsSection;
 
 function BudgetCard({
   budget,
-  household,
+  wallet,
   format,
   canEdit,
 }: {
   budget: BudgetWithProgress;
-  household?: Household;
+  wallet?: Wallet;
   format: (value: number) => string;
   canEdit: boolean;
 }) {
@@ -221,7 +221,7 @@ function BudgetCard({
         <>
           <BudgetDialog
             budget={budget}
-            household={household}
+            wallet={wallet}
             open={editOpen}
             onOpenChange={setEditOpen}
           />

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
-import { requireHousehold } from "@/lib/household";
+import { requireWallet } from "@/lib/wallet";
 
 import { CurrencyComboBox } from "../../components/CurrencyComboBox";
 import Logo from "../../components/Logo";
@@ -25,8 +25,8 @@ const page = async () => {
   if (!session) {
     redirect("/sign-in");
   }
-  const household = (await requireHousehold())?.household;
-  if (!household) {
+  const wallet = (await requireWallet())?.wallet;
+  if (!wallet) {
     return (
       <div className="container flex max-w-2xl flex-col items-center justify-between gap-4">
         <div>
@@ -74,7 +74,7 @@ const page = async () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CurrencyComboBox currency={household.currency ?? DEFAULT_CURRENCY} />
+          <CurrencyComboBox currency={wallet.currency ?? DEFAULT_CURRENCY} />
         </CardContent>
       </Card>
       <Separator />

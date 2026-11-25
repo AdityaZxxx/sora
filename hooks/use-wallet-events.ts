@@ -5,25 +5,28 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+import { useWallets } from "@/hooks/use-wallets";
 import { useSession } from "@/lib/auth-client";
 import {
-  HOUSEHOLD_EVENTS_ENDPOINT,
-  householdChangeEffects,
-  householdChangeSchema,
-} from "@/lib/household-change";
+  WALLET_EVENTS_ENDPOINT,
+  walletChangeEffects,
+  walletChangeSchema,
+} from "@/lib/wallet-change";
 
-export function useHouseholdEvents() {
+export function useWalletEvents() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: session } = useSession();
+  const { data: walletsData } = useWallets();
   const viewerId = session?.user.id;
+  const activeWalletId = walletsData?.active.id;
 
   useEffect(() => {
-    if (!viewerId) {
+    if (!viewerId || !activeWalletId) {
       return;
     }
 
-    const source = new EventSource(HOUSEHOLD_EVENTS_ENDPOINT);
+    const source = new EventSource(WALLET_EVENTS_ENDPOINT);
 
     source.addEventListener("message", (event) => {
       let data: unknown;
@@ -32,12 +35,15 @@ export function useHouseholdEvents() {
       } catch {
         return;
       }
-      const parsed = householdChangeSchema.safeParse(data);
+      const parsed = walletChangeSchema.safeParse(data);
       if (!parsed.success) {
         return;
       }
 
       const change = parsed.data;
+      if (change.walletId !== activeWalletId) {
+        return;
+      }
       if (change.recipientId && change.recipientId !== viewerId) {
         return;
       }
@@ -48,15 +54,13 @@ export function useHouseholdEvents() {
       ) {
         toast(change.message);
       }
-      for (const queryKey of householdChangeEffects(
-        change.resource,
-        change.scope,
-      ).clientKeys) {
+      for (const queryKey of walletChangeEffects(change.resource, change.scope)
+        .clientKeys) {
         void queryClient.invalidateQueries({ queryKey });
       }
       router.refresh();
     });
 
     return () => source.close();
-  }, [queryClient, router, viewerId]);
+  }, [queryClient, router, viewerId, activeWalletId]);
 }

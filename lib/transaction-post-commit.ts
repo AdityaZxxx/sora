@@ -2,10 +2,10 @@ import type { Actor } from "@/lib/caller";
 import type { TransactionType } from "@/lib/types";
 import type { Prisma } from "@prisma/client";
 
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { notifyIfGoalReached } from "@/lib/goals";
 import { toMoney } from "@/lib/money";
-import { notifyHouseholdExcept, notifyMembers } from "@/lib/notifications";
+import { notifyWalletExcept, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { evaluateUnusualSpending } from "@/lib/unusual-spending";
 
@@ -13,14 +13,13 @@ export type PostCommitEffect = () => Promise<void>;
 
 export type PostCommitInput = {
   actor: Actor;
-  householdId: string;
+  walletId: string;
   userId: string;
   actorName: string;
   categoryName: string;
   amount: number;
   description: string;
   type: TransactionType;
-  shared: boolean;
   formattedAmount: string;
   formatAmount: (amount: number) => string;
   thresholdMessage: string | null;
@@ -32,14 +31,13 @@ export function buildPostCommitEffects(
 ): PostCommitEffect[] {
   const {
     actor,
-    householdId,
+    walletId,
     userId,
     actorName,
     categoryName,
     amount,
     description,
     type,
-    shared,
     formattedAmount,
     formatAmount,
     thresholdMessage,
@@ -50,36 +48,28 @@ export function buildPostCommitEffects(
 
   if (thresholdMessage) {
     effects.push(async () => {
-      await notifyHouseholdExcept(
+      await notifyWalletExcept(
         actor,
-        householdId,
+        walletId,
         userId,
         "budget_threshold",
         thresholdMessage,
       );
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+      revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
     });
   }
 
-  if (shared) {
-    const message = `${actorName} added a shared ${type} of ${formattedAmount} (${description || categoryName}).`;
-    effects.push(async () => {
-      await notifyHouseholdExcept(
-        actor,
-        householdId,
-        userId,
-        "transaction",
-        message,
-      );
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
-    });
-  }
+  const message = `${actorName} added a ${type} of ${formattedAmount} (${description || categoryName}).`;
+  effects.push(async () => {
+    await notifyWalletExcept(actor, walletId, userId, "transaction", message);
+    revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
+  });
 
-  if (goal && shared) {
+  if (goal) {
     effects.push(() =>
       notifyIfGoalReached({
         actor,
-        householdId,
+        walletId,
         goal,
         amount,
         formatAmount,
@@ -94,8 +84,7 @@ export function buildPostCommitEffects(
         category: categoryName,
         description,
         type,
-        shared,
-        householdId,
+        walletId,
         userId,
       },
       {
@@ -106,7 +95,7 @@ export function buildPostCommitEffects(
       },
     );
     if (result.notified > 0) {
-      revalidateHousehold(householdId, [CACHE_RESOURCE.notifications]);
+      revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
     }
   });
 

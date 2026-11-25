@@ -1,10 +1,10 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
+import { withWalletAction } from "@/lib/action-result";
 import {
-  createHouseholdCategory,
-  deleteHouseholdCategory,
-  updateHouseholdCategory,
+  createWalletCategory,
+  deleteWalletCategory,
+  updateWalletCategory,
 } from "@/lib/categories";
 import {
   formOptionalText,
@@ -47,8 +47,8 @@ export async function createCategoryForm(
     fallback: CREATE_ERROR,
     success: "Category added",
     run: (input) =>
-      withHouseholdAction(CREATE_ERROR, async ({ caller }) => {
-        const created = await createHouseholdCategory(caller, input);
+      withWalletAction(CREATE_ERROR, async ({ caller }) => {
+        const created = await createWalletCategory(caller, input);
         return created;
       }),
   });
@@ -68,8 +68,8 @@ export async function updateCategoryForm(
     fallback: UPDATE_ERROR,
     success: "Category updated",
     run: (input) =>
-      withHouseholdAction(UPDATE_ERROR, async ({ caller }) => {
-        const updated = await updateHouseholdCategory(caller, input);
+      withWalletAction(UPDATE_ERROR, async ({ caller }) => {
+        const updated = await updateWalletCategory(caller, input);
         return updated;
       }),
   });
@@ -86,8 +86,8 @@ export async function deleteCategoryForm(
     fallback: DELETE_ERROR,
     success: "Category deleted",
     run: (input) =>
-      withHouseholdAction(DELETE_ERROR, async ({ caller }) => {
-        await deleteHouseholdCategory(caller, input.id);
+      withWalletAction(DELETE_ERROR, async ({ caller }) => {
+        await deleteWalletCategory(caller, input.id);
       }),
   });
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
+import { withWalletAction } from "@/lib/action-result";
 import {
   idField,
   submitFormAction,
@@ -23,7 +23,7 @@ export async function deleteTransactionForm(
     fallback: USER_FACING_ERROR,
     success: "Transaction deleted",
     run: (input) =>
-      withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
+      withWalletAction(USER_FACING_ERROR, async ({ caller }) => {
         await deleteTransaction(caller, input.id);
       }),
   });

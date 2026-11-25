@@ -13,29 +13,29 @@ export const CACHE_RESOURCE = {
   notifications: "notifications",
   invites: "invites",
   apiTokens: "api-tokens",
-  household: "household",
+  wallet: "wallet",
 } as const;
 
 export type CacheResource =
   (typeof CACHE_RESOURCE)[keyof typeof CACHE_RESOURCE];
 
-export function householdTag(householdId: string, resource: CacheResource) {
-  return `household:${householdId}:${resource}`;
+export function walletTag(walletId: string, resource: CacheResource) {
+  return `wallet:${walletId}:${resource}`;
 }
 
-export function memberHouseholdsTag(userId: string) {
-  return `member:${userId}:households`;
+export function memberWalletsTag(userId: string) {
+  return `member:${userId}:wallets`;
 }
 
-export function revalidateMemberHouseholds(userId: string) {
-  revalidateTag(memberHouseholdsTag(userId), { expire: 0 });
+export function revalidateMemberWallets(userId: string) {
+  revalidateTag(memberWalletsTag(userId), { expire: 0 });
 }
 
-export function revalidateHousehold(
-  householdId: string,
+export function revalidateWallet(
+  walletId: string,
   resources: readonly CacheResource[],
 ) {
   for (const resource of resources) {
-    revalidateTag(householdTag(householdId, resource), { expire: 0 });
+    revalidateTag(walletTag(walletId, resource), { expire: 0 });
   }
 }

@@ -96,6 +96,7 @@ const DashboardSections = async ({ context }: Props) => {
         }
       >
         <History
+          walletId={context.walletId}
           currency={currency}
           initialTimeframe={payload.historyView.timeframe}
           initialPeriod={payload.historyView.period}

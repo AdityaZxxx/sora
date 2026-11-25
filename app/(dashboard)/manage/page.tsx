@@ -5,12 +5,12 @@ import { Suspense } from "react";
 
 import { listApiTokens } from "@/lib/api-token";
 import { getBudgetsWithProgress } from "@/lib/budgets";
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { getCategories } from "@/lib/categories";
-import { requireHousehold } from "@/lib/household";
 import { seedQuery, seededHydrationState } from "@/lib/hydration";
 import { listInviteLinks } from "@/lib/invites";
 import { queryKeys } from "@/lib/query-keys";
+import { requireWallet } from "@/lib/wallet";
 
 import ManagePageClient from "./_components/ManagePageClient";
 import Loading from "./loading";
@@ -37,19 +37,19 @@ const ManagePage = async () => {
 };
 
 const SeededManage = async () => {
-  const result = await requireHousehold();
+  const result = await requireWallet();
   if (!result) {
     notFound();
   }
 
-  const householdId = result.household.id;
+  const walletId = result.wallet.id;
   const [incomeCategories, expenseCategories, budgets, apiTokens, inviteLinks] =
     await Promise.all([
-      getCategories(householdId, "income"),
-      getCategories(householdId, "expense"),
-      getBudgetsWithProgress(householdId),
-      listApiTokens(householdId),
-      listInviteLinks(householdId),
+      getCategories(walletId, "income"),
+      getCategories(walletId, "expense"),
+      getBudgetsWithProgress(walletId),
+      listApiTokens(walletId),
+      listInviteLinks(walletId),
     ]);
 
   const state = await seededHydrationState(
@@ -61,16 +61,16 @@ const SeededManage = async () => {
       seedQuery(queryKeys.inviteLinks, inviteLinks),
     ],
     [
-      householdTag(householdId, CACHE_RESOURCE.categories),
-      householdTag(householdId, CACHE_RESOURCE.budgets),
-      householdTag(householdId, CACHE_RESOURCE.apiTokens),
-      householdTag(householdId, CACHE_RESOURCE.invites),
+      walletTag(walletId, CACHE_RESOURCE.categories),
+      walletTag(walletId, CACHE_RESOURCE.budgets),
+      walletTag(walletId, CACHE_RESOURCE.apiTokens),
+      walletTag(walletId, CACHE_RESOURCE.invites),
     ],
   );
 
   return (
     <HydrationBoundary state={state}>
-      <ManagePageClient household={result.household} />
+      <ManagePageClient wallet={result.wallet} />
     </HydrationBoundary>
   );
 };

@@ -193,8 +193,8 @@ export const CURATED_LUCIDE_ICONS = [
   },
   {
     name: "Sparkles",
-    label: "Household",
-    keywords: ["cleaning", "household", "home"],
+    label: "Wallet",
+    keywords: ["cleaning", "wallet", "home"],
   },
   {
     name: "Wrench",

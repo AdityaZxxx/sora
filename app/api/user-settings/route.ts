@@ -1,10 +1,10 @@
-import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withWalletRoute } from "@/lib/api-route";
 import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  return withHouseholdRoute(async (result) => {
-    const household = await prisma.household.findUnique({
-      where: { id: result.household.id },
+  return withWalletRoute(async (result) => {
+    const wallet = await prisma.wallet.findUnique({
+      where: { id: result.wallet.id },
       select: {
         id: true,
         name: true,
@@ -12,6 +12,6 @@ export async function GET(request: Request) {
         createdAt: true,
       },
     });
-    return jsonReadResponse(request, household);
+    return jsonReadResponse(request, wallet);
   });
 }

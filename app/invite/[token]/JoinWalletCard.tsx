@@ -16,11 +16,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { joinHouseholdByToken } from "../_actions/invite";
+import { joinWalletByToken } from "../_actions/invite";
 
 interface Props {
   token: string;
-  householdName: string | null;
+  walletName: string | null;
   inviterName: string | null;
 }
 
@@ -35,20 +35,20 @@ function JoinButton() {
       ) : (
         <Users className="h-4 w-4" />
       )}
-      Join household
+      Join wallet
     </Button>
   );
 }
 
-const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
+const JoinWalletCard = ({ token, walletName, inviterName }: Props) => {
   const [state, formAction] = useActionState(
-    joinHouseholdByToken.bind(null, token),
+    joinWalletByToken.bind(null, token),
     initialState,
   );
 
   useEffect(() => {
     if (!state.ok) {
-      toast.error(state.message, { id: "join-household" });
+      toast.error(state.message, { id: "join-wallet" });
     }
   }, [state]);
 
@@ -56,12 +56,12 @@ const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
     <Card className="mt-12 w-[min(400px,calc(100vw-2rem))]">
       <CardHeader>
         <CardTitle className="text-xl">
-          Join {householdName ?? "this household"}
+          Join {walletName ?? "this wallet"}
         </CardTitle>
         <CardDescription>
           {inviterName
-            ? `${inviterName} invited you to share this household's ledger: transactions, budgets, and goals.`
-            : "You have been invited to share this household's ledger: transactions, budgets, and goals."}
+            ? `${inviterName} invited you to share this wallet's ledger: transactions, budgets, and goals.`
+            : "You have been invited to share this wallet's ledger: transactions, budgets, and goals."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -73,4 +73,4 @@ const JoinHouseholdCard = ({ token, householdName, inviterName }: Props) => {
   );
 };
 
-export default JoinHouseholdCard;
+export default JoinWalletCard;

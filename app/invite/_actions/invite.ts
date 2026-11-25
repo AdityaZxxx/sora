@@ -4,30 +4,28 @@ import { redirect } from "next/navigation";
 
 import { type ActionResult, fail } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
-import { setActiveHouseholdCookie } from "@/lib/household";
-import { joinHouseholdByInviteToken } from "@/lib/invites";
+import { joinWalletByInviteToken } from "@/lib/invites";
+import { setActiveWalletCookie } from "@/lib/wallet";
 
 // The join lives in a Server Action rather than the page render: Next.js
 // forbids writing cookies while a page renders.
-export async function joinHouseholdByToken(
-  token: string,
-): Promise<ActionResult> {
+export async function joinWalletByToken(token: string): Promise<ActionResult> {
   const session = await getSession();
   if (!session) {
     redirect(`/sign-in?next=${encodeURIComponent(`/invite/${token}`)}`);
   }
 
   try {
-    const householdId = await joinHouseholdByInviteToken(
+    const walletId = await joinWalletByInviteToken(
       token,
       session.user.id,
       session.user.name,
     );
-    await setActiveHouseholdCookie(householdId);
-    revalidateHousehold(householdId, [
-      CACHE_RESOURCE.household,
+    await setActiveWalletCookie(walletId);
+    revalidateWallet(walletId, [
+      CACHE_RESOURCE.wallet,
       CACHE_RESOURCE.notifications,
       CACHE_RESOURCE.invites,
     ]);

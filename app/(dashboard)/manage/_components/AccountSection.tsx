@@ -61,8 +61,8 @@ const AccountSection = () => {
               Delete account
             </CardTitle>
             <CardDescription>
-              Permanently delete your sign-in and every household where you are
-              the last member
+              Permanently delete your sign-in and every wallet where you are the
+              last member
             </CardDescription>
           </CardHeader>
           <CardContent>

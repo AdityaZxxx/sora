@@ -24,7 +24,7 @@ interface CategoriesCardProps {
 }
 
 interface Props {
-  householdId: string;
+  walletId: string;
   from: Date;
   to: Date;
   currency: string | null;
@@ -32,14 +32,14 @@ interface Props {
 }
 
 const CategoriesStats = ({
-  householdId,
+  walletId,
   from,
   to,
   currency,
   initialData,
 }: Props) => {
   const { data: stats, isPending } = useQuery<GetCategoriesStatsResponseType>({
-    queryKey: queryKeys.overview.categories(householdId, from, to),
+    queryKey: queryKeys.overview.categories(walletId, from, to),
     initialData,
     queryFn: () =>
       fetchReadJson<GetCategoriesStatsResponseType>(

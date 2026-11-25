@@ -1,9 +1,8 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
+import { withWalletAction } from "@/lib/action-result";
 import {
   formDate,
-  formFlag,
   formOptionalText,
   formText,
   submitFormAction,
@@ -24,14 +23,13 @@ const USER_FACING_ERROR =
   "Unable to add the transaction. Check the amount, category and date, then try again.";
 
 export async function CreateTransaction(form: CreateTransactionActionInput) {
-  return withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
+  return withWalletAction(USER_FACING_ERROR, async ({ caller }) => {
     await createTransaction(caller, {
       amount: form.amount,
       category: form.category,
       description: form.description,
       date: form.date,
       type: form.type,
-      shared: form.shared,
       goalId: form.goalId || undefined,
       shares: form.shares,
       recurringItemId: form.recurringItemId,
@@ -57,7 +55,6 @@ function transactionFields(formData: FormData) {
     category: formText(formData, "category"),
     type: formText(formData, "type"),
     date: formDate(formData, "date"),
-    shared: formFlag(formData, "shared"),
     goalId: formOptionalText(formData, "goalId"),
     shares,
     recurringItemId: formOptionalText(formData, "recurringItemId"),
@@ -75,7 +72,7 @@ export async function createTransactionForm(
     fallback: USER_FACING_ERROR,
     success: "Transaction added",
     run: (input) =>
-      withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
+      withWalletAction(USER_FACING_ERROR, async ({ caller }) => {
         await createTransaction(caller, {
           ...input,
           idempotencyKey:

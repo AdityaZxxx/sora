@@ -3,29 +3,29 @@ import type { Notification } from "@prisma/client";
 
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
 export async function notify(
   actor: Actor,
-  householdId: string,
+  walletId: string,
   userId: string,
   type: string,
   message: string,
 ) {
   await prisma.notification.create({
     data: {
-      householdId,
+      walletId,
       userId,
       type,
       message,
     },
   });
 
-  await publishHouseholdChange({
-    householdId,
+  await publishWalletChange({
+    walletId,
     actor,
     resource: "notifications",
     message: "has a new notification",
@@ -35,7 +35,7 @@ export async function notify(
 // seam-parse-exempt: only server-resolved, validated values reach these helpers.
 export async function notifyMembers(
   actor: Actor,
-  householdId: string,
+  walletId: string,
   userIds: string[],
   type: string,
   message: string,
@@ -43,15 +43,15 @@ export async function notifyMembers(
   if (userIds.length === 0) return;
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({
-      householdId,
+      walletId,
       userId,
       type,
       message,
     })),
   });
 
-  await publishHouseholdChange({
-    householdId,
+  await publishWalletChange({
+    walletId,
     actor,
     resource: "notifications",
     message: "has a new notification",
@@ -59,16 +59,16 @@ export async function notifyMembers(
 }
 
 export async function listNotifications(
-  householdId: string,
+  walletId: string,
   userId: string,
 ): Promise<Notification[]> {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.notifications));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.notifications));
 
   return await prisma.notification.findMany({
     where: {
-      householdId,
+      walletId,
       userId,
     },
     orderBy: {
@@ -79,13 +79,10 @@ export async function listNotifications(
 }
 
 // seam-parse-exempt: inputs are session values, never user input.
-export async function markNotificationsRead(
-  householdId: string,
-  userId: string,
-) {
+export async function markNotificationsRead(walletId: string, userId: string) {
   await prisma.notification.updateMany({
     where: {
-      householdId,
+      walletId,
       userId,
       readAt: null,
     },
@@ -95,16 +92,16 @@ export async function markNotificationsRead(
   });
 }
 
-export async function notifyHouseholdExcept(
+export async function notifyWalletExcept(
   actor: Actor,
-  householdId: string,
+  walletId: string,
   exceptUserId: string,
   type: string,
   message: string,
 ) {
-  const memberships = await prisma.householdMembership.findMany({
+  const memberships = await prisma.walletMembership.findMany({
     where: {
-      householdId,
+      walletId,
       userId: {
         not: exceptUserId,
       },
@@ -115,7 +112,7 @@ export async function notifyHouseholdExcept(
   });
   await notifyMembers(
     actor,
-    householdId,
+    walletId,
     memberships.map((membership) => membership.userId),
     type,
     message,

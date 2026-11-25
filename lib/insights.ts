@@ -1,20 +1,20 @@
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { monthOffsets } from "@/lib/dates";
 import prisma from "@/lib/prisma";
 
-export async function getMonthlyRollup(householdId: string) {
+export async function getMonthlyRollup(walletId: string) {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.insights));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.insights));
 
   const months = monthOffsets(6);
 
   const rows = await prisma.monthHistory.groupBy({
     by: ["year", "month"],
     where: {
-      householdId,
+      walletId,
       OR: months.map(({ year, month }) => ({ year, month })),
     },
     _sum: {

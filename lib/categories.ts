@@ -6,16 +6,12 @@ import type {
 
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { notifyHouseholdChange, publishHouseholdChange } from "@/lib/realtime";
-import {
-  isSettlementCategory,
-  settlementCategoryExclusion,
-} from "@/lib/settlements";
+import { notifyWalletChange, publishWalletChange } from "@/lib/realtime";
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
@@ -23,17 +19,16 @@ import {
 import { DeleteIdSchema } from "@/schemas/delete";
 
 export async function getCategories(
-  householdId: string,
+  walletId: string,
   type?: "expense" | "income" | null,
 ) {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.categories));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.categories));
 
   return await prisma.category.findMany({
     where: {
-      householdId,
-      name: settlementCategoryExclusion(),
+      walletId,
       ...(type && { type }),
     },
     select: {
@@ -50,7 +45,7 @@ export async function getCategories(
   });
 }
 
-export async function createHouseholdCategory(
+export async function createWalletCategory(
   caller: Caller,
   input: CreateCategorySchemaType,
 ) {
@@ -64,11 +59,9 @@ export async function createHouseholdCategory(
 
   const { name, icon, iconKind, iconColor, type } = parsed.data;
 
-  assertNotSettlementCategory(name);
-
   const category = await prisma.category.create({
     data: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       name,
       icon,
       iconKind,
@@ -77,8 +70,8 @@ export async function createHouseholdCategory(
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "categories",
     message: `added the ${category.name} category`,
@@ -88,13 +81,13 @@ export async function createHouseholdCategory(
 }
 
 export async function requireCategory(
-  householdId: string,
+  walletId: string,
   name: string,
   type: TransactionType,
 ) {
   const category = await prisma.category.findFirst({
     where: {
-      householdId,
+      walletId,
       name,
       type,
     },
@@ -107,13 +100,7 @@ export async function requireCategory(
   return category;
 }
 
-function assertNotSettlementCategory(name: string) {
-  if (isSettlementCategory(name)) {
-    throw new DomainError("Sora manages the Settlement category.");
-  }
-}
-
-export async function updateHouseholdCategory(
+export async function updateWalletCategory(
   caller: Caller,
   input: UpdateCategorySchemaType,
 ) {
@@ -127,15 +114,10 @@ export async function updateHouseholdCategory(
 
   const { originalName, name, icon, iconKind, iconColor, type } = parsed.data;
 
-  assertNotSettlementCategory(originalName);
-  if (name !== originalName) {
-    assertNotSettlementCategory(name);
-  }
-
   const existing = await prisma.category.findUnique({
     where: {
-      name_householdId_type: {
-        householdId: caller.householdId,
+      name_walletId_type: {
+        walletId: caller.walletId,
         name: originalName,
         type,
       },
@@ -156,8 +138,8 @@ export async function updateHouseholdCategory(
     const scope = renamed ? "category-renamed" : "category-icon-changed";
     const updatedCategory = await tx.category.update({
       where: {
-        name_householdId_type: {
-          householdId: caller.householdId,
+        name_walletId_type: {
+          walletId: caller.walletId,
           name: originalName,
           type,
         },
@@ -167,7 +149,7 @@ export async function updateHouseholdCategory(
 
     await tx.transaction.updateMany({
       where: {
-        householdId: caller.householdId,
+        walletId: caller.walletId,
         category: originalName,
         type,
       },
@@ -180,7 +162,7 @@ export async function updateHouseholdCategory(
     if (type === "expense" && renamed) {
       await tx.budget.updateMany({
         where: {
-          householdId: caller.householdId,
+          walletId: caller.walletId,
           category: originalName,
         },
         data: { category: name },
@@ -190,7 +172,7 @@ export async function updateHouseholdCategory(
     if (renamed || iconChanged) {
       await tx.recurringItem.updateMany({
         where: {
-          householdId: caller.householdId,
+          walletId: caller.walletId,
           category: originalName,
           type,
         },
@@ -201,8 +183,8 @@ export async function updateHouseholdCategory(
       });
     }
 
-    const deferRevalidation = await notifyHouseholdChange({
-      householdId: caller.householdId,
+    const deferRevalidation = await notifyWalletChange({
+      walletId: caller.walletId,
       actor: actorFor(caller),
       resource: "categories",
       message: `changed the ${updatedCategory.name} category`,
@@ -218,7 +200,7 @@ export async function updateHouseholdCategory(
   return category;
 }
 
-export async function deleteHouseholdCategory(caller: Caller, id: string) {
+export async function deleteWalletCategory(caller: Caller, id: string) {
   assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
@@ -231,27 +213,25 @@ export async function deleteHouseholdCategory(caller: Caller, id: string) {
   const category = await prisma.category.findFirst({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (!category) {
     throw new DomainError("Category not found");
   }
 
-  assertNotSettlementCategory(category.name);
-
   const deleted = await prisma.category.deleteMany({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (deleted.count === 0) {
     throw new DomainError("Category not found");
   }
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "categories",
     message: `removed the ${category.name} category`,

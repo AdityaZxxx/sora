@@ -1,11 +1,11 @@
-import { withHouseholdRoute } from "@/lib/api-route";
+import { withWalletRoute } from "@/lib/api-route";
 import { assertCallerFullMember } from "@/lib/caller";
 import { moneyText } from "@/lib/money";
 import prisma from "@/lib/prisma";
 
 const EXPORT_PAGE_SIZE = 500;
 
-type MembershipCursor = { householdId: string; userId: string };
+type MembershipCursor = { walletId: string; userId: string };
 type ShareCursor = { transactionId: string; userId: string };
 
 type ExportValue =
@@ -78,26 +78,26 @@ async function writeArrayProperty(
 }
 
 export async function GET() {
-  return withHouseholdRoute(async (result) => {
+  return withWalletRoute(async (result) => {
     try {
       assertCallerFullMember(
         result.caller,
-        "Only full members can export household data",
+        "Only full members can export wallet data",
       );
     } catch {
       return Response.json(
-        { message: "Only full members can export household data" },
+        { message: "Only full members can export wallet data" },
         { status: 403 },
       );
     }
 
-    const { session, household } = result;
-    const householdId = household.id;
+    const { session, wallet } = result;
+    const walletId = wallet.id;
 
     const members = paginate(
       (cursor: MembershipCursor | null) =>
-        prisma.householdMembership.findMany({
-          where: { householdId },
+        prisma.walletMembership.findMany({
+          where: { walletId },
           select: {
             userId: true,
             joinedAt: true,
@@ -113,11 +113,11 @@ export async function GET() {
           orderBy: [{ joinedAt: "asc" }, { userId: "asc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && {
-            cursor: { householdId_userId: cursor },
+            cursor: { walletId_userId: cursor },
             skip: 1,
           }),
         }),
-      (row) => ({ householdId, userId: row.userId }),
+      (row) => ({ walletId, userId: row.userId }),
       (row) => ({
         userId: row.user.id,
         name: row.user.name,
@@ -131,8 +131,7 @@ export async function GET() {
       (cursor: string | null) =>
         prisma.transaction.findMany({
           where: {
-            householdId,
-            OR: [{ shared: true }, { addedById: session.user.id }],
+            walletId,
           },
           orderBy: [{ date: "desc" }, { id: "desc" }],
           take: EXPORT_PAGE_SIZE,
@@ -145,7 +144,7 @@ export async function GET() {
     const categories = paginate(
       (cursor: string | null) =>
         prisma.category.findMany({
-          where: { householdId },
+          where: { walletId },
           orderBy: [{ name: "asc" }, { id: "asc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -157,7 +156,7 @@ export async function GET() {
     const goals = paginate(
       (cursor: string | null) =>
         prisma.goal.findMany({
-          where: { householdId },
+          where: { walletId },
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -169,7 +168,7 @@ export async function GET() {
     const budgets = paginate(
       (cursor: string | null) =>
         prisma.budget.findMany({
-          where: { householdId },
+          where: { walletId },
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -181,7 +180,7 @@ export async function GET() {
     const notifications = paginate(
       (cursor: string | null) =>
         prisma.notification.findMany({
-          where: { householdId, userId: session.user.id },
+          where: { walletId, userId: session.user.id },
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -193,7 +192,7 @@ export async function GET() {
     const inviteLinks = paginate(
       (cursor: string | null) =>
         prisma.inviteLink.findMany({
-          where: { householdId },
+          where: { walletId },
           select: {
             id: true,
             createdById: true,
@@ -211,7 +210,7 @@ export async function GET() {
     const transactionShares = paginate(
       (cursor: ShareCursor | null) =>
         prisma.transactionShare.findMany({
-          where: { transaction: { householdId } },
+          where: { transaction: { walletId } },
           orderBy: [{ transactionId: "asc" }, { userId: "asc" }],
           take: EXPORT_PAGE_SIZE,
           ...(cursor && {
@@ -225,10 +224,10 @@ export async function GET() {
 
     const encoder = new TextEncoder();
     const exportedAt = new Date().toISOString();
-    const householdSnapshot = {
-      id: household.id,
-      currency: household.currency,
-      createdAt: household.createdAt,
+    const walletSnapshot = {
+      id: wallet.id,
+      currency: wallet.currency,
+      createdAt: wallet.createdAt,
     };
 
     const stream = new ReadableStream<Uint8Array>({
@@ -238,7 +237,7 @@ export async function GET() {
         try {
           write("{\n");
           writeProperty(write, "exportedAt", exportedAt, false);
-          writeProperty(write, "household", householdSnapshot, false);
+          writeProperty(write, "wallet", walletSnapshot, false);
           await writeArrayProperty(write, "members", members, false);
           await writeArrayProperty(write, "transactions", transactions, false);
           await writeArrayProperty(write, "categories", categories, false);

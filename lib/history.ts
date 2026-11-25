@@ -3,7 +3,7 @@ import type { Period, Timeframe } from "@/lib/types";
 import { getDaysInMonth } from "date-fns";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 
 type HistoryData = {
@@ -15,19 +15,19 @@ type HistoryData = {
 };
 
 export async function getHistoryData(
-  householdId: string,
+  walletId: string,
   timeframe: Timeframe,
   period: Period,
 ) {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.history));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.history));
 
   switch (timeframe) {
     case "year":
-      return await getYearHistoryData(householdId, period.year);
+      return await getYearHistoryData(walletId, period.year);
     case "month":
-      return await getMonthHistoryData(householdId, period.year, period.month);
+      return await getMonthHistoryData(walletId, period.year, period.month);
   }
 }
 
@@ -35,10 +35,10 @@ export type GetHistoryDataResponseType = Awaited<
   ReturnType<typeof getHistoryData>
 >;
 
-async function getYearHistoryData(householdId: string, year: number) {
+async function getYearHistoryData(walletId: string, year: number) {
   const result = await prisma.yearHistory.groupBy({
     by: ["month"],
-    where: { householdId, year },
+    where: { walletId, year },
     _sum: { expense: true, income: true },
     orderBy: [{ month: "asc" }],
   });
@@ -61,13 +61,13 @@ async function getYearHistoryData(householdId: string, year: number) {
 }
 
 async function getMonthHistoryData(
-  householdId: string,
+  walletId: string,
   year: number,
   month: number,
 ) {
   const result = await prisma.monthHistory.groupBy({
     by: ["day"],
-    where: { householdId, year, month },
+    where: { walletId, year, month },
     _sum: { expense: true, income: true },
     orderBy: [{ day: "asc" }],
   });

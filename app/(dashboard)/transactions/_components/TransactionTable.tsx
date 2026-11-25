@@ -559,11 +559,6 @@ function AddedByCell({ transaction }: { transaction: TransactionHistoryRow }) {
   return (
     <div className="flex items-center gap-2 text-sm whitespace-nowrap text-muted-foreground">
       <span>{isSelf ? "You" : `added by ${transaction.addedByName}`}</span>
-      {!transaction.shared && (
-        <Badge variant="outline" className="text-xs">
-          Personal
-        </Badge>
-      )}
       {transaction.addedVia === "agent" && (
         <Tooltip>
           <TooltipTrigger render={<span className="inline-flex" />}>

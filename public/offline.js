@@ -6,9 +6,9 @@
 
   function discard() {
     try {
-      var householdId = window.localStorage.getItem(ACTIVE_KEY);
-      if (householdId) {
-        window.localStorage.removeItem(KEY_PREFIX + householdId);
+      var walletId = window.localStorage.getItem(ACTIVE_KEY);
+      if (walletId) {
+        window.localStorage.removeItem(KEY_PREFIX + walletId);
       }
       window.localStorage.removeItem(ACTIVE_KEY);
     } catch {
@@ -18,17 +18,17 @@
 
   function loadSnapshot() {
     try {
-      var householdId = window.localStorage.getItem(ACTIVE_KEY);
-      if (!householdId) return null;
+      var walletId = window.localStorage.getItem(ACTIVE_KEY);
+      if (!walletId) return null;
 
-      var raw = window.localStorage.getItem(KEY_PREFIX + householdId);
+      var raw = window.localStorage.getItem(KEY_PREFIX + walletId);
       if (!raw) return null;
 
       var value = JSON.parse(raw);
       if (
         !value ||
         value.schema !== SCHEMA ||
-        value.householdId !== householdId ||
+        value.walletId !== walletId ||
         typeof value.savedAt !== "number" ||
         typeof value.currency !== "string" ||
         !value.stats ||

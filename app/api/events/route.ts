@@ -1,10 +1,10 @@
-import { withHouseholdRoute } from "@/lib/api-route";
+import { withWalletRoute } from "@/lib/api-route";
 import { SSE_HEARTBEAT_INTERVAL } from "@/lib/constants";
-import { subscribeToHouseholdChanges } from "@/lib/realtime";
+import { subscribeToWalletChanges } from "@/lib/realtime";
 
 export function GET(request: Request) {
-  return withHouseholdRoute((context) => {
-    const householdId = context.caller.householdId;
+  return withWalletRoute((context) => {
+    const walletId = context.caller.walletId;
     const userId = context.caller.userId;
     const encoder = new TextEncoder();
     let cleanup: (() => void) | undefined;
@@ -37,8 +37,8 @@ export function GET(request: Request) {
         request.signal.addEventListener("abort", close, { once: true });
 
         try {
-          const stop = await subscribeToHouseholdChanges(
-            householdId,
+          const stop = await subscribeToWalletChanges(
+            walletId,
             (change) => {
               if (change.recipientId && change.recipientId !== userId) {
                 return;

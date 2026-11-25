@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   jsonReadResponse,
   parseQueryParams,
-  withHouseholdRoute,
+  withWalletRoute,
 } from "@/lib/api-route";
 import { getHistoryData } from "@/lib/history";
 
@@ -14,7 +14,7 @@ const getHistoryDataSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  return withHouseholdRoute(async (result) => {
+  return withWalletRoute(async (result) => {
     const { searchParams } = new URL(request.url);
     const timeframe = searchParams.get("timeframe");
     const year = searchParams.get("year");
@@ -26,14 +26,10 @@ export async function GET(request: Request) {
       year,
     });
 
-    const data = await getHistoryData(
-      result.household.id,
-      queryParams.timeframe,
-      {
-        month: queryParams.month,
-        year: queryParams.year,
-      },
-    );
+    const data = await getHistoryData(result.wallet.id, queryParams.timeframe, {
+      month: queryParams.month,
+      year: queryParams.year,
+    });
 
     return jsonReadResponse(request, data);
   });

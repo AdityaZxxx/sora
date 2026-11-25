@@ -1,22 +1,22 @@
 "use server";
 
-import type { Household } from "@prisma/client";
+import type { Wallet } from "@prisma/client";
 
 import { revalidatePath } from "next/cache";
 
-import { type ActionResult, withHouseholdAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
-import { updateHouseholdCurrency } from "@/lib/household";
+import { type ActionResult, withWalletAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
+import { updateWalletCurrency } from "@/lib/wallet";
 
 export async function UpdateUserCurrency(
   currency: string,
-): Promise<ActionResult<Household>> {
-  return withHouseholdAction(
+): Promise<ActionResult<Wallet>> {
+  return withWalletAction(
     "That currency is not supported. Choose one from the list.",
     async ({ caller }) => {
-      const updated = await updateHouseholdCurrency(caller, currency);
+      const updated = await updateWalletCurrency(caller, currency);
 
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.household]);
+      revalidateWallet(caller.walletId, [CACHE_RESOURCE.wallet]);
       revalidatePath("/", "layout");
 
       return updated;

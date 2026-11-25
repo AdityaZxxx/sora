@@ -1,6 +1,6 @@
 "use client";
 import type { FormActionState } from "@/lib/form-action";
-import type { Household } from "@prisma/client";
+import type { Wallet } from "@prisma/client";
 import type { ReactElement, ReactNode } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ import CategoryPicker from "../../_components/CategoryPicker";
 
 interface Props {
   trigger?: ReactNode;
-  household?: Household;
+  wallet?: Wallet;
   budget?: BudgetWithProgress;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -54,7 +54,7 @@ interface Props {
 
 const BudgetDialog = ({
   trigger,
-  household,
+  wallet,
   budget,
   open: openProp,
   onOpenChange,
@@ -76,7 +76,7 @@ const BudgetDialog = ({
     initialFormActionState,
   );
 
-  const currency = Currencies.find((c) => c.value === household?.currency);
+  const currency = Currencies.find((c) => c.value === wallet?.currency);
   const numberParts = new Intl.NumberFormat(currency?.locale, {
     style: "decimal",
   }).formatToParts(1234.5);
@@ -254,7 +254,7 @@ const BudgetDialog = ({
                 </SelectContent>
               </Select>
               <FieldDescription className="text-xs sm:text-sm">
-                Hard budgets reject shared expenses that would exceed the limit
+                Hard budgets reject expenses that would exceed the limit
               </FieldDescription>
             </Field>
 

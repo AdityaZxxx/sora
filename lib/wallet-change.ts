@@ -5,50 +5,49 @@ import { z } from "zod";
 
 import { queryKeys } from "@/lib/query-keys";
 
-export const HOUSEHOLD_EVENT_CHANNEL = "sora_household_events";
-export const HOUSEHOLD_EVENTS_ENDPOINT = "/api/events";
+export const WALLET_EVENT_CHANNEL = "sora_wallet_events";
+export const WALLET_EVENTS_ENDPOINT = "/api/events";
 
-export const HOUSEHOLD_CHANGE_RESOURCES = [
+export const WALLET_CHANGE_RESOURCES = [
   "transactions",
+  "settlements",
   "budgets",
   "goals",
   "categories",
   "recurring",
   "members",
-  "household",
+  "wallet",
   "notifications",
 ] as const;
 
-export type HouseholdChangeResource =
-  (typeof HOUSEHOLD_CHANGE_RESOURCES)[number];
+export type WalletChangeResource = (typeof WALLET_CHANGE_RESOURCES)[number];
 
-export const HOUSEHOLD_CHANGE_SCOPES = [
-  "personal-transaction",
+export const WALLET_CHANGE_SCOPES = [
   "category-renamed",
   "category-icon-changed",
   "member-joined",
 ] as const;
 
-export type HouseholdChangeScope = (typeof HOUSEHOLD_CHANGE_SCOPES)[number];
+export type WalletChangeScope = (typeof WALLET_CHANGE_SCOPES)[number];
 
-export const householdChangeSchema = z.object({
-  householdId: z.string().min(1),
+export const walletChangeSchema = z.object({
+  walletId: z.string().min(1),
   actorId: z.string(),
-  resource: z.enum(HOUSEHOLD_CHANGE_RESOURCES),
+  resource: z.enum(WALLET_CHANGE_RESOURCES),
   message: z.string().min(1),
   at: z.string(),
   recipientId: z.string().optional(),
-  scope: z.enum(HOUSEHOLD_CHANGE_SCOPES).optional(),
+  scope: z.enum(WALLET_CHANGE_SCOPES).optional(),
 });
 
-export type HouseholdChange = z.infer<typeof householdChangeSchema>;
+export type WalletChange = z.infer<typeof walletChangeSchema>;
 
-export type HouseholdChangeEffects = {
+export type WalletChangeEffects = {
   serverTags: readonly CacheResource[];
   clientKeys: readonly QueryKey[];
 };
 
-const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
+const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
   transactions: {
     serverTags: [
       "transactions",
@@ -68,6 +67,10 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
       queryKeys.sharedSpending,
       queryKeys.simplifiedDebts,
     ],
+  },
+  settlements: {
+    serverTags: ["balances", "transactions"],
+    clientKeys: [queryKeys.balances, queryKeys.simplifiedDebts],
   },
   budgets: {
     serverTags: ["budgets"],
@@ -97,15 +100,15 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
   members: {
     serverTags: ["members"],
     clientKeys: [
-      queryKeys.householdMembers,
-      queryKeys.households,
+      queryKeys.walletMembers,
+      queryKeys.wallets,
       queryKeys.balances,
       queryKeys.simplifiedDebts,
     ],
   },
-  household: {
-    serverTags: ["household"],
-    clientKeys: [queryKeys.household, queryKeys.households],
+  wallet: {
+    serverTags: ["wallet"],
+    clientKeys: [queryKeys.wallet, queryKeys.wallets],
   },
   notifications: {
     serverTags: ["notifications"],
@@ -113,11 +116,7 @@ const EFFECTS: Record<HouseholdChangeResource, HouseholdChangeEffects> = {
   },
 };
 
-const SCOPED_EFFECTS: Record<HouseholdChangeScope, HouseholdChangeEffects> = {
-  "personal-transaction": {
-    serverTags: ["transactions"],
-    clientKeys: [queryKeys.transactions.all],
-  },
+const SCOPED_EFFECTS: Record<WalletChangeScope, WalletChangeEffects> = {
   "category-renamed": {
     serverTags: ["categories", "transactions", "budgets", "recurring"],
     clientKeys: [...EFFECTS.categories.clientKeys, queryKeys.budgets],
@@ -132,9 +131,9 @@ const SCOPED_EFFECTS: Record<HouseholdChangeScope, HouseholdChangeEffects> = {
   },
 };
 
-export function householdChangeEffects(
-  resource: HouseholdChangeResource,
-  scope?: HouseholdChangeScope,
-): HouseholdChangeEffects {
+export function walletChangeEffects(
+  resource: WalletChangeResource,
+  scope?: WalletChangeScope,
+): WalletChangeEffects {
   return scope ? SCOPED_EFFECTS[scope] : EFFECTS[resource];
 }

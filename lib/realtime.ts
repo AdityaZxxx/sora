@@ -4,26 +4,26 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { EventEmitter } from "node:events";
 
-import { revalidateHousehold } from "@/lib/cache";
-import {
-  HOUSEHOLD_EVENT_CHANNEL,
-  householdChangeEffects,
-  householdChangeSchema,
-  type HouseholdChange,
-  type HouseholdChangeResource,
-  type HouseholdChangeScope,
-} from "@/lib/household-change";
+import { revalidateWallet } from "@/lib/cache";
 import prisma, { stripSslMode } from "@/lib/prisma";
+import {
+  WALLET_EVENT_CHANNEL,
+  walletChangeEffects,
+  walletChangeSchema,
+  type WalletChange,
+  type WalletChangeResource,
+  type WalletChangeScope,
+} from "@/lib/wallet-change";
 
 type QueryExecutor = Prisma.TransactionClient | PrismaClient;
 
 type PublishInput = {
-  householdId: string;
+  walletId: string;
   actor: Actor;
-  resource: HouseholdChangeResource;
+  resource: WalletChangeResource;
   message: string;
   recipientId?: string;
-  scope?: HouseholdChangeScope;
+  scope?: WalletChangeScope;
   executor?: QueryExecutor;
 };
 
@@ -31,8 +31,8 @@ export type DeferredRevalidation = () => void;
 
 // A tag invalidated before commit can be repopulated by a read of the old row,
 // so the caller runs the returned revalidation after its transaction resolves.
-export async function notifyHouseholdChange({
-  householdId,
+export async function notifyWalletChange({
+  walletId,
   actor,
   resource,
   message,
@@ -40,9 +40,9 @@ export async function notifyHouseholdChange({
   scope,
   executor = prisma,
 }: PublishInput): Promise<DeferredRevalidation> {
-  const effects = householdChangeEffects(resource, scope);
-  const change = householdChangeSchema.parse({
-    householdId,
+  const effects = walletChangeEffects(resource, scope);
+  const change = walletChangeSchema.parse({
+    walletId,
     actorId: actor.actorId,
     resource,
     message: `${actor.actorName} ${message}`,
@@ -51,20 +51,20 @@ export async function notifyHouseholdChange({
     ...(scope && { scope }),
   });
 
-  await executor.$executeRaw`SELECT pg_notify(${HOUSEHOLD_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
-  return () => revalidateHousehold(householdId, effects.serverTags);
+  await executor.$executeRaw`SELECT pg_notify(${WALLET_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
+  return () => revalidateWallet(walletId, effects.serverTags);
 }
 
-export async function publishHouseholdChange(input: PublishInput) {
-  const revalidate = await notifyHouseholdChange(input);
+export async function publishWalletChange(input: PublishInput) {
+  const revalidate = await notifyWalletChange(input);
   revalidate();
 }
 
-type HouseholdListener = {
+type WalletListener = {
   emitter: EventEmitter;
 };
 
-let listenerPromise: Promise<HouseholdListener> | undefined;
+let listenerPromise: Promise<WalletListener> | undefined;
 
 function listenerConnectionString() {
   const primary = process.env.POSTGRES_PRISMA_URL;
@@ -81,7 +81,7 @@ function listenerConnectionString() {
   }
 }
 
-function createListener(): Promise<HouseholdListener> {
+function createListener(): Promise<WalletListener> {
   const adapter = new PrismaPg({
     connectionString: stripSslMode(listenerConnectionString()),
     ssl: { rejectUnauthorized: false },
@@ -101,7 +101,7 @@ function createListener(): Promise<HouseholdListener> {
     });
     client.on("notification", (notification) => {
       if (
-        notification.channel !== HOUSEHOLD_EVENT_CHANNEL ||
+        notification.channel !== WALLET_EVENT_CHANNEL ||
         !notification.payload
       ) {
         return;
@@ -112,12 +112,12 @@ function createListener(): Promise<HouseholdListener> {
       } catch {
         return;
       }
-      const change = householdChangeSchema.safeParse(parsed);
+      const change = walletChangeSchema.safeParse(parsed);
       if (change.success) {
-        emitter.emit(change.data.householdId, change.data);
+        emitter.emit(change.data.walletId, change.data);
       }
     });
-    await client.query(`LISTEN ${HOUSEHOLD_EVENT_CHANNEL}`);
+    await client.query(`LISTEN ${WALLET_EVENT_CHANNEL}`);
     return { emitter };
   })();
 }
@@ -130,16 +130,16 @@ function getListener() {
   return listenerPromise;
 }
 
-export async function subscribeToHouseholdChanges(
-  householdId: string,
-  onChange: (change: HouseholdChange) => void,
+export async function subscribeToWalletChanges(
+  walletId: string,
+  onChange: (change: WalletChange) => void,
   onDisconnect: () => void,
 ) {
   const { emitter } = await getListener();
-  emitter.on(householdId, onChange);
+  emitter.on(walletId, onChange);
   emitter.on("disconnect", onDisconnect);
   return () => {
-    emitter.off(householdId, onChange);
+    emitter.off(walletId, onChange);
     emitter.off("disconnect", onDisconnect);
   };
 }

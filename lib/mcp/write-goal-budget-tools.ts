@@ -4,12 +4,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { z } from "zod";
 
-import { deleteHouseholdBudget, setHouseholdBudget } from "@/lib/budgets";
+import { deleteWalletBudget, setWalletBudget } from "@/lib/budgets";
 import { DATE_PATTERN, parseDate } from "@/lib/dates";
 import {
-  createHouseholdGoal,
-  deleteHouseholdGoal,
-  updateHouseholdGoal,
+  createWalletGoal,
+  deleteWalletGoal,
+  updateWalletGoal,
 } from "@/lib/goals";
 import { budgetFields } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
@@ -30,7 +30,7 @@ export function registerGoalBudgetWriteTools(
     {
       title: "Delete goal",
       description:
-        "Delete a Goal from the Household. Transactions tagged with the Goal keep the money in the ledger and lose the tag. Use list_goals to find the Goal's id.",
+        "Delete a Goal from the Wallet. Transactions tagged with the Goal keep the money in the ledger and lose the tag. Use list_goals to find the Goal's id.",
       inputSchema: {
         id: DeleteIdSchema.shape.id.describe(
           "Id of the Goal to delete. Use list_goals to see them.",
@@ -39,7 +39,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdGoal(context, id);
+        await deleteWalletGoal(context, id);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -50,7 +50,7 @@ export function registerGoalBudgetWriteTools(
     {
       title: "Delete budget",
       description:
-        "Delete the Household's Budget for one expense Category. Use list_budgets to find the Budget's id.",
+        "Delete the Wallet's Budget for one expense Category. Use list_budgets to find the Budget's id.",
       inputSchema: {
         id: DeleteIdSchema.shape.id.describe(
           "Id of the Budget to delete. Use list_budgets to see them.",
@@ -59,7 +59,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ id }) =>
       runWriteTool(async () => {
-        await deleteHouseholdBudget(context, id);
+        await deleteWalletBudget(context, id);
 
         return { deleted: id, memberId: context.userId };
       }),
@@ -70,11 +70,11 @@ export function registerGoalBudgetWriteTools(
     {
       title: "Create goal",
       description:
-        "Create a Goal in the Household: an amount to save, with an optional deadline. A Goal is not tied to a Transaction; money reaches it through Transactions tagged with the Goal.",
+        "Create a Goal in the Wallet: an amount to save, with an optional deadline. A Goal is not tied to a Transaction; money reaches it through Transactions tagged with the Goal.",
       inputSchema: {
         name: goalInput.name.describe("Name of the Goal, up to 50 characters."),
         target: goalInput.target.describe(
-          "Amount to save, in the Household's currency.",
+          "Amount to save, in the Wallet's currency.",
         ),
         deadline: z
           .string()
@@ -85,7 +85,7 @@ export function registerGoalBudgetWriteTools(
     },
     async ({ name, target, deadline }) =>
       runWriteTool(async () => {
-        const goal = await createHouseholdGoal(context, {
+        const goal = await createWalletGoal(context, {
           name,
           target,
           deadline: deadline ? parseDate(deadline) : undefined,
@@ -107,7 +107,7 @@ export function registerGoalBudgetWriteTools(
     {
       title: "Update goal",
       description:
-        "Update a Goal in the Household: its name, target, or deadline. Only the fields provided change. Transactions tagged with the Goal are not affected. Use list_goals to find the Goal's id.",
+        "Update a Goal in the Wallet: its name, target, or deadline. Only the fields provided change. Transactions tagged with the Goal are not affected. Use list_goals to find the Goal's id.",
       inputSchema: {
         id: z
           .string()
@@ -118,7 +118,7 @@ export function registerGoalBudgetWriteTools(
           .describe("New name for the Goal, up to 50 characters."),
         target: goalInput.target
           .optional()
-          .describe("New amount to save, in the Household's currency."),
+          .describe("New amount to save, in the Wallet's currency."),
         deadline: z
           .union([z.literal(""), z.string().regex(DEADLINE_PATTERN)])
           .nullable()
@@ -142,7 +142,7 @@ export function registerGoalBudgetWriteTools(
             deadline === null || deadline === "" ? null : parseDate(deadline);
         }
 
-        const goal = await updateHouseholdGoal(context, update);
+        const goal = await updateWalletGoal(context, update);
 
         return {
           id: goal.id,
@@ -160,24 +160,22 @@ export function registerGoalBudgetWriteTools(
     {
       title: "Set budget",
       description:
-        "Set the Household's monthly Budget for one expense Category: the limit, and whether it is soft (warns at the limit) or hard (rejects shared expenses over it). A Budget applies to shared expenses only. A Household has one Budget per Category, so setting a Category that already has one replaces its limit.",
+        "Set the Wallet's monthly Budget for one expense Category: the limit, and whether it is soft (warns at the limit) or hard (rejects expenses over it). A Wallet has one Budget per Category, so setting a Category that already has one replaces its limit.",
       inputSchema: {
         category: budgetInput.category.describe(
-          "Name of an expense Category in the Household. Use list_categories to see them.",
+          "Name of an expense Category in the Wallet. Use list_categories to see them.",
         ),
         amount: budgetInput.amount.describe(
-          "Monthly limit, in the Household's currency.",
+          "Monthly limit, in the Wallet's currency.",
         ),
         mode: budgetInput.mode
           .default("soft")
-          .describe(
-            "Soft warns at the limit; hard rejects shared expenses over it.",
-          ),
+          .describe("Soft warns at the limit; hard rejects expenses over it."),
       },
     },
     async ({ category, amount, mode }) =>
       runWriteTool(async () => {
-        const budget = await setHouseholdBudget(context, {
+        const budget = await setWalletBudget(context, {
           category,
           amount,
           mode,

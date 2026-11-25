@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seeds the disposable Sora instance with a realistic two-person household:
+// Seeds the disposable Sora instance with a realistic two-person wallet:
 // ~6 months of transaction history, so the UI reads like a real couple's
 // money instead of a verification stub. Every date is relative to "now", so
 // the fixture ages with the run and never needs re-dating.
@@ -195,7 +195,6 @@ const MONTHLY_ROWS = (offset) => [
     category: "Dining Out",
     categoryIcon: "🍽️",
     addedById: "avery",
-    personal: true,
   },
 ];
 
@@ -206,6 +205,7 @@ const dayUTC = (day, offset, hour = 12) =>
 
 async function clean() {
   await prisma.$transaction([
+    prisma.settlement.deleteMany(),
     prisma.transactionShare.deleteMany(),
     prisma.transaction.deleteMany(),
     prisma.notification.deleteMany(),
@@ -217,11 +217,11 @@ async function clean() {
     prisma.yearHistory.deleteMany(),
     prisma.inviteLink.deleteMany(),
     prisma.recurringItem.deleteMany(),
-    prisma.householdMembership.deleteMany(),
+    prisma.walletMembership.deleteMany(),
     prisma.session.deleteMany(),
     prisma.account.deleteMany(),
     prisma.user.deleteMany(),
-    prisma.household.deleteMany(),
+    prisma.wallet.deleteMany(),
     prisma.rateLimit.deleteMany(),
   ]);
 }
@@ -251,7 +251,7 @@ async function main() {
 
   const averyId = randomUUID();
   const blakeId = randomUUID();
-  const householdId = randomUUID();
+  const walletId = randomUUID();
 
   await createUser({
     id: averyId,
@@ -266,10 +266,10 @@ async function main() {
     password: memberPassword,
   });
 
-  await prisma.household.create({
+  await prisma.wallet.create({
     data: {
-      id: householdId,
-      name: "The Rivera Household",
+      id: walletId,
+      name: "The Rivera Wallet",
       currency: "USD",
       agentAccessEnabled: true,
       createdAt: new Date(
@@ -279,35 +279,35 @@ async function main() {
   });
 
   const joined = (daysAgo) => new Date(now.getTime() - daysAgo * 86_400_000);
-  await prisma.householdMembership.createMany({
+  await prisma.walletMembership.createMany({
     data: [
-      { householdId, userId: averyId, role: "member", joinedAt: joined(224) },
-      { householdId, userId: blakeId, role: "member", joinedAt: joined(187) },
+      { walletId, userId: averyId, role: "member", joinedAt: joined(224) },
+      { walletId, userId: blakeId, role: "member", joinedAt: joined(187) },
     ],
   });
 
   await prisma.category.createMany({
     data: [
-      { householdId, name: "Salary", icon: "💰", type: "income" },
-      { householdId, name: "Freelance", icon: "💻", type: "income" },
-      { householdId, name: "Rent", icon: "🏠", type: "expense" },
-      { householdId, name: "Groceries", icon: "🛒", type: "expense" },
-      { householdId, name: "Utilities", icon: "💡", type: "expense" },
-      { householdId, name: "Dining Out", icon: "🍽️", type: "expense" },
-      { householdId, name: "Subscriptions", icon: "📺", type: "expense" },
-      { householdId, name: "Travel", icon: "✈️", type: "expense" },
-      { householdId, name: "Pharmacy", icon: "💊", type: "expense" },
-      { householdId, name: "Gift", icon: "🎁", type: "expense" },
-      { householdId, name: "Car", icon: "🚗", type: "expense" },
-      { householdId, name: "Transfer", icon: "🐷", type: "expense" },
-      { householdId, name: "Photography", icon: "📷", type: "expense" },
+      { walletId, name: "Salary", icon: "💰", type: "income" },
+      { walletId, name: "Freelance", icon: "💻", type: "income" },
+      { walletId, name: "Rent", icon: "🏠", type: "expense" },
+      { walletId, name: "Groceries", icon: "🛒", type: "expense" },
+      { walletId, name: "Utilities", icon: "💡", type: "expense" },
+      { walletId, name: "Dining Out", icon: "🍽️", type: "expense" },
+      { walletId, name: "Subscriptions", icon: "📺", type: "expense" },
+      { walletId, name: "Travel", icon: "✈️", type: "expense" },
+      { walletId, name: "Pharmacy", icon: "💊", type: "expense" },
+      { walletId, name: "Gift", icon: "🎁", type: "expense" },
+      { walletId, name: "Car", icon: "🚗", type: "expense" },
+      { walletId, name: "Transfer", icon: "🐷", type: "expense" },
+      { walletId, name: "Photography", icon: "📷", type: "expense" },
     ],
   });
 
   // Goals: Vacation is mid-flight, Emergency funded, Camera is a stalled one.
   const vacation = await prisma.goal.create({
     data: {
-      householdId,
+      walletId,
       name: "Vacation",
       target: 3000,
       deadline: new Date(Date.UTC(now.getUTCFullYear() + 1, 5, 1)),
@@ -315,7 +315,7 @@ async function main() {
   });
   const emergency = await prisma.goal.create({
     data: {
-      householdId,
+      walletId,
       name: "Emergency fund",
       target: 2000,
       deadline: null,
@@ -323,7 +323,7 @@ async function main() {
   });
   const camera = await prisma.goal.create({
     data: {
-      householdId,
+      walletId,
       name: "New camera",
       target: 1200,
       deadline: null,
@@ -332,16 +332,16 @@ async function main() {
 
   await prisma.budget.createMany({
     data: [
-      { householdId, category: "Groceries", amount: 650, mode: "soft" },
-      { householdId, category: "Dining Out", amount: 150, mode: "soft" },
-      { householdId, category: "Travel", amount: 500, mode: "soft" },
+      { walletId, category: "Groceries", amount: 650, mode: "soft" },
+      { walletId, category: "Dining Out", amount: 150, mode: "soft" },
+      { walletId, category: "Travel", amount: 500, mode: "soft" },
     ],
   });
 
   await prisma.recurringItem.createMany({
     data: [
       {
-        householdId,
+        walletId,
         name: "Rent",
         amount: 1450,
         category: "Rent",
@@ -352,7 +352,7 @@ async function main() {
         lastPostedAt: dayUTC(2, 0, 8),
       },
       {
-        householdId,
+        walletId,
         name: "Internet",
         amount: 70,
         category: "Utilities",
@@ -363,7 +363,7 @@ async function main() {
         lastPostedAt: dayUTC(7, 0, 19),
       },
       {
-        householdId,
+        walletId,
         name: "Power",
         amount: 128.4,
         category: "Utilities",
@@ -374,7 +374,7 @@ async function main() {
         lastPostedAt: dayUTC(12, 0, 19),
       },
       {
-        householdId,
+        walletId,
         name: "Netflix",
         amount: 14.99,
         category: "Subscriptions",
@@ -385,7 +385,7 @@ async function main() {
         lastPostedAt: dayUTC(15, 0, 19),
       },
       {
-        householdId,
+        walletId,
         name: "Gym",
         amount: 39.99,
         category: "Subscriptions",
@@ -400,12 +400,11 @@ async function main() {
 
   const created = [];
   const addRow = async (row) => {
-    const { shares, goal, personal, member, addedById, ...data } = row;
+    const { shares, goal, member, addedById, ...data } = row;
     const addedBy = (member ?? addedById) === "blake" ? blakeId : averyId;
     const tx = await prisma.transaction.create({
       data: {
-        householdId,
-        shared: personal !== true,
+        walletId,
         addedVia: null,
         createdAt: data.date,
         updatedAt: data.date,
@@ -549,29 +548,20 @@ async function main() {
   // The overview shows "Blake owes Avery" far below the minimal fixture's
   // frozen $870.25 but never negative in realistic numbers.
   const settlementDate = dayUTC(15, 1, 20);
-  await prisma.transaction.create({
+  await prisma.settlement.create({
     data: {
-      householdId,
-      shared: false,
-      addedVia: null,
-      createdAt: settlementDate,
-      updatedAt: settlementDate,
+      walletId,
+      payerId: blakeId,
+      receiverId: averyId,
       amount: centsToDecimal(25000),
-      description: "Settlement with Avery",
       date: settlementDate,
-      addedById: blakeId,
-      counterpartyId: averyId,
-      type: "expense",
-      category: "Settlement",
-      categoryIcon: "🤝",
     },
   });
 
-  // Rebuild month/year history rollups from the created rows (shared only).
+  // Rebuild month/year history rollups from the created ledger rows.
   const months = new Map();
   const years = new Map();
   for (const { tx, data } of created) {
-    if (!(tx.shared === true)) continue;
     if (data.type !== "income" && data.type !== "expense") continue;
     const field = data.type;
     const monthKey = `${tx.date.getUTCFullYear()}-${tx.date.getUTCMonth()}-${tx.date.getUTCDate()}`;
@@ -588,7 +578,7 @@ async function main() {
       const [year, month, day] = key.split("-").map(Number);
       return prisma.monthHistory.create({
         data: {
-          householdId,
+          walletId,
           day,
           month,
           year,
@@ -603,7 +593,7 @@ async function main() {
       const [year, month] = key.split("-").map(Number);
       return prisma.yearHistory.create({
         data: {
-          householdId,
+          walletId,
           month,
           year,
           income: centsToDecimal(totals.income),
@@ -618,14 +608,14 @@ async function main() {
   await prisma.apiToken.createMany({
     data: [
       {
-        householdId,
+        walletId,
         userId: averyId,
         name: "average read-write",
         scope: "read-write",
         tokenHash: hashToken(readWriteToken),
       },
       {
-        householdId,
+        walletId,
         userId: blakeId,
         name: "average read-only",
         scope: "read-only",
@@ -636,7 +626,7 @@ async function main() {
 
   // Expected values, computed from the rows we really seeded.
   const all = await prisma.transaction.findMany({
-    where: { householdId, shared: true },
+    where: { walletId },
     select: { amount: true, type: true, addedById: true, date: true, id: true },
   });
   const memberCount = 2;
@@ -657,21 +647,14 @@ async function main() {
   // Per-user settlement-aware balances (even split for non-rent, explicit
   // 600/850 rent split, settlements subtract from the payer).
   const withShares = await prisma.transaction.findMany({
-    where: { householdId },
+    where: { walletId },
     include: { shares: true },
   });
+  const settlements = await prisma.settlement.findMany({ where: { walletId } });
   const balanceFor = (callerId, otherId) => {
     let balance = 0;
     for (const tx of withShares) {
-      if (
-        !(
-          (tx.shared === true && tx.type === "expense") ||
-          (tx.shared === false &&
-            tx.category === "Settlement" &&
-            tx.type === "expense")
-        )
-      )
-        continue;
+      if (tx.type !== "expense") continue;
       const shares = tx.shares.length
         ? tx.shares.map((s) => ({ userId: s.userId, amount: Number(s.amount) }))
         : [
@@ -681,15 +664,21 @@ async function main() {
       const callerShare =
         shares.find((s) => s.userId === callerId)?.amount ?? 0;
       const otherShare = shares.find((s) => s.userId === otherId)?.amount ?? 0;
-      if (tx.shared === true) {
-        if (tx.addedById === otherId) balance += callerShare;
-        else if (tx.addedById === callerId) balance -= otherShare;
-      } else {
-        // Settlements (shared=false) are member-to-member transfers.
-        if (tx.counterpartyId === otherId && tx.addedById === callerId)
-          balance -= Number(tx.amount);
-        else if (tx.counterpartyId === callerId && tx.addedById === otherId)
-          balance += Number(tx.amount);
+      if (tx.addedById === otherId) balance += callerShare;
+      else if (tx.addedById === callerId) balance -= otherShare;
+    }
+    for (const settlement of settlements) {
+      const amount = Number(settlement.amount);
+      if (
+        settlement.payerId === callerId &&
+        settlement.receiverId === otherId
+      ) {
+        balance -= amount;
+      } else if (
+        settlement.payerId === otherId &&
+        settlement.receiverId === callerId
+      ) {
+        balance += amount;
       }
     }
     return balance;
@@ -699,8 +688,7 @@ async function main() {
     const agg = await prisma.transaction.aggregate({
       _sum: { amount: true },
       where: {
-        householdId,
-        shared: true,
+        walletId,
         type: "expense",
         category,
         date: { gte: new Date(Date.UTC(thisYear, thisMonth, 1)) },
@@ -713,21 +701,21 @@ async function main() {
 
   const vacationContributed = await prisma.transaction.aggregate({
     _sum: { amount: true },
-    where: { householdId, type: "expense", goalId: vacation.id },
+    where: { walletId, type: "expense", goalId: vacation.id },
   });
   const vacationC = vacationContributed._sum.amount
     ? Number(vacationContributed._sum.amount)
     : 0;
   const emergencyContributed = await prisma.transaction.aggregate({
     _sum: { amount: true },
-    where: { householdId, type: "expense", goalId: emergency.id },
+    where: { walletId, type: "expense", goalId: emergency.id },
   });
   const emergencyC = emergencyContributed._sum.amount
     ? Number(emergencyContributed._sum.amount)
     : 0;
   const cameraContributed = await prisma.transaction.aggregate({
     _sum: { amount: true },
-    where: { householdId, type: "expense", goalId: camera.id },
+    where: { walletId, type: "expense", goalId: camera.id },
   });
   const cameraC = cameraContributed._sum.amount
     ? Number(cameraContributed._sum.amount)
@@ -737,7 +725,7 @@ async function main() {
 
   const summary = {
     runId,
-    householdId,
+    walletId,
     users: [primaryEmail, memberEmail],
     tokens: ["read-write", "read-only"],
     transactions: totalTx,
@@ -760,7 +748,7 @@ async function main() {
   const expectedFixtures = {
     runId,
     baseUrl,
-    householdId,
+    walletId,
     currency: "USD",
     members: {
       avery: { id: averyId, email: primaryEmail, name: "Avery Quinn" },
@@ -849,7 +837,7 @@ async function main() {
     `SORA_VERIFY_PASSWORD=${primaryPassword}`,
     `SORA_VERIFY_MEMBER_EMAIL=${memberEmail}`,
     `SORA_VERIFY_MEMBER_PASSWORD=${memberPassword}`,
-    `SORA_VERIFY_HOUSEHOLD_ID=${householdId}`,
+    `SORA_VERIFY_WALLET_ID=${walletId}`,
     `SORA_VERIFY_USER_ID=${averyId}`,
     `SORA_VERIFY_MEMBER_ID=${blakeId}`,
     `SORA_VERIFY_GOAL_ID=${vacation.id}`,

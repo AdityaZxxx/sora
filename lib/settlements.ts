@@ -1,35 +1,20 @@
 import { after } from "next/server";
 
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
-import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { RecordSettlementSchema } from "@/schemas/settlement";
-
-const SETTLEMENT_CATEGORY_NAME = "Settlement";
-const SETTLEMENT_CATEGORY_ICON = "🤝";
-const SETTLEMENT_DESCRIPTION_PREFIX = "Settlement with ";
-
-export function isSettlementCategory(name: string) {
-  return name === SETTLEMENT_CATEGORY_NAME;
-}
-
-export function settlementCategoryEquals() {
-  return { equals: SETTLEMENT_CATEGORY_NAME };
-}
-
-export function settlementCategoryExclusion() {
-  return { not: SETTLEMENT_CATEGORY_NAME };
-}
 
 export type RecordSettlementInput = {
   memberId: string;
   amount: number;
+  date?: Date;
+  note?: string | null;
   addedVia?: "agent" | null;
 };
 
@@ -41,21 +26,13 @@ export async function recordSettlement(
   try {
     return await runSettlement(caller, input, startedAt);
   } catch (cause) {
-    if (cause instanceof DomainError) {
-      log("warn", "settlement.recorded", {
-        householdId: caller.householdId,
-        userId: caller.userId,
-        outcome: "rejected",
-        durationMs: Date.now() - startedAt,
-      });
-    } else {
-      log("error", "settlement.recorded", {
-        householdId: caller.householdId,
-        userId: caller.userId,
-        outcome: "failed",
-        durationMs: Date.now() - startedAt,
-      });
-    }
+    const outcome = cause instanceof DomainError ? "rejected" : "failed";
+    log(outcome === "rejected" ? "warn" : "error", "settlement.recorded", {
+      walletId: caller.walletId,
+      userId: caller.userId,
+      outcome,
+      durationMs: Date.now() - startedAt,
+    });
     throw cause;
   }
 }
@@ -66,10 +43,12 @@ async function runSettlement(
   startedAt: number,
 ) {
   assertCallerFullMember(caller);
-  const { householdId, userId } = caller;
+  const { walletId, userId } = caller;
   const parsedBody = RecordSettlementSchema.safeParse({
     memberId: input.memberId,
     amount: input.amount,
+    date: input.date,
+    note: input.note ?? undefined,
   });
   if (!parsedBody.success) {
     throw new DomainError(
@@ -77,17 +56,16 @@ async function runSettlement(
     );
   }
 
-  const { memberId, amount } = parsedBody.data;
-
+  const { memberId, amount, date, note } = parsedBody.data;
   if (memberId === userId) {
     throw new DomainError("Cannot record a settlement with yourself");
   }
 
-  const [membership, household] = await Promise.all([
-    prisma.householdMembership.findUnique({
+  const [membership, wallet] = await Promise.all([
+    prisma.walletMembership.findUnique({
       where: {
-        householdId_userId: {
-          householdId,
+        walletId_userId: {
+          walletId,
           userId: memberId,
         },
       },
@@ -99,13 +77,9 @@ async function runSettlement(
         },
       },
     }),
-    prisma.household.findUnique({
-      where: {
-        id: householdId,
-      },
-      select: {
-        currency: true,
-      },
+    prisma.wallet.findUnique({
+      where: { id: walletId },
+      select: { currency: true },
     }),
   ]);
 
@@ -113,51 +87,29 @@ async function runSettlement(
     throw new DomainError("Member not found");
   }
 
-  const amountText = getFormatterForCurrency(
-    household?.currency ?? DEFAULT_CURRENCY,
-  ).format(amount);
+  const formatAmount = getFormatterForCurrency(
+    wallet?.currency ?? DEFAULT_CURRENCY,
+  ).format;
+  const amountText = formatAmount(amount);
   const payerName = caller.actorName;
 
   const settlement = await prisma.$transaction(async (tx) => {
-    const category = await tx.category.upsert({
-      where: {
-        name_householdId_type: {
-          householdId,
-          name: SETTLEMENT_CATEGORY_NAME,
-          type: "expense",
-        },
-      },
-      create: {
-        householdId,
-        name: SETTLEMENT_CATEGORY_NAME,
-        icon: SETTLEMENT_CATEGORY_ICON,
-        iconKind: "emoji",
-        iconColor: null,
-        type: "expense",
-      },
-      update: {},
-    });
-
-    const created = await tx.transaction.create({
+    const created = await tx.settlement.create({
       data: {
-        householdId,
-        addedById: userId,
-        counterpartyId: memberId,
+        walletId,
+        payerId: userId,
+        receiverId: memberId,
         amount,
-        date: new Date(),
-        description: `${SETTLEMENT_DESCRIPTION_PREFIX}${membership.user.name}`,
-        type: "expense",
-        shared: false,
-        category: category.name,
-        ...categoryIconSnapshot(category),
+        date: date ?? new Date(),
+        note: note ?? null,
         addedVia: input.addedVia ?? null,
       },
     });
 
-    await publishHouseholdChange({
-      householdId,
+    await publishWalletChange({
+      walletId,
       actor: actorFor(caller),
-      resource: "transactions",
+      resource: "settlements",
       message: `recorded a settlement of ${amountText} with ${membership.user.name}`,
       executor: tx,
     });
@@ -166,16 +118,16 @@ async function runSettlement(
   });
 
   log("info", "settlement.recorded", {
-    householdId,
+    walletId,
     userId,
     outcome: "ok",
     durationMs: Date.now() - startedAt,
   });
 
   after(async () => {
-    const otherMembers = await prisma.householdMembership.findMany({
+    const otherMembers = await prisma.walletMembership.findMany({
       where: {
-        householdId,
+        walletId,
         userId: {
           not: userId,
         },
@@ -189,7 +141,7 @@ async function runSettlement(
       otherMembers.map((other) =>
         notify(
           actorFor(caller),
-          householdId,
+          walletId,
           other.userId,
           "settlement",
           other.userId === memberId

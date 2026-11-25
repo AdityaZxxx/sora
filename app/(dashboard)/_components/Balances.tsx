@@ -44,8 +44,8 @@ const Balances = ({ currency, canEdit = true }: Props) => {
           <div className="min-w-0">
             <CardTitle className="text-lg">Balances</CardTitle>
             <CardDescription>
-              Net amounts from shared expenses and settlements. No money moves
-              inside the app.
+              Net amounts from expenses and settlements. No money moves inside
+              the app.
             </CardDescription>
           </div>
           {canEdit ? (

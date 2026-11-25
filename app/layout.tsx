@@ -27,11 +27,11 @@ export const metadata: Metadata = {
     template: "%s | Sora",
   },
   description:
-    "A free shared finance app for couples and households: one ledger, budgets, and goals.",
+    "A free shared finance app for couples and wallets: one ledger, budgets, and goals.",
   keywords: [
     "shared finances",
     "couple budget",
-    "household budget",
+    "wallet budget",
     "expense tracker",
     "saving goals",
   ],

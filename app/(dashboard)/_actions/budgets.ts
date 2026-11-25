@@ -1,12 +1,12 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
+import { withWalletAction } from "@/lib/action-result";
 import {
-  createHouseholdBudget,
-  deleteHouseholdBudget,
-  updateHouseholdBudget,
+  createWalletBudget,
+  deleteWalletBudget,
+  updateWalletBudget,
 } from "@/lib/budgets";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   formText,
   idField,
@@ -42,9 +42,9 @@ export async function createBudgetForm(
     fallback: CREATE_ERROR,
     success: "Budget added",
     run: (input) =>
-      withHouseholdAction(CREATE_ERROR, async ({ caller }) => {
-        const created = await createHouseholdBudget(caller, input);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.budgets]);
+      withWalletAction(CREATE_ERROR, async ({ caller }) => {
+        const created = await createWalletBudget(caller, input);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
         return created;
       }),
   });
@@ -61,9 +61,9 @@ export async function updateBudgetForm(
     fallback: UPDATE_ERROR,
     success: "Budget updated",
     run: (input) =>
-      withHouseholdAction(UPDATE_ERROR, async ({ caller }) => {
-        const updated = await updateHouseholdBudget(caller, input);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.budgets]);
+      withWalletAction(UPDATE_ERROR, async ({ caller }) => {
+        const updated = await updateWalletBudget(caller, input);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
         return updated;
       }),
   });
@@ -80,9 +80,9 @@ export async function deleteBudgetForm(
     fallback: DELETE_ERROR,
     success: "Budget deleted",
     run: (input) =>
-      withHouseholdAction(DELETE_ERROR, async ({ caller }) => {
-        await deleteHouseholdBudget(caller, input.id);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.budgets]);
+      withWalletAction(DELETE_ERROR, async ({ caller }) => {
+        await deleteWalletBudget(caller, input.id);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
       }),
   });
 }

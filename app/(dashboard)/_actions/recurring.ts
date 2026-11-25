@@ -6,8 +6,8 @@ import type {
   UpdateRecurringItemType,
 } from "@/schemas/recurring";
 
-import { withHouseholdAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { withWalletAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   createRecurringItem,
   deleteRecurringItem,
@@ -16,21 +16,21 @@ import {
 } from "@/lib/recurring";
 
 export async function CreateRecurringItem(form: CreateRecurringItemType) {
-  return withHouseholdAction(
+  return withWalletAction(
     "Unable to add the bill. Check the name, amount and category, then try again.",
     async ({ caller }) => {
       await createRecurringItem(caller, form);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
+      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
 
 export async function UpdateRecurringItem(form: UpdateRecurringItemType) {
-  return withHouseholdAction(
+  return withWalletAction(
     "Unable to update the bill. Check the name, amount and category, then try again.",
     async ({ caller }) => {
       await updateRecurringItem(caller, form);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
+      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -39,21 +39,21 @@ export async function SetRecurringItemPaused(form: {
   id: string;
   paused: boolean;
 }) {
-  return withHouseholdAction(
+  return withWalletAction(
     "Unable to update the bill. Check the bill and try again.",
     async ({ caller }) => {
       await setRecurringItemPaused(caller, form.id, form.paused);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
+      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
 
 export async function DeleteRecurringItem(form: DeleteIdSchemaType) {
-  return withHouseholdAction(
+  return withWalletAction(
     "Unable to delete the bill. Check the bill and try again.",
     async ({ caller }) => {
       await deleteRecurringItem(caller, form.id);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.recurring]);
+      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
