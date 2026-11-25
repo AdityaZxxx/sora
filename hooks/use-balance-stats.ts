@@ -15,7 +15,7 @@ type UseBalanceStatsOptions = {
 };
 
 export function useBalanceStats(
-  householdId: string,
+  householdId: string | undefined,
   from: Date,
   to: Date,
   { enabled = true, initialData }: UseBalanceStatsOptions = {},

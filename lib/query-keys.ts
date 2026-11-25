@@ -19,13 +19,11 @@ export const queryKeys = {
   overview: {
     all: ["overview"] satisfies QueryKey,
     statsAll: ["overview", "stats"] satisfies QueryKey,
-    stats: (householdId: string, from: Date, to: Date): QueryKey => [
-      "overview",
-      "stats",
-      householdId,
-      from,
-      to,
-    ],
+    stats: (
+      householdId: string | undefined,
+      from: Date,
+      to: Date,
+    ): QueryKey => ["overview", "stats", householdId, from, to],
     categories: (householdId: string, from: Date, to: Date): QueryKey => [
       "overview",
       "stats",

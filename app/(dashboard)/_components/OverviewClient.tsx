@@ -33,8 +33,8 @@ const OverviewClient = ({
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(
     () => initialDateRange,
   );
-  // React Query seeds a new key with its `initialData`. Without this guard a
-  // newly picked range would briefly show the server figures for the old one.
+  // `initialData` seeds a new key as fresh. Passing it for a changed range
+  // would seed that key with the initial range's figures and skip the refetch.
   const isInitialRange =
     dateRange.from.getTime() === initialDateRange.from.getTime() &&
     dateRange.to.getTime() === initialDateRange.to.getTime();
