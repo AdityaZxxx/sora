@@ -2,7 +2,7 @@
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { queryKeys } from "@/lib/query-keys";
 
-import { DeleteTransaction } from "../_actions/DeleteTransaction";
+import { deleteTransactionForm } from "../_actions/DeleteTransaction";
 
 interface Props {
   open: boolean;
@@ -22,7 +22,7 @@ const DeleteTransactionDialog = ({ open, setOpen, transactionId }: Props) => (
     errorMessage="Unable to delete the transaction. Refresh the page and try again."
     toastId={transactionId}
     input={{ id: transactionId }}
-    action={DeleteTransaction}
+    formAction={deleteTransactionForm}
     queryKeys={[queryKeys.transactions.all]}
   />
 );

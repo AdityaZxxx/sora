@@ -1,15 +1,30 @@
 "use server";
 
-import type { DeleteIdSchemaType } from "@/schemas/delete";
-
 import { withHouseholdAction } from "@/lib/action-result";
+import {
+  idField,
+  submitFormAction,
+  type FormActionState,
+} from "@/lib/form-action";
 import { deleteTransaction } from "@/lib/transactions";
+import { DeleteIdSchema } from "@/schemas/delete";
 
-export async function DeleteTransaction(form: DeleteIdSchemaType) {
-  return withHouseholdAction(
-    "Unable to delete the transaction. Refresh the page and try again.",
-    async ({ caller }) => {
-      await deleteTransaction(caller, form.id);
-    },
-  );
+const USER_FACING_ERROR =
+  "Unable to delete the transaction. Refresh the page and try again.";
+
+export async function deleteTransactionForm(
+  _previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  return submitFormAction({
+    formData,
+    fields: idField,
+    schema: DeleteIdSchema,
+    fallback: USER_FACING_ERROR,
+    success: "Transaction deleted",
+    run: (input) =>
+      withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
+        await deleteTransaction(caller, input.id);
+      }),
+  });
 }

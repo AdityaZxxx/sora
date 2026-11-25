@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { queryKeys } from "@/lib/query-keys";
 
-import { DeleteCategory } from "../_actions/categories";
+import { deleteCategoryForm } from "../_actions/categories";
 
 interface Props {
   trigger?: ReactNode;
@@ -37,7 +37,7 @@ const DeleteCategoryDialog = ({
     errorMessage="Unable to delete the category. Refresh the page and try again."
     toastId={`${category.name}-${category.type}`}
     input={{ id: category.id }}
-    action={DeleteCategory}
+    formAction={deleteCategoryForm}
     queryKeys={[queryKeys.categories()]}
   />
 );

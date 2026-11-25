@@ -1,7 +1,6 @@
 "use server";
 
 import type {
-  RemoveMemberSchemaType,
   SetEmailDigestSchemaType,
   SetMemberRoleSchemaType,
 } from "@/schemas/membership";
@@ -14,6 +13,12 @@ import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import { actorFor } from "@/lib/caller";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import {
+  formText,
+  fromActionResult,
+  submitFormAction,
+  type FormActionState,
+} from "@/lib/form-action";
+import {
   clearActiveHouseholdCookie,
   firstHouseholdIdForUser,
   setActiveHouseholdCookie,
@@ -25,53 +30,65 @@ import {
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyHouseholdExcept } from "@/lib/notifications";
+import { RemoveMemberSchema } from "@/schemas/membership";
 
-export async function leaveHousehold(): Promise<ActionResult> {
-  return withHouseholdAction(
-    "Unable to leave this household. Refresh the page and try again.",
-    async ({ caller }) => {
-      await leaveHouseholdSeam(caller);
-      revalidateHousehold(caller.householdId, [
-        CACHE_RESOURCE.members,
-        CACHE_RESOURCE.household,
-        CACHE_RESOURCE.balances,
-      ]);
+const LEAVE_ERROR =
+  "Unable to leave this household. Refresh the page and try again.";
+const REMOVE_ERROR = "Unable to remove this member. Try again.";
 
-      const nextHouseholdId = await firstHouseholdIdForUser(caller.userId);
-      if (nextHouseholdId) {
-        await setActiveHouseholdCookie(nextHouseholdId);
-      } else {
-        await clearActiveHouseholdCookie();
-      }
+export async function leaveHouseholdForm(
+  _previous: FormActionState,
+  _formData: FormData,
+): Promise<FormActionState> {
+  const result = await withHouseholdAction(LEAVE_ERROR, async ({ caller }) => {
+    await leaveHouseholdSeam(caller);
+    revalidateHousehold(caller.householdId, [
+      CACHE_RESOURCE.members,
+      CACHE_RESOURCE.household,
+      CACHE_RESOURCE.balances,
+    ]);
 
-      redirect("/");
-    },
-  );
+    const nextHouseholdId = await firstHouseholdIdForUser(caller.userId);
+    if (nextHouseholdId) {
+      await setActiveHouseholdCookie(nextHouseholdId);
+    } else {
+      await clearActiveHouseholdCookie();
+    }
+
+    redirect("/");
+  });
+  return fromActionResult(result, "You left the household");
 }
 
-export async function removeMember(
-  form: RemoveMemberSchemaType,
-): Promise<ActionResult> {
-  return withHouseholdAction(
-    "Unable to remove this member. Try again.",
-    async ({ caller }) => {
-      const removedName = await removeMemberSeam(caller, form);
+export async function removeMemberForm(
+  _previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  return submitFormAction({
+    formData,
+    fields: (data) => ({ userId: formText(data, "userId") }),
+    schema: RemoveMemberSchema,
+    fallback: REMOVE_ERROR,
+    success: "Member removed from the household",
+    run: (input) =>
+      withHouseholdAction(REMOVE_ERROR, async ({ caller }) => {
+        const removedName = await removeMemberSeam(caller, input);
 
-      await notifyHouseholdExcept(
-        actorFor(caller),
-        caller.householdId,
-        caller.userId,
-        "member_left",
-        `${removedName} was removed from the household.`,
-      );
-      revalidateHousehold(caller.householdId, [
-        CACHE_RESOURCE.members,
-        CACHE_RESOURCE.household,
-        CACHE_RESOURCE.balances,
-        CACHE_RESOURCE.notifications,
-      ]);
-    },
-  );
+        await notifyHouseholdExcept(
+          actorFor(caller),
+          caller.householdId,
+          caller.userId,
+          "member_left",
+          `${removedName} was removed from the household.`,
+        );
+        revalidateHousehold(caller.householdId, [
+          CACHE_RESOURCE.members,
+          CACHE_RESOURCE.household,
+          CACHE_RESOURCE.balances,
+          CACHE_RESOURCE.notifications,
+        ]);
+      }),
+  });
 }
 
 export async function setMemberRole(

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { queryKeys } from "@/lib/query-keys";
 
-import { leaveHousehold } from "../_actions/membership";
+import { leaveHouseholdForm } from "../_actions/membership";
 
 interface Props {
   trigger: ReactNode;
@@ -34,7 +34,7 @@ const LeaveHouseholdDialog = ({ trigger, memberCount }: Props) => {
           : "Unable to leave the household. Try again."
       }
       toastId="leave-household"
-      action={leaveHousehold}
+      formAction={leaveHouseholdForm}
       queryKeys={[
         queryKeys.household,
         queryKeys.households,

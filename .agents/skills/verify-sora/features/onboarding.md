@@ -28,7 +28,8 @@ Preconditions:
 - A fresh browser session is open.
 
 - **Sign up.** Run `control-sora browser open "$U/sign-up"`, then `control-sora browser find label "Name" fill "Casey Morgan"`, `control-sora browser find label "Email" fill "casey@sora.test"`, `control-sora browser find label "Password" fill "sora-verify-pass"`, and `control-sora browser find role button click --name "Sign up"`. The member lands on `/wizard` and the heading reads `Welcome, Casey! 👋`.
-- **Pick the currency.** The wizard creates the household before it renders, so the page is not blank. The currency trigger is prefilled with `🇺🇸 United States Dollar` from the USD default, not `Select currency…`. Run `control-sora browser find role button click --name "🇺🇸 United States Dollar"`, then `control-sora browser find placeholder "Filter currency…" fill "USD"` and `control-sora browser find role option click --name "🇺🇸 United States Dollar"`. Picking the same currency may not fire a change; pick another currency first if `I'm done` does not navigate. The currency persists on pick, not on finish.
+- **Create the space.** Run `control-sora browser find role button click --name "Get started"`. The household is created by the form action and the currency card replaces the button. A GET of `/wizard` before this step writes nothing.
+- **Pick the currency.** The wizard creates the household when `Get started` is submitted; a GET renders no write. After that submission the currency trigger is prefilled with `🇺🇸 United States Dollar` from the USD default, not `Select currency…`. Run `control-sora browser find role button click --name "🇺🇸 United States Dollar"`, then `control-sora browser find placeholder "Filter currency…" fill "USD"` and `control-sora browser find role option click --name "🇺🇸 United States Dollar"`. Picking the same currency may not fire a change; pick another currency first if `I'm done` does not navigate. The currency persists on pick, not on finish.
 - **To the dashboard.** Run `control-sora browser find role button click --name "I'm done! Take me to the dashboard"`. The member lands on `/`; the heading reads `Hello, Casey! 👋` and the totals are zero.
 - **Invite a member.** Run `control-sora browser find role button click --name "Invite a Member"`. A dialog describes the invite link; the member can dismiss it with `Hide this suggestion` or send it with `Create new link`. (Only a full member can create an invite link.)
 - **Sign out and sign back in.** The member signs out and signs in again on `/sign-in`. The dashboard renders directly; there is nothing saved but the currency, so `Hello, Casey! 👋` still reads and the empty ledger is identical.
@@ -36,7 +37,7 @@ Preconditions:
 
 ## Gotchas
 
-- The household row is created before the wizard renders, so the wizard is never a blank page and the currency picker is prefilled with USD.
+- The household row is created by the `Get started` form action, not by the wizard's GET. The wizard page before that submission has a plain `Get started` button and no currency picker.
 - The currency persists the moment a different currency is picked; the `I'm done` button saves nothing extra.
 - `/wizard` is session-gated; a signed-out member is bounced to `/sign-in`.
 - Sign-up sends a verification email but does not require it; a failed email does not block sign-in.

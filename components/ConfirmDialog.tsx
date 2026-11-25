@@ -1,16 +1,18 @@
 "use client";
 
-import type { ActionResult } from "@/lib/action-result";
+import type { FormActionState } from "@/lib/form-action";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useActionState, useState } from "react";
 import { toast } from "sonner";
 
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -19,9 +21,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { initialFormActionState } from "@/lib/form-action";
 
-interface Props<TInput> {
+interface Props {
   title: ReactNode;
   description: ReactNode;
   confirmLabel: string;
@@ -29,8 +32,11 @@ interface Props<TInput> {
   successMessage: string;
   errorMessage: string;
   toastId: string;
-  input?: TInput;
-  action: (input: TInput) => Promise<ActionResult<unknown>>;
+  input?: Record<string, string>;
+  formAction: (
+    previous: FormActionState,
+    formData: FormData,
+  ) => Promise<FormActionState>;
   queryKeys: QueryKey[];
   trigger?: ReactNode;
   open?: boolean;
@@ -38,7 +44,7 @@ interface Props<TInput> {
   onSuccess?: () => void;
 }
 
-function ConfirmDialog<TInput>({
+function ConfirmDialog({
   title,
   description,
   confirmLabel,
@@ -47,57 +53,92 @@ function ConfirmDialog<TInput>({
   errorMessage,
   toastId,
   input,
-  action,
+  formAction,
   queryKeys,
   trigger,
   open: openProp,
   onOpenChange,
   onSuccess,
-}: Props<TInput>) {
+}: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const queryClient = useQueryClient();
+  const hydrated = useHydrated();
+  const [plainState, plainAction] = useActionState(
+    formAction,
+    initialFormActionState,
+  );
 
-  const confirmMutation = useMutation({
-    mutationFn: async () => unwrapAction(await action(input as TInput)),
-    onSuccess: async () => {
-      toast.success(successMessage, { id: toastId });
-      await Promise.all(
-        queryKeys.map((queryKey) =>
-          queryClient.invalidateQueries({ queryKey }),
-        ),
-      );
-      setOpen(false);
-      onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error(actionErrorMessage(error, errorMessage), { id: toastId });
-    },
-  });
+  const submit = async (
+    previous: FormActionState,
+    formData: FormData,
+  ): Promise<FormActionState> => {
+    const result = await formAction(previous, formData);
+    if (result.status === "error") {
+      toast.error(result.message || errorMessage, { id: toastId });
+      return result;
+    }
+
+    toast.success(result.message || successMessage, { id: toastId });
+    await Promise.all(
+      queryKeys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+    );
+    setOpen(false);
+    onSuccess?.();
+    return result;
+  };
+
+  const [state, action] = useActionState(submit, initialFormActionState);
+
+  const hiddenFields = Object.entries(input ?? {}).map(([name, value]) => (
+    <input key={name} type="hidden" name={name} value={value} />
+  ));
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      {trigger ? <AlertDialogTrigger render={trigger as ReactElement} /> : null}
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            onClick={() => {
-              toast.loading(loadingLabel, { id: toastId });
-              confirmMutation.mutate();
-            }}
-          >
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      className="space-y-3 rounded-lg border p-4"
+      plain={
+        <>
+          <p className="font-medium">{title}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {hiddenFields}
+          <FormActionErrors state={plainState} />
+          <FormSubmitButton variant="destructive" pendingLabel={loadingLabel}>
             {confirmLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </FormSubmitButton>
+        </>
+      }
+    >
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        {trigger ? (
+          <AlertDialogTrigger render={trigger as ReactElement} />
+        ) : null}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
+            <AlertDialogDescription>{description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <form action={action}>
+            {hiddenFields}
+            <div className="pb-3">
+              <FormActionErrors state={state} />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <FormSubmitButton
+                variant="destructive"
+                pendingLabel={loadingLabel}
+              >
+                {confirmLabel}
+              </FormSubmitButton>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </FormGate>
   );
 }
 

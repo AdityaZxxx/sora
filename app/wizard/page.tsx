@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
-import { createPersonalHousehold } from "@/lib/household";
+import { requireHousehold } from "@/lib/household";
 
 import { CurrencyComboBox } from "../../components/CurrencyComboBox";
 import Logo from "../../components/Logo";
@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Separator } from "../../components/ui/separator";
+import { GetStartedForm } from "./_components/GetStartedForm";
 
 export const instant = false;
 
@@ -24,7 +25,30 @@ const page = async () => {
   if (!session) {
     redirect("/sign-in");
   }
-  const membership = await createPersonalHousehold(session.user.id);
+  const household = (await requireHousehold())?.household;
+  if (!household) {
+    return (
+      <div className="container flex max-w-2xl flex-col items-center justify-between gap-4">
+        <div>
+          <h1 className="text-center text-2xl">
+            Welcome,{" "}
+            <span className="ml-2 font-bold">
+              {session.user.name.split(" ")[0]}! 👋
+            </span>
+          </h1>
+          <h2 className="mt-4 text-center text-base text-muted-foreground">
+            Let&apos;s set up your space
+          </h2>
+        </div>
+        <Separator />
+        <GetStartedForm />
+        <div className="mt-8">
+          <Logo />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container flex max-w-2xl flex-col items-center justify-between gap-4">
       <div>
@@ -50,9 +74,7 @@ const page = async () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CurrencyComboBox
-            currency={membership.household.currency ?? DEFAULT_CURRENCY}
-          />
+          <CurrencyComboBox currency={household.currency ?? DEFAULT_CURRENCY} />
         </CardContent>
       </Card>
       <Separator />
