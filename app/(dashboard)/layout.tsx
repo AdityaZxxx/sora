@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import { Suspense } from "react";
+
 import InstallPrompt from "@/components/InstallPrompt";
+import Navbar from "@/components/Navbar";
 import NewExpenseShortcut from "@/components/NewExpenseShortcut";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import PendingSyncIndicator from "@/components/PendingSyncIndicator";
@@ -19,11 +22,13 @@ const Layout = ({ children }: { children: ReactNode }) => {
       <OfflineIndicator />
       <PendingSyncIndicator />
       <NewExpenseShortcut />
-      <SeededDashboardShell>
-        <main id="main-content" className="w-full flex-1">
-          {children}
-        </main>
-      </SeededDashboardShell>
+      <Suspense fallback={<Navbar />}>
+        <SeededDashboardShell>
+          <main id="main-content" className="w-full flex-1">
+            {children}
+          </main>
+        </SeededDashboardShell>
+      </Suspense>
       <InstallPrompt />
     </div>
   );
