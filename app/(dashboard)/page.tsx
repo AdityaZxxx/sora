@@ -1,26 +1,17 @@
-import { HydrationBoundary } from "@tanstack/react-query";
 import { type Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
-import AddMemberCta from "./_components/AddMemberCta";
-import Balances from "./_components/Balances";
 import CreateTransactionDialog from "./_components/CreateTransactionDialog";
-import Goals from "./_components/Goals";
-import History from "./_components/History";
-import Insights from "./_components/Insights";
-import Overview from "./_components/Overview";
-import SafeToSpend from "./_components/SafeToSpend";
-import SharedSpendingCard from "./_components/SharedSpendingCard";
-import SimplifyDebts from "./_components/SimplifyDebts";
-import UpcomingBills from "./_components/UpcomingBills";
+import DashboardSections from "./_components/DashboardSections";
 import {
-  dashboardHydrationState,
-  loadDashboard,
-} from "./_lib/dashboard-loader";
+  DashboardSectionsSkeleton,
+  OverviewSkeleton,
+} from "./_components/DashboardSkeletons";
+import Overview from "./_components/Overview";
+import { getDashboardContext } from "./_lib/dashboard-context";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -33,145 +24,67 @@ export const metadata: Metadata = {
   },
 };
 
-export const instant = false;
+export const instant = true;
 
 const DashboardPage = async () => {
-  const payload = await loadDashboard();
-  if (!payload) {
-    redirect("/wizard");
+  const context = await getDashboardContext();
+  if (!context) {
+    notFound();
   }
 
-  const state = dashboardHydrationState(payload);
-  const { userName, currency, canEdit, memberCount, dateRange, historyView } =
-    payload;
-
   return (
-    <HydrationBoundary state={state}>
-      <div className="min-h-screen bg-background pb-8">
-        <div className="container pt-6">
-          <div className="rounded-xl border bg-card px-6 py-8">
-            <div className="flex flex-wrap items-center justify-between gap-6">
-              <h1 className="text-2xl font-bold">
-                Hello, {userName.split(" ")[0]}! 👋
-              </h1>
+    <div className="min-h-screen bg-background pb-8">
+      <div className="container pt-6">
+        <div className="rounded-xl border bg-card px-6 py-8">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <h1 className="text-2xl font-bold">
+              Hello, {context.userName.split(" ")[0]}! 👋
+            </h1>
 
-              {canEdit && (
-                <div className="flex items-center gap-3">
-                  <CreateTransactionDialog
-                    trigger={
-                      <Button
-                        variant="default"
-                        className="bg-income-action text-white hover:bg-income-action-hover"
-                      >
-                        New income
-                      </Button>
-                    }
-                    type="income"
-                    currency={currency}
-                    memberCount={memberCount}
-                  />
-                  <CreateTransactionDialog
-                    trigger={
-                      <Button
-                        variant="default"
-                        className="bg-expense-action text-white hover:bg-expense-action-hover"
-                      >
-                        New expense
-                      </Button>
-                    }
-                    type="expense"
-                    currency={currency}
-                    memberCount={memberCount}
-                  />
-                </div>
-              )}
-            </div>
+            {context.canEdit && (
+              <div className="flex items-center gap-3">
+                <CreateTransactionDialog
+                  trigger={
+                    <Button
+                      variant="default"
+                      className="bg-income-action text-white hover:bg-income-action-hover"
+                    >
+                      New income
+                    </Button>
+                  }
+                  type="income"
+                  currency={context.currency}
+                  memberCount={context.memberCount}
+                />
+                <CreateTransactionDialog
+                  trigger={
+                    <Button
+                      variant="default"
+                      className="bg-expense-action text-white hover:bg-expense-action-hover"
+                    >
+                      New expense
+                    </Button>
+                  }
+                  type="expense"
+                  currency={context.currency}
+                  memberCount={context.memberCount}
+                />
+              </div>
+            )}
           </div>
         </div>
-        {canEdit && <AddMemberCta memberCount={memberCount} />}
-        <Suspense
-          fallback={
-            <Skeleton className="section h-48 w-full" aria-hidden="true" />
-          }
-        >
-          <Overview currency={currency} initialDateRange={dateRange} />
-        </Suspense>
-        <Suspense
-          fallback={
-            <Skeleton className="section h-64 w-full" aria-hidden="true" />
-          }
-        >
-          <Insights currency={currency} memberCount={memberCount} />
-        </Suspense>
-        <div className="section grid gap-4 lg:grid-cols-3">
-          <Suspense
-            fallback={<Skeleton className="h-52 w-full" aria-hidden="true" />}
-          >
-            <SafeToSpend currency={currency} />
-          </Suspense>
-          <div className="lg:col-span-2">
-            <Suspense
-              fallback={<Skeleton className="h-52 w-full" aria-hidden="true" />}
-            >
-              <UpcomingBills
-                currency={currency}
-                canEdit={canEdit}
-                memberCount={memberCount}
-              />
-            </Suspense>
-          </div>
-        </div>
-        {memberCount > 1 && (
-          <Suspense
-            fallback={
-              <Skeleton className="section h-40 w-full" aria-hidden="true" />
-            }
-          >
-            <SharedSpendingCard currency={currency} />
-          </Suspense>
-        )}
-        <div
-          className={
-            memberCount > 1
-              ? "section grid gap-4 lg:grid-cols-2"
-              : "section grid gap-4"
-          }
-        >
-          {memberCount > 1 && (
-            <Suspense
-              fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
-            >
-              <Balances currency={currency} canEdit={canEdit} />
-            </Suspense>
-          )}
-          <Suspense
-            fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
-          >
-            <Goals currency={currency} canEdit={canEdit} />
-          </Suspense>
-        </div>
-        {memberCount > 2 && (
-          <Suspense
-            fallback={
-              <Skeleton className="section h-40 w-full" aria-hidden="true" />
-            }
-          >
-            <SimplifyDebts currency={currency} />
-          </Suspense>
-        )}
-        <Suspense
-          fallback={
-            <Skeleton className="section h-80 w-full" aria-hidden="true" />
-          }
-        >
-          <History
-            currency={currency}
-            initialTimeframe={historyView.timeframe}
-            initialPeriod={historyView.period}
-          />
-        </Suspense>
       </div>
-    </HydrationBoundary>
+      <Suspense fallback={<OverviewSkeleton />}>
+        <Overview
+          householdId={context.householdId}
+          currency={context.currency}
+          initialDateRange={context.dateRange}
+        />
+      </Suspense>
+      <Suspense fallback={<DashboardSectionsSkeleton />}>
+        <DashboardSections context={context} />
+      </Suspense>
+    </div>
   );
 };
 

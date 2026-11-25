@@ -1,30 +1,21 @@
-import type { Period, Timeframe } from "@/lib/types";
+import type { DashboardContext } from "./dashboard-context";
 
 import {
   dehydrate,
   QueryClient,
   type DehydratedState,
 } from "@tanstack/react-query";
-import { notFound } from "next/navigation";
+import { cacheLife } from "next/cache";
 
 import { getMemberBalances, getSimplifiedTransfers } from "@/lib/balances";
 import { getBudgetsWithProgress, getSharedSpending } from "@/lib/budgets";
-import { VIEW_ONLY_ROLE } from "@/lib/constants";
-import { type DateRange, resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getHistoryData } from "@/lib/history";
-import { countHouseholdMembers, requireHousehold } from "@/lib/household";
 import { getMonthlyRollup } from "@/lib/insights";
 import { queryKeys } from "@/lib/query-keys";
 import { listRecurringItems } from "@/lib/recurring";
 
-export type DashboardPayload = {
-  userName: string;
-  currency: string;
-  canEdit: boolean;
-  memberCount: number;
-  dateRange: DateRange;
-  historyView: { timeframe: Timeframe; period: Period };
+export type DashboardPayload = DashboardContext & {
   insights: Awaited<ReturnType<typeof getMonthlyRollup>>;
   budgets: Awaited<ReturnType<typeof getBudgetsWithProgress>>;
   recurringItems: Awaited<ReturnType<typeof listRecurringItems>>;
@@ -35,29 +26,12 @@ export type DashboardPayload = {
   historyData: Awaited<ReturnType<typeof getHistoryData>>;
 };
 
-export async function loadDashboard(): Promise<DashboardPayload | null> {
-  const result = await requireHousehold();
-  if (!result) {
-    notFound();
-  }
-  const currency = result.household.currency;
-  if (!currency) {
-    return null;
-  }
-
-  const { session, household, membership } = result;
-  const householdId = household.id;
-  const dateRange = resolveDateRange();
-  const historyView: { timeframe: Timeframe; period: Period } = {
-    timeframe: "month",
-    period: {
-      month: dateRange.to.getUTCMonth(),
-      year: dateRange.to.getUTCFullYear(),
-    },
-  };
+export async function loadDashboard(
+  context: DashboardContext,
+): Promise<DashboardPayload> {
+  const { householdId, userId, historyView } = context;
 
   const [
-    memberCount,
     insights,
     budgets,
     recurringItems,
@@ -67,24 +41,18 @@ export async function loadDashboard(): Promise<DashboardPayload | null> {
     goals,
     historyData,
   ] = await Promise.all([
-    countHouseholdMembers(householdId),
     getMonthlyRollup(householdId),
     getBudgetsWithProgress(householdId),
     listRecurringItems(householdId),
     getSharedSpending(householdId),
-    getMemberBalances(householdId, session.user.id),
+    getMemberBalances(householdId, userId),
     getSimplifiedTransfers(householdId),
     getGoalsWithProgress(householdId),
     getHistoryData(householdId, historyView.timeframe, historyView.period),
   ]);
 
   return {
-    userName: session.user.name,
-    currency,
-    canEdit: membership.role !== VIEW_ONLY_ROLE,
-    memberCount,
-    dateRange,
-    historyView,
+    ...context,
     insights,
     budgets,
     recurringItems,
@@ -117,4 +85,12 @@ export function dashboardHydrationState(
   );
 
   return dehydrate(queryClient);
+}
+
+export async function loadDashboardState(context: DashboardContext) {
+  "use cache: private";
+  cacheLife({ stale: 300 });
+
+  const payload = await loadDashboard(context);
+  return { payload, state: dashboardHydrationState(payload) };
 }

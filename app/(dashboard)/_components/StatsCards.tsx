@@ -13,14 +13,23 @@ import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
 
 interface Props {
+  householdId: string;
   from: Date;
   to: Date;
   currency: string | null;
   initialData?: GetBalanceStatsResponseType;
 }
 
-const StatsCards = ({ from, to, currency, initialData }: Props) => {
-  const { data, isPending } = useBalanceStats(from, to, true, initialData);
+const StatsCards = ({
+  householdId,
+  from,
+  to,
+  currency,
+  initialData,
+}: Props) => {
+  const { data, isPending } = useBalanceStats(householdId, from, to, {
+    initialData,
+  });
 
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 

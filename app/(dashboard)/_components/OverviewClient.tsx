@@ -6,17 +6,17 @@ import type {
 } from "@/lib/transactions";
 
 import { differenceInDays } from "date-fns";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Skeleton } from "@/components/ui/skeleton";
 import { MAX_DATE_RANGE } from "@/lib/constants";
 
 import CategoriesStats from "./CategoriesStats";
 import StatsCards from "./StatsCards";
 
 interface Props {
+  householdId: string;
   currency: string | null;
   initialDateRange: { from: Date; to: Date };
   initialStats: GetBalanceStatsResponseType;
@@ -24,6 +24,7 @@ interface Props {
 }
 
 const OverviewClient = ({
+  householdId,
   currency,
   initialDateRange,
   initialStats,
@@ -32,6 +33,8 @@ const OverviewClient = ({
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(
     () => initialDateRange,
   );
+  // React Query seeds a new key with its `initialData`. Without this guard a
+  // newly picked range would briefly show the server figures for the old one.
   const isInitialRange =
     dateRange.from.getTime() === initialDateRange.from.getTime() &&
     dateRange.to.getTime() === initialDateRange.to.getTime();
@@ -59,23 +62,23 @@ const OverviewClient = ({
         </div>
       </div>
 
-      <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-        <div className="flex w-full flex-col gap-4">
-          <StatsCards
-            currency={currency}
-            from={dateRange.from}
-            to={dateRange.to}
-            initialData={isInitialRange ? initialStats : undefined}
-          />
+      <div className="flex w-full flex-col gap-4">
+        <StatsCards
+          householdId={householdId}
+          currency={currency}
+          from={dateRange.from}
+          to={dateRange.to}
+          initialData={isInitialRange ? initialStats : undefined}
+        />
 
-          <CategoriesStats
-            currency={currency}
-            from={dateRange.from}
-            to={dateRange.to}
-            initialData={isInitialRange ? initialCategories : undefined}
-          />
-        </div>
-      </Suspense>
+        <CategoriesStats
+          householdId={householdId}
+          currency={currency}
+          from={dateRange.from}
+          to={dateRange.to}
+          initialData={isInitialRange ? initialCategories : undefined}
+        />
+      </div>
     </section>
   );
 };

@@ -1,20 +1,14 @@
-import { requireHousehold } from "@/lib/household";
 import { getBalanceStats, getCategoriesStats } from "@/lib/transactions";
 
 import OverviewClient from "./OverviewClient";
 
 interface Props {
+  householdId: string;
   currency: string | null;
   initialDateRange: { from: Date; to: Date };
 }
 
-const Overview = async ({ currency, initialDateRange }: Props) => {
-  const result = await requireHousehold();
-  if (!result) {
-    return null;
-  }
-
-  const householdId = result.household.id;
+const Overview = async ({ householdId, currency, initialDateRange }: Props) => {
   const [stats, categories] = await Promise.all([
     getBalanceStats(householdId, initialDateRange.from, initialDateRange.to),
     getCategoriesStats(householdId, initialDateRange.from, initialDateRange.to),
@@ -22,6 +16,7 @@ const Overview = async ({ currency, initialDateRange }: Props) => {
 
   return (
     <OverviewClient
+      householdId={householdId}
       currency={currency}
       initialDateRange={initialDateRange}
       initialStats={stats}

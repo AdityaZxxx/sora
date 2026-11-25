@@ -1,4 +1,5 @@
 "use client";
+import type { GetCategoriesStatsResponseType } from "@/lib/transactions";
 import type { TransactionType } from "@/lib/types";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -15,8 +16,6 @@ import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
-import { type GetCategoriesStatsResponseType } from "../../api/stats/categories/route";
-
 interface CategoriesCardProps {
   formatter: { format: (value: number) => string };
   type: TransactionType;
@@ -25,15 +24,22 @@ interface CategoriesCardProps {
 }
 
 interface Props {
+  householdId: string;
   from: Date;
   to: Date;
   currency: string | null;
   initialData?: GetCategoriesStatsResponseType;
 }
 
-const CategoriesStats = ({ from, to, currency, initialData }: Props) => {
+const CategoriesStats = ({
+  householdId,
+  from,
+  to,
+  currency,
+  initialData,
+}: Props) => {
   const { data: stats, isPending } = useQuery<GetCategoriesStatsResponseType>({
-    queryKey: queryKeys.overview.categories(from, to),
+    queryKey: queryKeys.overview.categories(householdId, from, to),
     initialData,
     queryFn: () =>
       fetchReadJson<GetCategoriesStatsResponseType>(

@@ -47,11 +47,11 @@ A budget is a monthly limit on one category. `soft` warns at 80% and 100%; `hard
 
 Budgets apply to shared expenses only. Settlements are excluded from budget spend, because a settlement is not spending. The threshold check reads the month's spend before the transaction lands, so adding one recomputes rather than double counts, and one transaction produces at most one notification, for the highest threshold it crossed.
 
-## Writes are actions, reads are routes
+## Writes are actions, reads are cached lib functions exposed over GET routes
 
-Mutations are server actions, so the household check runs inside the same call as the write, with no second entry point to forget. Reads are `GET` routes, so the client can poll them and the UI stays live without a websocket.
+Mutations are server actions, so the household check runs inside the same call as the write, with no second entry point to forget. Initial reads may run as cached `lib/` functions inside Server Components when their output is part of the server-rendered shell. Client refetch and external clients still use `GET` routes, so the UI stays live.
 
-A diff that adds a mutation should land as an action with the household check inside it. A diff that adds a query should follow the polling pattern its neighbouring queries already use, and a diff that mutates data should invalidate the query keys it affects.
+A diff that adds a mutation should land as an action with the household check inside it. A diff that adds a client-side query should follow the polling pattern its neighbouring queries already use, a diff that seeds the server-rendered shell may read a cached `lib/` function directly, and a diff that mutates data should invalidate the query keys it affects.
 
 ## Every surface reaches the same seam
 
@@ -102,7 +102,7 @@ Before a diff that reads or writes money is called done, point at each of these:
 3. A shared transaction write moves the matching `MonthHistory` and `YearHistory` in the same `prisma.$transaction`.
 4. Any date that names a bucket uses the UTC getters.
 5. Any amount is formatted with `getFormatterForCurrency`.
-6. A mutation is a server action with the household check inside it; a read is a `GET` route.
+6. A mutation is a server action with the household check inside it; a read is a cached `lib/` function, exposed through a `GET` route for client and external callers.
 7. The mutation invalidates the query keys its change affects.
 8. Both paths reach the change: the web action and the MCP tool.
 

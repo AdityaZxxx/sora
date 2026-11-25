@@ -1,5 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+import {
+  DashboardSectionsSkeleton,
+  OverviewSkeleton,
+} from "./_components/DashboardSkeletons";
+
 export default function Loading() {
   return (
     <div className="min-h-screen bg-background">
@@ -8,20 +13,8 @@ export default function Loading() {
           <Skeleton className="h-8 w-56" />
         </div>
       </div>
-      <div className="section space-y-4">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-64 w-full" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-52 w-full" />
-          <Skeleton className="h-52 w-full lg:col-span-2" />
-        </div>
-        <Skeleton className="h-40 w-full" />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Skeleton className="h-56 w-full" />
-          <Skeleton className="h-56 w-full" />
-        </div>
-        <Skeleton className="h-80 w-full" />
-      </div>
+      <OverviewSkeleton />
+      <DashboardSectionsSkeleton />
     </div>
   );
 }
