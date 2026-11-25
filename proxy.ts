@@ -4,30 +4,45 @@ import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 
 import { unauthorized } from "@/lib/http-error";
+import { edgeRedirectRoutes, guestRoutes, matchesRoute } from "@/lib/routes";
+import { safeNext } from "@/lib/safe-next";
 
-const publicPrefixes = ["/invite"];
-const protectedPrefixes = ["/transactions", "/manage", "/wizard"];
+const publicRoutes = [
+  ...guestRoutes,
+  ["invite"],
+  ["privacy"],
+  ["api", "auth"],
+  ["api", "cron"],
+  ["api", "mcp"],
+  ["manifest.json"],
+  ["robots.txt"],
+  ["sitemap.xml"],
+  ["opengraph-image"],
+];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
 
-  const isPublic = publicPrefixes.some((prefix) => pathname.startsWith(prefix));
-  const isAuthApi = pathname.startsWith("/api/auth");
-  const isCronApi = pathname.startsWith("/api/cron");
-  const isTokenApi =
-    pathname === "/api/mcp" || pathname.startsWith("/api/mcp/");
-  const isApiRoute = pathname.startsWith("/api");
-  const isProtected =
-    !isPublic &&
-    !isCronApi &&
-    !isTokenApi &&
-    (pathname === "/" ||
-      protectedPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
-      (isApiRoute && !isAuthApi));
+  // Signed-in visitors are bounced off sign-in at the edge, while sign-up stays open there and is handled by the page-level guest check.
+  if (
+    sessionCookie &&
+    edgeRedirectRoutes.some((segments) => matchesRoute(pathname, segments))
+  ) {
+    return NextResponse.redirect(
+      new URL(
+        safeNext(request.nextUrl.searchParams.get("next"), guestRoutes) ?? "/",
+        request.url,
+      ),
+    );
+  }
 
-  if (!sessionCookie && isProtected) {
-    if (isApiRoute) {
+  if (publicRoutes.some((segments) => matchesRoute(pathname, segments))) {
+    return NextResponse.next();
+  }
+
+  if (!sessionCookie) {
+    if (matchesRoute(pathname, ["api"])) {
       return unauthorized();
     }
     return NextResponse.redirect(new URL("/sign-in", request.url));

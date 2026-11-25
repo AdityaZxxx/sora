@@ -4,7 +4,7 @@ import { DomainError } from "@/lib/errors";
 import { requireHousehold } from "@/lib/household";
 import { firstIssueMessage } from "@/lib/issue-message";
 import { logError, logInfo, logWarn } from "@/lib/log";
-import { withRequestId } from "@/lib/request-id";
+import { rememberErrorRequestId, withRequestId } from "@/lib/request-id";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
@@ -71,6 +71,7 @@ export async function withHouseholdAction<T>(
         durationMs,
         error: cause instanceof Error ? cause.message : String(cause),
       });
+      rememberErrorRequestId(cause);
       throw cause;
     }
   });

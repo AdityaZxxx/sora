@@ -2,10 +2,63 @@
 
 import "./globals.css";
 
-export default function GlobalError({ retry }: { retry: () => void }) {
+import Link from "next/link";
+import { useEffect } from "react";
+
+import { logClientError } from "@/instrumentation-client";
+import { getClientRequestId } from "@/lib/client-request-id";
+import { errorFields } from "@/lib/error-fields";
+
+const prefersDark = () => {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  try {
+    const stored = window.localStorage.getItem("theme");
+    return stored === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : stored !== "light";
+  } catch {
+    return true;
+  }
+};
+
+export default function GlobalError({
+  error,
+  retry,
+}: {
+  error: unknown;
+  retry: () => void;
+}) {
+  const dark = prefersDark();
+
+  useEffect(() => {
+    logClientError("client.global-error", {
+      ...errorFields(error),
+      requestId: getClientRequestId(),
+    });
+  }, [error]);
+
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={dark ? "dark" : undefined}
+      style={{ colorScheme: dark ? "dark" : "light" }}
+      suppressHydrationWarning
+    >
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="theme-color"
+          media="(prefers-color-scheme: light)"
+          content="#ffffff"
+        />
+        <meta
+          name="theme-color"
+          media="(prefers-color-scheme: dark)"
+          content="#0E0F10"
+        />
         <title>Something went wrong | Sora</title>
       </head>
       <body className="mx-auto flex min-h-dvh max-w-7xl items-center justify-center bg-background px-4 text-foreground antialiased">
@@ -14,13 +67,21 @@ export default function GlobalError({ retry }: { retry: () => void }) {
           <p className="mt-2 text-sm text-muted-foreground">
             Sora could not load this page. Try again in a moment.
           </p>
-          <button
-            type="button"
-            onClick={retry}
-            className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-          >
-            Try again
-          </button>
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={retry}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
+              Try again
+            </button>
+            <Link
+              href="/"
+              className="inline-flex min-h-10 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
+              Go to Sora
+            </Link>
+          </div>
         </div>
       </body>
     </html>

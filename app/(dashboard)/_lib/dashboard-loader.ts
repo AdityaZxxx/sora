@@ -5,6 +5,7 @@ import {
   QueryClient,
   type DehydratedState,
 } from "@tanstack/react-query";
+import { notFound } from "next/navigation";
 
 import { getMemberBalances, getSimplifiedTransfers } from "@/lib/balances";
 import { getBudgetsWithProgress, getSharedSpending } from "@/lib/budgets";
@@ -39,8 +40,11 @@ export type DashboardPayload = {
 
 export async function loadDashboard(): Promise<DashboardPayload | null> {
   const result = await requireHousehold();
-  const currency = result?.household.currency;
-  if (!result || !currency) {
+  if (!result) {
+    notFound();
+  }
+  const currency = result.household.currency;
+  if (!currency) {
     return null;
   }
 
