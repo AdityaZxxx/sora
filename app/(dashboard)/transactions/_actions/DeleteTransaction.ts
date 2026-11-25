@@ -2,7 +2,7 @@
 
 import { withHouseholdAction } from "@/lib/action-result";
 import {
-  formText,
+  idField,
   submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
@@ -18,7 +18,7 @@ export async function deleteTransactionForm(
 ): Promise<FormActionState> {
   return submitFormAction({
     formData,
-    fields: (data) => ({ id: formText(data, "id") }),
+    fields: idField,
     schema: DeleteIdSchema,
     fallback: USER_FACING_ERROR,
     success: "Transaction deleted",

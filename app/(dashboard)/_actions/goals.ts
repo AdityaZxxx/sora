@@ -5,6 +5,7 @@ import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   formDate,
   formText,
+  idField,
   submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
@@ -21,10 +22,6 @@ const CREATE_ERROR =
 const UPDATE_ERROR =
   "Unable to update the goal. Check the name and target amount, then try again.";
 const DELETE_ERROR = "Unable to delete the goal. Check the goal and try again.";
-
-function idField(formData: FormData) {
-  return { id: formText(formData, "id") };
-}
 
 export async function createGoalForm(
   _previous: FormActionState,

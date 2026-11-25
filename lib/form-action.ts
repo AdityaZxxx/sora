@@ -88,6 +88,10 @@ export function formText(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+export function idField(formData: FormData) {
+  return { id: formText(formData, "id") };
+}
+
 export function formOptionalText(formData: FormData, name: string) {
   return formText(formData, name) || undefined;
 }

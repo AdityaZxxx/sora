@@ -9,6 +9,7 @@ import {
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
   formText,
+  idField,
   submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
@@ -28,10 +29,6 @@ function budgetFields(formData: FormData) {
     amount: formText(formData, "amount"),
     mode: formText(formData, "mode"),
   };
-}
-
-function idField(formData: FormData) {
-  return { id: formText(formData, "id") };
 }
 
 export async function createBudgetForm(
