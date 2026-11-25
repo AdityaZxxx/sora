@@ -3,7 +3,12 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import {
+  CACHE_RESOURCE,
+  householdTag,
+  memberHouseholdsTag,
+  revalidateMemberHouseholds,
+} from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { ACTIVE_HOUSEHOLD_COOKIE, READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -13,8 +18,8 @@ import { parseMemberRole } from "@/lib/roles";
 import { HouseholdNameSchema } from "@/schemas/household";
 import { UpdateUserCurrencySchema } from "@/schemas/userSetting";
 
-async function resolveHouseholdMembership(userId: string) {
-  const memberships = await prisma.householdMembership.findMany({
+const listMembershipsForUser = cache(async (userId: string) => {
+  return await prisma.householdMembership.findMany({
     where: {
       userId,
     },
@@ -25,6 +30,10 @@ async function resolveHouseholdMembership(userId: string) {
       joinedAt: "asc",
     },
   });
+});
+
+async function resolveHouseholdMembership(userId: string) {
+  const memberships = await listMembershipsForUser(userId);
 
   const oldest = memberships[0];
   if (!oldest) {
@@ -181,6 +190,72 @@ export async function countHouseholdMembers(householdId: string) {
   });
 }
 
+async function buildHouseholdsPayload(
+  memberships: Awaited<ReturnType<typeof listMembershipsForUser>>,
+  activeHouseholdId: string,
+) {
+  const householdIds = memberships.map((membership) => membership.householdId);
+  const memberRows = await prisma.householdMembership.findMany({
+    where: {
+      householdId: {
+        in: householdIds,
+      },
+    },
+    select: {
+      householdId: true,
+    },
+  });
+  const countByHouseholdId = new Map<string, number>();
+  for (const row of memberRows) {
+    countByHouseholdId.set(
+      row.householdId,
+      (countByHouseholdId.get(row.householdId) ?? 0) + 1,
+    );
+  }
+
+  return {
+    active: { id: activeHouseholdId },
+    households: memberships.map((membership) => ({
+      id: membership.household.id,
+      name: membership.household.name,
+      currency: membership.household.currency,
+      memberCount: countByHouseholdId.get(membership.household.id) ?? 1,
+      joinedAt: membership.joinedAt,
+    })),
+  };
+}
+
+export async function listHouseholdsForMember(
+  userId: string,
+  activeHouseholdId: string,
+) {
+  const memberships = await listMembershipsForUser(userId);
+  return await buildHouseholdsPayload(memberships, activeHouseholdId);
+}
+
+export async function cachedHouseholdsForMember(
+  userId: string,
+  activeHouseholdId: string,
+) {
+  "use cache";
+  cacheLife("hours");
+
+  const memberships = await listMembershipsForUser(userId);
+  const householdIds = new Set([
+    activeHouseholdId,
+    ...memberships.map((membership) => membership.householdId),
+  ]);
+  cacheTag(
+    memberHouseholdsTag(userId),
+    ...[...householdIds].flatMap((householdId) => [
+      householdTag(householdId, CACHE_RESOURCE.household),
+      householdTag(householdId, CACHE_RESOURCE.members),
+    ]),
+  );
+
+  return await buildHouseholdsPayload(memberships, activeHouseholdId);
+}
+
 export async function assertHouseholdMembership(
   householdId: string,
   userId: string,
@@ -209,20 +284,23 @@ export async function createAdditionalHousehold(userId: string, name: string) {
     );
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const created = await tx.household.create({
+  const created = await prisma.$transaction(async (tx) => {
+    const household = await tx.household.create({
       data: {
         name: parsedName.data || null,
       },
     });
     await tx.householdMembership.create({
       data: {
-        householdId: created.id,
+        householdId: household.id,
         userId,
       },
     });
-    return created;
+    return household;
   });
+
+  revalidateMemberHouseholds(userId);
+  return created;
 }
 
 export async function firstHouseholdIdForUser(userId: string) {

@@ -5,6 +5,9 @@ import { DomainError } from "@/lib/errors";
 
 export const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+export type DateRange = { from: Date; to: Date };
+export type DateRangeValues = { from: string; to: string };
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function parseDate(value: string) {
@@ -50,7 +53,7 @@ export function clampToMonth(year: number, month: number, day: number) {
   return Math.min(day, daysInMonth(year, month));
 }
 
-export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
+export function utcMonthRangeFor(date: Date): DateRange {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   return {
@@ -59,7 +62,7 @@ export function utcMonthRangeFor(date: Date): { from: Date; to: Date } {
   };
 }
 
-export function previousMonthRange(date: Date): { from: Date; to: Date } {
+export function previousMonthRange(date: Date): DateRange {
   return utcMonthRangeFor(
     new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)),
   );
@@ -76,6 +79,12 @@ export function formatDateValue(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function utcDateValue(date: Date): string {
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${date.getUTCFullYear()}-${month}-${day}`;
 }
 
 export function monthOffsets(count: number): { year: number; month: number }[] {
@@ -103,7 +112,7 @@ export function endOfDay(value: string) {
   return date;
 }
 
-export function resolveDateRange(from?: string, to?: string) {
+export function resolveDateRange(from?: string, to?: string): DateRange {
   const now = new Date();
 
   const start = from

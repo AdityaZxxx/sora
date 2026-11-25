@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
 import InstallPrompt from "@/components/InstallPrompt";
-import Navbar from "@/components/Navbar";
 import NewExpenseShortcut from "@/components/NewExpenseShortcut";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import PendingSyncIndicator from "@/components/PendingSyncIndicator";
+
+import SeededDashboardShell from "./_components/SeededDashboardShell";
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -18,10 +19,11 @@ const Layout = ({ children }: { children: ReactNode }) => {
       <OfflineIndicator />
       <PendingSyncIndicator />
       <NewExpenseShortcut />
-      <Navbar />
-      <main id="main-content" className="w-full flex-1">
-        {children}
-      </main>
+      <SeededDashboardShell>
+        <main id="main-content" className="w-full flex-1">
+          {children}
+        </main>
+      </SeededDashboardShell>
       <InstallPrompt />
     </div>
   );

@@ -1,6 +1,10 @@
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import {
+  CACHE_RESOURCE,
+  householdTag,
+  revalidateMemberHouseholds,
+} from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { FULL_MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -92,6 +96,7 @@ export async function leaveHousehold(caller: Caller) {
     resource: "members",
     message: "left the household",
   });
+  revalidateMemberHouseholds(caller.userId);
 }
 
 export async function setEmailDigest(
@@ -192,6 +197,7 @@ export async function removeMember(
     resource: "members",
     message: `removed ${removed.user.name} from the household`,
   });
+  revalidateMemberHouseholds(userId);
 
   return removed.user.name;
 }

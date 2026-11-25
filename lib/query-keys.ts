@@ -1,3 +1,4 @@
+import type { DateRange } from "@/lib/dates";
 import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { Period, Timeframe, TransactionType } from "@/lib/types";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -14,7 +15,6 @@ export const queryKeys = {
   households: ["households"] satisfies QueryKey,
   insights: ["insights"] satisfies QueryKey,
   inviteLinks: ["inviteLinks"] satisfies QueryKey,
-  memberCount: ["memberCount"] satisfies QueryKey,
   notifications: ["notifications"] satisfies QueryKey,
   overview: {
     all: ["overview"] satisfies QueryKey,
@@ -39,7 +39,7 @@ export const queryKeys = {
   simplifiedDebts: ["simplified-debts"] satisfies QueryKey,
   transactions: {
     all: ["transactions"] satisfies QueryKey,
-    history: (from: Date, to: Date, pageSize: number): QueryKey => [
+    history: (from: string, to: string, pageSize: number): QueryKey => [
       "transactions",
       "history",
       from,
@@ -61,7 +61,7 @@ export type TransactionOptimisticContext = {
   rollback: () => void;
 };
 
-function statsRange(key: QueryKey): { from: Date; to: Date } | null {
+function statsRange(key: QueryKey): DateRange | null {
   const from = key[2];
   const to = key[3];
   if (!(from instanceof Date) || !(to instanceof Date)) return null;

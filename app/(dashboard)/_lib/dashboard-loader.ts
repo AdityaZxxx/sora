@@ -10,7 +10,7 @@ import { notFound } from "next/navigation";
 import { getMemberBalances, getSimplifiedTransfers } from "@/lib/balances";
 import { getBudgetsWithProgress, getSharedSpending } from "@/lib/budgets";
 import { VIEW_ONLY_ROLE } from "@/lib/constants";
-import { resolveDateRange } from "@/lib/dates";
+import { type DateRange, resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getHistoryData } from "@/lib/history";
 import { countHouseholdMembers, requireHousehold } from "@/lib/household";
@@ -24,7 +24,7 @@ export type DashboardPayload = {
   currency: string;
   canEdit: boolean;
   memberCount: number;
-  dateRange: { from: Date; to: Date };
+  dateRange: DateRange;
   historyView: { timeframe: Timeframe; period: Period };
   insights: Awaited<ReturnType<typeof getMonthlyRollup>>;
   budgets: Awaited<ReturnType<typeof getBudgetsWithProgress>>;
@@ -110,7 +110,6 @@ export function dashboardHydrationState(
 ): DehydratedState {
   const queryClient = new QueryClient();
 
-  queryClient.setQueryData(queryKeys.memberCount, payload.memberCount);
   queryClient.setQueryData(queryKeys.insights, payload.insights);
   queryClient.setQueryData(queryKeys.budgets, payload.budgets);
   queryClient.setQueryData(queryKeys.recurringItems, payload.recurringItems);

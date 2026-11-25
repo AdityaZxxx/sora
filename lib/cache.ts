@@ -23,6 +23,14 @@ export function householdTag(householdId: string, resource: CacheResource) {
   return `household:${householdId}:${resource}`;
 }
 
+export function memberHouseholdsTag(userId: string) {
+  return `member:${userId}:households`;
+}
+
+export function revalidateMemberHouseholds(userId: string) {
+  revalidateTag(memberHouseholdsTag(userId), { expire: 0 });
+}
+
 export function revalidateHousehold(
   householdId: string,
   resources: readonly CacheResource[],

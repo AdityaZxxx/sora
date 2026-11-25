@@ -1,9 +1,19 @@
+import { HydrationBoundary } from "@tanstack/react-query";
 import { type Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
+import { listApiTokens } from "@/lib/api-token";
+import { getBudgetsWithProgress } from "@/lib/budgets";
+import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { getCategories } from "@/lib/categories";
 import { requireHousehold } from "@/lib/household";
+import { seedQuery, seededHydrationState } from "@/lib/hydration";
+import { listInviteLinks } from "@/lib/invites";
+import { queryKeys } from "@/lib/query-keys";
 
 import ManagePageClient from "./_components/ManagePageClient";
+import Loading from "./loading";
 
 export const metadata: Metadata = {
   title: "Manage Settings",
@@ -18,11 +28,51 @@ export const metadata: Metadata = {
 
 export const instant = false;
 
-export default async function ManagePage() {
+const ManagePage = async () => {
+  return (
+    <Suspense fallback={<Loading />}>
+      <SeededManage />
+    </Suspense>
+  );
+};
+
+const SeededManage = async () => {
   const result = await requireHousehold();
   if (!result) {
     notFound();
   }
 
-  return <ManagePageClient household={result.household} />;
-}
+  const householdId = result.household.id;
+  const [incomeCategories, expenseCategories, budgets, apiTokens, inviteLinks] =
+    await Promise.all([
+      getCategories(householdId, "income"),
+      getCategories(householdId, "expense"),
+      getBudgetsWithProgress(householdId),
+      listApiTokens(householdId),
+      listInviteLinks(householdId),
+    ]);
+
+  const state = await seededHydrationState(
+    [
+      seedQuery(queryKeys.categories("income"), incomeCategories),
+      seedQuery(queryKeys.categories("expense"), expenseCategories),
+      seedQuery(queryKeys.budgets, budgets),
+      seedQuery(queryKeys.apiTokens, apiTokens),
+      seedQuery(queryKeys.inviteLinks, inviteLinks),
+    ],
+    [
+      householdTag(householdId, CACHE_RESOURCE.categories),
+      householdTag(householdId, CACHE_RESOURCE.budgets),
+      householdTag(householdId, CACHE_RESOURCE.apiTokens),
+      householdTag(householdId, CACHE_RESOURCE.invites),
+    ],
+  );
+
+  return (
+    <HydrationBoundary state={state}>
+      <ManagePageClient household={result.household} />
+    </HydrationBoundary>
+  );
+};
+
+export default ManagePage;
