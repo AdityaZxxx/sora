@@ -8,6 +8,8 @@ import { useActionState, useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -117,9 +119,11 @@ const BudgetDialog = ({
   );
 
   return (
-    <>
-      {!hydrated ? (
-        <form action={plainAction} className="space-y-4 rounded-lg border p-4">
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      plain={
+        <>
           <h2 className="font-medium">
             {isEditing ? `Edit ${budget?.category} budget` : "Create a budget"}
           </h2>
@@ -154,134 +158,122 @@ const BudgetDialog = ({
               <option value="hard">Hard</option>
             </select>
           </Field>
-          {plainState.status === "error" ? (
-            <p role="alert" className="text-sm text-destructive">
-              {plainState.message}
-            </p>
-          ) : null}
+          <FormActionErrors state={plainState} />
           <FormSubmitButton className="w-auto">
             {isEditing ? "Save" : "Create"}
           </FormSubmitButton>
-        </form>
-      ) : null}
-      <div className={hydrated ? undefined : "hidden"}>
-        <Dialog open={open} onOpenChange={setOpen}>
-          {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-lg sm:text-lg">
-                {isEditing && budget
-                  ? `Edit ${budget.category} budget`
-                  : "Create a budget"}
-              </DialogTitle>
-            </DialogHeader>
-            <form action={action} className="space-y-4">
-              {hiddenFields}
-              <Field data-invalid={Boolean(state.fieldErrors.category)}>
-                <FieldLabel htmlFor="budget-category">Category</FieldLabel>
-                <CategoryPicker
-                  key={open ? "open" : "closed"}
-                  id="budget-category"
-                  type="expense"
-                  value={category || undefined}
-                  onChange={setCategory}
-                  aria-invalid={
-                    Boolean(state.fieldErrors.category) || undefined
-                  }
-                  aria-describedby={
-                    state.fieldErrors.category
-                      ? "budget-category-error"
-                      : undefined
-                  }
-                />
-                <FieldDescription className="text-xs sm:text-sm">
-                  The monthly limit applies to expenses in this category
-                </FieldDescription>
-                {state.fieldErrors.category ? (
-                  <FieldError id="budget-category-error">
-                    {state.fieldErrors.category}
-                  </FieldError>
-                ) : null}
-              </Field>
+        </>
+      }
+    >
+      <Dialog open={open} onOpenChange={setOpen}>
+        {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-lg">
+              {isEditing && budget
+                ? `Edit ${budget.category} budget`
+                : "Create a budget"}
+            </DialogTitle>
+          </DialogHeader>
+          <form action={action} className="space-y-4">
+            {hiddenFields}
+            <Field data-invalid={Boolean(state.fieldErrors.category)}>
+              <FieldLabel htmlFor="budget-category">Category</FieldLabel>
+              <CategoryPicker
+                key={open ? "open" : "closed"}
+                id="budget-category"
+                type="expense"
+                value={category || undefined}
+                onChange={setCategory}
+                aria-invalid={Boolean(state.fieldErrors.category) || undefined}
+                aria-describedby={
+                  state.fieldErrors.category
+                    ? "budget-category-error"
+                    : undefined
+                }
+              />
+              <FieldDescription className="text-xs sm:text-sm">
+                The monthly limit applies to expenses in this category
+              </FieldDescription>
+              {state.fieldErrors.category ? (
+                <FieldError id="budget-category-error">
+                  {state.fieldErrors.category}
+                </FieldError>
+              ) : null}
+            </Field>
 
-              <Field data-invalid={Boolean(state.fieldErrors.amount)}>
-                <FieldLabel htmlFor="budget-amount">Monthly limit</FieldLabel>
-                <NumericFormat
-                  customInput={Input}
-                  id="budget-amount"
-                  name="amount"
-                  placeholder="0.00"
-                  value={amount}
-                  onValueChange={(next) => setAmount(next.floatValue ?? 0)}
-                  thousandSeparator={thousandSeparator}
-                  decimalSeparator={decimalSeparator}
-                  decimalScale={2}
-                  allowNegative={false}
-                  inputMode="decimal"
-                  aria-invalid={Boolean(state.fieldErrors.amount)}
-                />
-                <FieldDescription className="text-xs sm:text-sm">
-                  Monthly limit for this category
-                </FieldDescription>
-                {state.fieldErrors.amount ? (
-                  <FieldError id="budget-amount-error">
-                    {state.fieldErrors.amount}
-                  </FieldError>
-                ) : null}
-              </Field>
+            <Field data-invalid={Boolean(state.fieldErrors.amount)}>
+              <FieldLabel htmlFor="budget-amount">Monthly limit</FieldLabel>
+              <NumericFormat
+                customInput={Input}
+                id="budget-amount"
+                name="amount"
+                placeholder="0.00"
+                value={amount}
+                onValueChange={(next) => setAmount(next.floatValue ?? 0)}
+                thousandSeparator={thousandSeparator}
+                decimalSeparator={decimalSeparator}
+                decimalScale={2}
+                allowNegative={false}
+                inputMode="decimal"
+                aria-invalid={Boolean(state.fieldErrors.amount)}
+              />
+              <FieldDescription className="text-xs sm:text-sm">
+                Monthly limit for this category
+              </FieldDescription>
+              {state.fieldErrors.amount ? (
+                <FieldError id="budget-amount-error">
+                  {state.fieldErrors.amount}
+                </FieldError>
+              ) : null}
+            </Field>
 
-              <Field>
-                <FieldLabel htmlFor="budget-mode">Mode</FieldLabel>
-                <Select
-                  value={mode}
-                  onValueChange={(value) => {
-                    if (value === null) return;
-                    setMode(value as "soft" | "hard");
-                  }}
-                  items={{
-                    soft: "Soft (warn at 80% and 100%)",
-                    hard: "Hard (block expenses over the limit)",
-                  }}
-                >
-                  <SelectTrigger id="budget-mode" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="soft">
-                      Soft (warn at 80% and 100%)
-                    </SelectItem>
-                    <SelectItem value="hard">
-                      Hard (block expenses over the limit)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldDescription className="text-xs sm:text-sm">
-                  Hard budgets reject shared expenses that would exceed the
-                  limit
-                </FieldDescription>
-              </Field>
+            <Field>
+              <FieldLabel htmlFor="budget-mode">Mode</FieldLabel>
+              <Select
+                value={mode}
+                onValueChange={(value) => {
+                  if (value === null) return;
+                  setMode(value as "soft" | "hard");
+                }}
+                items={{
+                  soft: "Soft (warn at 80% and 100%)",
+                  hard: "Hard (block expenses over the limit)",
+                }}
+              >
+                <SelectTrigger id="budget-mode" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="soft">
+                    Soft (warn at 80% and 100%)
+                  </SelectItem>
+                  <SelectItem value="hard">
+                    Hard (block expenses over the limit)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription className="text-xs sm:text-sm">
+                Hard budgets reject shared expenses that would exceed the limit
+              </FieldDescription>
+            </Field>
 
-              <DialogFooter>
-                <DialogClose
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-auto"
-                    />
-                  }
-                >
-                  Cancel
-                </DialogClose>
-                <FormSubmitButton className="w-auto">
-                  {isEditing ? "Save" : "Create"}
-                </FormSubmitButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+            <DialogFooter>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" className="w-auto" />
+                }
+              >
+                Cancel
+              </DialogClose>
+              <FormSubmitButton className="w-auto">
+                {isEditing ? "Save" : "Create"}
+              </FormSubmitButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </FormGate>
   );
 };
 

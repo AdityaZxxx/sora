@@ -13,6 +13,8 @@ import { useActionState, useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -47,12 +49,16 @@ import {
 } from "@/components/ui/select";
 import { getMutationClient } from "@/hooks/mutation-client";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { unwrapAction } from "@/lib/action-client";
+import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { fetchReadJson } from "@/lib/fetch-json";
-import { initialFormActionState } from "@/lib/form-action";
+import {
+  formError,
+  formSuccess,
+  initialFormActionState,
+} from "@/lib/form-action";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import { buildShares, type SplitMode } from "@/lib/split-shares";
@@ -60,6 +66,9 @@ import { cn } from "@/lib/utils";
 
 import { createTransactionForm } from "../_actions/transaction";
 import CategoryPicker from "./CategoryPicker";
+
+const OFFLINE_ERROR =
+  "Unable to add the transaction. Refresh the page and try again.";
 
 interface Props {
   trigger: ReactNode;
@@ -206,61 +215,50 @@ const CreateTransactionDialog = ({
     previous: FormActionState,
     formData: FormData,
   ): Promise<FormActionState> => {
-    const context = await applyTransactionOptimistic(queryClient, buildInput());
-    const result = await createTransactionForm(previous, formData);
+    const input = buildInput();
+    const online = navigator.onLine;
+    const context = online
+      ? await applyTransactionOptimistic(queryClient, input)
+      : undefined;
+    let result: FormActionState;
+
+    if (online) {
+      result = await createTransactionForm(previous, formData);
+    } else {
+      const idempotencyKey = globalThis.crypto.randomUUID();
+      try {
+        const queued = await mutationClient.submit({
+          kind: "create-transaction",
+          url: window.location.pathname,
+          payload: { ...input, idempotencyKey },
+          idempotencyKey,
+        });
+        unwrapAction(queued);
+        result = formSuccess("Transaction added");
+      } catch (cause) {
+        result = formError(actionErrorMessage(cause, OFFLINE_ERROR));
+      }
+    }
+
     if (result.status === "error") {
-      context.rollback();
-      setOpen(true);
+      context?.rollback();
       toast.error(result.message, { id: "create-transaction" });
       return result;
     }
 
-    context.invalidate();
+    context?.invalidate();
     toast.success("Transaction added", { id: "create-transaction" });
     resetDraft();
+    setOpen(false);
     return result;
   };
 
   const [state, action] = useActionState(submit, initialFormActionState);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    if (!hydrated || splitInvalid) {
-      if (splitInvalid) event.preventDefault();
-      return;
-    }
-
-    const input = buildInput();
-    if (!navigator.onLine) {
+    if (splitInvalid) {
       event.preventDefault();
-      const idempotencyKey = globalThis.crypto.randomUUID();
-      toast.loading("Adding transaction…", { id: "create-transaction" });
-      void mutationClient
-        .submit({
-          kind: "create-transaction",
-          url: window.location.pathname,
-          payload: { ...input, idempotencyKey },
-          idempotencyKey,
-        })
-        .then((result) => {
-          unwrapAction(result);
-          toast.success("Transaction added", { id: "create-transaction" });
-          resetDraft();
-          setOpen(false);
-          return result;
-        })
-        .catch((cause: unknown) => {
-          setOpen(true);
-          toast.error(
-            cause instanceof Error
-              ? cause.message
-              : "Unable to add the transaction. Refresh the page and try again.",
-            { id: "create-transaction" },
-          );
-        });
-      return;
     }
-
-    setOpen(false);
   };
 
   const hiddenFields = (
@@ -286,9 +284,11 @@ const CreateTransactionDialog = ({
   );
 
   return (
-    <>
-      {!hydrated ? (
-        <form action={plainAction} className="space-y-4 rounded-lg border p-4">
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      plain={
+        <>
           <h2 className="font-medium">
             Add a <span className="capitalize">{dialogType}</span> transaction
           </h2>
@@ -333,339 +333,333 @@ const CreateTransactionDialog = ({
               defaultValue={initialDate.toISOString().slice(0, 10)}
             />
           </Field>
-          {plainState.status === "error" ? (
-            <p role="alert" className="text-sm text-destructive">
-              {plainState.message}
-            </p>
-          ) : null}
+          <FormActionErrors state={plainState} />
           <FormSubmitButton>Add</FormSubmitButton>
-        </form>
-      ) : null}
-      <div className={hydrated ? undefined : "hidden"}>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={trigger as ReactElement} />
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-xl sm:text-xl">
-                Add a{" "}
-                <span
-                  className={cn(
-                    "m-1",
-                    dialogType === "income"
-                      ? "text-income-foreground"
-                      : "text-expense-foreground",
-                  )}
-                >
-                  {dialogType}
-                </span>
-                transaction
-              </DialogTitle>
-            </DialogHeader>
-            <form action={action} className="space-y-4" onSubmit={handleSubmit}>
-              {hiddenFields}
-              <Field data-invalid={Boolean(state.fieldErrors.description)}>
-                <FieldLabel htmlFor="description">Description</FieldLabel>
-                <Input
-                  id="description"
-                  name="description"
-                  value={values.description}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
+        </>
+      }
+    >
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger render={trigger as ReactElement} />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-xl">
+              Add a{" "}
+              <span
+                className={cn(
+                  "m-1",
+                  dialogType === "income"
+                    ? "text-income-foreground"
+                    : "text-expense-foreground",
+                )}
+              >
+                {dialogType}
+              </span>
+              transaction
+            </DialogTitle>
+          </DialogHeader>
+          <form action={action} className="space-y-4" onSubmit={handleSubmit}>
+            {hiddenFields}
+            <Field data-invalid={Boolean(state.fieldErrors.description)}>
+              <FieldLabel htmlFor="description">Description</FieldLabel>
+              <Input
+                id="description"
+                name="description"
+                value={values.description}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+                aria-invalid={Boolean(state.fieldErrors.description)}
+                placeholder="e.g. Groceries, Salary"
+              />
+              <FieldDescription className="text-xs sm:text-sm">
+                Transaction description (optional)
+              </FieldDescription>
+              {state.fieldErrors.description ? (
+                <FieldError id="description-error">
+                  {state.fieldErrors.description}
+                </FieldError>
+              ) : null}
+            </Field>
+
+            <Field data-invalid={Boolean(state.fieldErrors.amount)}>
+              <FieldLabel htmlFor="amount">Amount</FieldLabel>
+              <NumericFormat
+                customInput={Input}
+                id="amount"
+                name="amount"
+                placeholder="0.00"
+                value={values.amount}
+                onValueChange={(next) =>
+                  setValues((current) => ({
+                    ...current,
+                    amount: next.floatValue ?? 0,
+                  }))
+                }
+                thousandSeparator={thousandSeparator}
+                decimalSeparator={decimalSeparator}
+                decimalScale={2}
+                allowNegative={false}
+                aria-invalid={Boolean(state.fieldErrors.amount)}
+              />
+              <FieldDescription className="text-xs sm:text-sm">
+                Transaction amount (required)
+              </FieldDescription>
+              {state.fieldErrors.amount ? (
+                <FieldError id="amount-error">
+                  {state.fieldErrors.amount}
+                </FieldError>
+              ) : null}
+            </Field>
+
+            <div className="flex flex-col gap-4">
+              <Field data-invalid={Boolean(state.fieldErrors.category)}>
+                <FieldLabel htmlFor="category">Category</FieldLabel>
+                <CategoryPicker
+                  id="category"
+                  type={dialogType}
+                  value={values.category || undefined}
+                  onChange={(value) =>
+                    setValues((current) => ({ ...current, category: value }))
                   }
-                  aria-invalid={Boolean(state.fieldErrors.description)}
-                  placeholder="e.g. Groceries, Salary"
+                  aria-invalid={Boolean(state.fieldErrors.category)}
                 />
                 <FieldDescription className="text-xs sm:text-sm">
-                  Transaction description (optional)
+                  Select a category
                 </FieldDescription>
-                {state.fieldErrors.description ? (
-                  <FieldError id="description-error">
-                    {state.fieldErrors.description}
+                {state.fieldErrors.category ? (
+                  <FieldError id="category-error">
+                    {state.fieldErrors.category}
                   </FieldError>
                 ) : null}
               </Field>
 
-              <Field data-invalid={Boolean(state.fieldErrors.amount)}>
-                <FieldLabel htmlFor="amount">Amount</FieldLabel>
-                <NumericFormat
-                  customInput={Input}
-                  id="amount"
-                  name="amount"
-                  placeholder="0.00"
-                  value={values.amount}
-                  onValueChange={(next) =>
-                    setValues((current) => ({
-                      ...current,
-                      amount: next.floatValue ?? 0,
-                    }))
-                  }
-                  thousandSeparator={thousandSeparator}
-                  decimalSeparator={decimalSeparator}
-                  decimalScale={2}
-                  allowNegative={false}
-                  aria-invalid={Boolean(state.fieldErrors.amount)}
-                />
-                <FieldDescription className="text-xs sm:text-sm">
-                  Transaction amount (required)
-                </FieldDescription>
-                {state.fieldErrors.amount ? (
-                  <FieldError id="amount-error">
-                    {state.fieldErrors.amount}
-                  </FieldError>
-                ) : null}
-              </Field>
-
-              <div className="flex flex-col gap-4">
-                <Field data-invalid={Boolean(state.fieldErrors.category)}>
-                  <FieldLabel htmlFor="category">Category</FieldLabel>
-                  <CategoryPicker
-                    id="category"
-                    type={dialogType}
-                    value={values.category || undefined}
-                    onChange={(value) =>
-                      setValues((current) => ({ ...current, category: value }))
-                    }
-                    aria-invalid={Boolean(state.fieldErrors.category)}
-                  />
-                  <FieldDescription className="text-xs sm:text-sm">
-                    Select a category
-                  </FieldDescription>
-                  {state.fieldErrors.category ? (
-                    <FieldError id="category-error">
-                      {state.fieldErrors.category}
-                    </FieldError>
-                  ) : null}
-                </Field>
-
-                <Field data-invalid={Boolean(state.fieldErrors.date)}>
-                  <FieldLabel htmlFor="date">Date</FieldLabel>
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          id="date"
-                          aria-invalid={Boolean(state.fieldErrors.date)}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !values.date && "text-muted-foreground",
-                          )}
-                          variant={"outline"}
-                        />
-                      }
-                    >
-                      {values.date ? (
-                        format(values.date, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={values.date}
-                        onSelect={(value) => {
-                          if (!value) return;
-                          setValues((current) => ({ ...current, date: value }));
-                        }}
+              <Field data-invalid={Boolean(state.fieldErrors.date)}>
+                <FieldLabel htmlFor="date">Date</FieldLabel>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        id="date"
+                        aria-invalid={Boolean(state.fieldErrors.date)}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !values.date && "text-muted-foreground",
+                        )}
+                        variant={"outline"}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  <FieldDescription className="text-xs sm:text-sm">
-                    Transaction date
-                  </FieldDescription>
-                  {state.fieldErrors.date ? (
-                    <FieldError id="date-error">
-                      {state.fieldErrors.date}
-                    </FieldError>
-                  ) : null}
-                </Field>
-              </div>
+                    }
+                  >
+                    {values.date ? (
+                      format(values.date, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={values.date}
+                      onSelect={(value) => {
+                        if (!value) return;
+                        setValues((current) => ({ ...current, date: value }));
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FieldDescription className="text-xs sm:text-sm">
+                  Transaction date
+                </FieldDescription>
+                {state.fieldErrors.date ? (
+                  <FieldError id="date-error">
+                    {state.fieldErrors.date}
+                  </FieldError>
+                ) : null}
+              </Field>
+            </div>
 
-              {dialogType === "expense" && goals.length > 0 ? (
-                <Field>
-                  <FieldLabel htmlFor="goalId">Goal (optional)</FieldLabel>
-                  <Select
-                    value={values.goalId || "none"}
-                    onValueChange={(value) => {
-                      if (value === null) return;
+            {dialogType === "expense" && goals.length > 0 ? (
+              <Field>
+                <FieldLabel htmlFor="goalId">Goal (optional)</FieldLabel>
+                <Select
+                  value={values.goalId || "none"}
+                  onValueChange={(value) => {
+                    if (value === null) return;
+                    setValues((current) => ({
+                      ...current,
+                      goalId: value === "none" ? "" : value,
+                    }));
+                  }}
+                  items={{
+                    none: "No goal",
+                    ...Object.fromEntries(
+                      goals.map((goal) => [goal.id, goal.name]),
+                    ),
+                  }}
+                >
+                  <SelectTrigger id="goalId" className="w-full">
+                    <SelectValue placeholder="No goal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No goal</SelectItem>
+                    {goals.map((goal) => (
+                      <SelectItem key={goal.id} value={goal.id}>
+                        {goal.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription className="text-xs sm:text-sm">
+                  Tag this expense as a contribution to a goal
+                </FieldDescription>
+              </Field>
+            ) : null}
+
+            {showSharedToggle ? (
+              <Field>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="shared"
+                    checked={values.shared}
+                    onCheckedChange={(checked) =>
                       setValues((current) => ({
                         ...current,
-                        goalId: value === "none" ? "" : value,
-                      }));
+                        shared: checked === true,
+                      }))
+                    }
+                  />
+                  <FieldLabel htmlFor="shared" className="text-sm font-normal">
+                    Shared with household
+                  </FieldLabel>
+                </div>
+                <FieldDescription className="text-xs sm:text-sm">
+                  Personal transactions are visible only to you and excluded
+                  from household totals and budgets
+                </FieldDescription>
+              </Field>
+            ) : null}
+
+            {showSplitOptions && members.length > 0 ? (
+              <div className="space-y-3 rounded-lg border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Split</p>
+                  <Select
+                    value={splitMode}
+                    onValueChange={(value) => {
+                      if (value === null) return;
+                      setSplitMode(value as SplitMode);
                     }}
                     items={{
-                      none: "No goal",
-                      ...Object.fromEntries(
-                        goals.map((goal) => [goal.id, goal.name]),
-                      ),
+                      equal: "Equally",
+                      amounts: "By amount",
+                      percent: "By percent",
                     }}
                   >
-                    <SelectTrigger id="goalId" className="w-full">
-                      <SelectValue placeholder="No goal" />
+                    <SelectTrigger
+                      className="w-44"
+                      aria-label="How this expense is split"
+                    >
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No goal</SelectItem>
-                      {goals.map((goal) => (
-                        <SelectItem key={goal.id} value={goal.id}>
-                          {goal.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="equal">Equally</SelectItem>
+                      <SelectItem value="amounts">By amount</SelectItem>
+                      <SelectItem value="percent">By percent</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FieldDescription className="text-xs sm:text-sm">
-                    Tag this expense as a contribution to a goal
-                  </FieldDescription>
-                </Field>
-              ) : null}
-
-              {showSharedToggle ? (
-                <Field>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="shared"
-                      checked={values.shared}
-                      onCheckedChange={(checked) =>
-                        setValues((current) => ({
-                          ...current,
-                          shared: checked === true,
-                        }))
-                      }
-                    />
-                    <FieldLabel
-                      htmlFor="shared"
-                      className="text-sm font-normal"
-                    >
-                      Shared with household
-                    </FieldLabel>
-                  </div>
-                  <FieldDescription className="text-xs sm:text-sm">
-                    Personal transactions are visible only to you and excluded
-                    from household totals and budgets
-                  </FieldDescription>
-                </Field>
-              ) : null}
-
-              {showSplitOptions && members.length > 0 ? (
-                <div className="space-y-3 rounded-lg border p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-medium">Split</p>
-                    <Select
-                      value={splitMode}
-                      onValueChange={(value) => {
-                        if (value === null) return;
-                        setSplitMode(value as SplitMode);
-                      }}
-                      items={{
-                        equal: "Equally",
-                        amounts: "By amount",
-                        percent: "By percent",
-                      }}
-                    >
-                      <SelectTrigger
-                        className="w-44"
-                        aria-label="How this expense is split"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="equal">Equally</SelectItem>
-                        <SelectItem value="amounts">By amount</SelectItem>
-                        <SelectItem value="percent">By percent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {splitMode !== "equal" ? (
-                    <div className="space-y-2">
-                      {members.map((member) => (
-                        <div
-                          key={member.user.id}
-                          className="flex items-center gap-2"
-                        >
-                          <span className="min-w-0 flex-1 truncate text-sm">
-                            {member.user.name}
-                            {member.user.id === session?.user.id
-                              ? " (you)"
-                              : ""}
-                          </span>
-                          <NumericFormat
-                            customInput={Input}
-                            className="w-28"
-                            value={
-                              (splitMode === "percent"
-                                ? splitPercents[member.user.id]
-                                : splitAmounts[member.user.id]) ?? ""
-                            }
-                            onValueChange={(next) => {
-                              const raw = next.value ?? "";
-                              if (splitMode === "percent") {
-                                setSplitPercents((current) => ({
-                                  ...current,
-                                  [member.user.id]: raw,
-                                }));
-                              } else {
-                                setSplitAmounts((current) => ({
-                                  ...current,
-                                  [member.user.id]: raw,
-                                }));
-                              }
-                            }}
-                            thousandSeparator={thousandSeparator}
-                            decimalSeparator={decimalSeparator}
-                            decimalScale={splitMode === "percent" ? 1 : 2}
-                            suffix={splitMode === "percent" ? "%" : undefined}
-                            allowNegative={false}
-                            aria-label={`Share for ${member.user.name}`}
-                          />
-                        </div>
-                      ))}
-                      <p
-                        className={cn(
-                          "text-xs",
-                          splitInvalid
-                            ? "text-destructive"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        Assigned{" "}
-                        {formatter.format(
-                          previewShares?.reduce(
-                            (sum, share) => sum + share.amount,
-                            0,
-                          ) ?? 0,
-                        )}{" "}
-                        of {formatter.format(values.amount)}
-                      </p>
-                    </div>
-                  ) : null}
                 </div>
-              ) : null}
+                {splitMode !== "equal" ? (
+                  <div className="space-y-2">
+                    {members.map((member) => (
+                      <div
+                        key={member.user.id}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {member.user.name}
+                          {member.user.id === session?.user.id ? " (you)" : ""}
+                        </span>
+                        <NumericFormat
+                          customInput={Input}
+                          className="w-28"
+                          value={
+                            (splitMode === "percent"
+                              ? splitPercents[member.user.id]
+                              : splitAmounts[member.user.id]) ?? ""
+                          }
+                          onValueChange={(next) => {
+                            const raw = next.value ?? "";
+                            if (splitMode === "percent") {
+                              setSplitPercents((current) => ({
+                                ...current,
+                                [member.user.id]: raw,
+                              }));
+                            } else {
+                              setSplitAmounts((current) => ({
+                                ...current,
+                                [member.user.id]: raw,
+                              }));
+                            }
+                          }}
+                          thousandSeparator={thousandSeparator}
+                          decimalSeparator={decimalSeparator}
+                          decimalScale={splitMode === "percent" ? 1 : 2}
+                          suffix={splitMode === "percent" ? "%" : undefined}
+                          allowNegative={false}
+                          aria-label={`Share for ${member.user.name}`}
+                        />
+                      </div>
+                    ))}
+                    <p
+                      className={cn(
+                        "text-xs",
+                        splitInvalid
+                          ? "text-destructive"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      Assigned{" "}
+                      {formatter.format(
+                        previewShares?.reduce(
+                          (sum, share) => sum + share.amount,
+                          0,
+                        ) ?? 0,
+                      )}{" "}
+                      of {formatter.format(values.amount)}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
-              <DialogFooter>
-                <DialogClose
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-auto"
-                      onClick={resetDraft}
-                    />
-                  }
-                >
-                  Cancel
-                </DialogClose>
-                <FormSubmitButton className="w-auto" disabled={splitInvalid}>
-                  Add
-                </FormSubmitButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+            <DialogFooter>
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-auto"
+                    onClick={resetDraft}
+                  />
+                }
+              >
+                Cancel
+              </DialogClose>
+              <FormSubmitButton
+                className="w-auto"
+                disabled={splitInvalid}
+                pendingLabel="Adding transaction…"
+              >
+                Add
+              </FormSubmitButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </FormGate>
   );
 };
 

@@ -2,13 +2,11 @@
 
 import { withHouseholdAction } from "@/lib/action-result";
 import {
-  fieldErrorsFromIssues,
   formDate,
-  formError,
   formFlag,
   formOptionalText,
   formText,
-  fromActionResult,
+  submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
 import {
@@ -22,11 +20,11 @@ export type CreateTransactionActionInput = Omit<
   "addedVia"
 >;
 
-const FALLBACK =
+const USER_FACING_ERROR =
   "Unable to add the transaction. Check the amount, category and date, then try again.";
 
 export async function CreateTransaction(form: CreateTransactionActionInput) {
-  return withHouseholdAction(FALLBACK, async ({ caller }) => {
+  return withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
     await createTransaction(caller, {
       amount: form.amount,
       category: form.category,
@@ -42,10 +40,7 @@ export async function CreateTransaction(form: CreateTransactionActionInput) {
   });
 }
 
-export async function createTransactionForm(
-  _previous: FormActionState,
-  formData: FormData,
-): Promise<FormActionState> {
+function transactionFields(formData: FormData) {
   const sharesText = formOptionalText(formData, "shares");
   let shares: unknown;
   if (sharesText) {
@@ -56,7 +51,7 @@ export async function createTransactionForm(
     }
   }
 
-  const parsed = CreateTransactionSchema.safeParse({
+  return {
     amount: formText(formData, "amount"),
     description: formOptionalText(formData, "description"),
     category: formText(formData, "category"),
@@ -66,17 +61,27 @@ export async function createTransactionForm(
     goalId: formOptionalText(formData, "goalId"),
     shares,
     recurringItemId: formOptionalText(formData, "recurringItemId"),
-  });
+  };
+}
 
-  if (!parsed.success) {
-    return formError(FALLBACK, fieldErrorsFromIssues(parsed.error.issues));
-  }
-
-  const result = await CreateTransaction({
-    ...parsed.data,
-    idempotencyKey:
-      formOptionalText(formData, "idempotencyKey") ??
-      globalThis.crypto.randomUUID(),
+export async function createTransactionForm(
+  _previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  return submitFormAction({
+    formData,
+    fields: transactionFields,
+    schema: CreateTransactionSchema,
+    fallback: USER_FACING_ERROR,
+    success: "Transaction added",
+    run: (input) =>
+      withHouseholdAction(USER_FACING_ERROR, async ({ caller }) => {
+        await createTransaction(caller, {
+          ...input,
+          idempotencyKey:
+            formOptionalText(formData, "idempotencyKey") ??
+            globalThis.crypto.randomUUID(),
+        });
+      }),
   });
-  return fromActionResult(result, "Transaction added");
 }

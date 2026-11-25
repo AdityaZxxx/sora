@@ -10,6 +10,8 @@ import { useActionState, useState } from "react";
 import { toast } from "sonner";
 
 import CategoryIcon from "@/components/CategoryIcon";
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,9 +169,11 @@ const CategoryFormDialog = ({
   );
 
   return (
-    <>
-      {!hydrated ? (
-        <form action={plainAction} className="space-y-4 rounded-lg border p-4">
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      plain={
+        <>
           <h2 className="font-medium">
             {copy.verb} <span className="capitalize">{type}</span> category
           </h2>
@@ -184,157 +188,152 @@ const CategoryFormDialog = ({
               maxLength={20}
             />
           </Field>
-          {plainState.status === "error" ? (
-            <p role="alert" className="text-sm text-destructive">
-              {plainState.message}
-            </p>
-          ) : null}
+          <FormActionErrors state={plainState} />
           <FormSubmitButton>{copy.submit}</FormSubmitButton>
-        </form>
-      ) : null}
-      <div className={hydrated ? undefined : "hidden"}>
-        <Dialog
-          open={open}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) resetDraft();
-            setOpen(nextOpen);
-          }}
-        >
-          {trigger ? (
-            <DialogTrigger render={trigger as ReactElement} />
-          ) : !isEditing && openProp === undefined ? (
-            <DialogTrigger
-              render={
-                <Button
-                  variant={"ghost"}
-                  className="flex border-separate items-center justify-start rounded-none border-b px-3 py-3 text-muted-foreground"
-                >
-                  <PlusSquare className="mr-2 h-4 w-4" />
-                  Add new
-                </Button>
-              }
-            />
-          ) : null}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {copy.verb}{" "}
-                <span
-                  className={cn(
-                    "m-1",
-                    type === "income"
-                      ? "text-income-foreground"
-                      : "text-expense-foreground",
-                  )}
-                >
-                  {type}
-                </span>
-                category
-              </DialogTitle>
-            </DialogHeader>
-            <form action={action} className="space-y-4">
-              {hiddenFields}
-              <Field data-invalid={Boolean(state.fieldErrors.name)}>
-                <FieldLabel htmlFor={`${idPrefix}name`}>Name</FieldLabel>
-                <Input
-                  id={`${idPrefix}name`}
-                  name="name"
-                  value={values.name}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  aria-invalid={Boolean(state.fieldErrors.name)}
-                  aria-describedby={
-                    state.fieldErrors.name ? `${idPrefix}name-error` : undefined
-                  }
-                  placeholder="Category name"
-                  minLength={3}
-                  maxLength={20}
-                />
-                <FieldDescription>
-                  {isEditing
-                    ? "Transactions and budgets using this category are updated too."
-                    : "This is how your category will appear in the app."}
-                </FieldDescription>
-                {state.fieldErrors.name ? (
-                  <FieldError id={`${idPrefix}name-error`}>
-                    {state.fieldErrors.name}
-                  </FieldError>
-                ) : null}
-              </Field>
+        </>
+      }
+    >
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) resetDraft();
+          setOpen(nextOpen);
+        }}
+      >
+        {trigger ? (
+          <DialogTrigger render={trigger as ReactElement} />
+        ) : !isEditing && openProp === undefined ? (
+          <DialogTrigger
+            render={
+              <Button
+                variant={"ghost"}
+                className="flex border-separate items-center justify-start rounded-none border-b px-3 py-3 text-muted-foreground"
+              >
+                <PlusSquare className="mr-2 h-4 w-4" />
+                Add new
+              </Button>
+            }
+          />
+        ) : null}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {copy.verb}{" "}
+              <span
+                className={cn(
+                  "m-1",
+                  type === "income"
+                    ? "text-income-foreground"
+                    : "text-expense-foreground",
+                )}
+              >
+                {type}
+              </span>
+              category
+            </DialogTitle>
+          </DialogHeader>
+          <form action={action} className="space-y-4">
+            {hiddenFields}
+            <Field data-invalid={Boolean(state.fieldErrors.name)}>
+              <FieldLabel htmlFor={`${idPrefix}name`}>Name</FieldLabel>
+              <Input
+                id={`${idPrefix}name`}
+                name="name"
+                value={values.name}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                aria-invalid={Boolean(state.fieldErrors.name)}
+                aria-describedby={
+                  state.fieldErrors.name ? `${idPrefix}name-error` : undefined
+                }
+                placeholder="Category name"
+                minLength={3}
+                maxLength={20}
+              />
+              <FieldDescription>
+                {isEditing
+                  ? "Transactions and budgets using this category are updated too."
+                  : "This is how your category will appear in the app."}
+              </FieldDescription>
+              {state.fieldErrors.name ? (
+                <FieldError id={`${idPrefix}name-error`}>
+                  {state.fieldErrors.name}
+                </FieldError>
+              ) : null}
+            </Field>
 
-              <Field data-invalid={Boolean(state.fieldErrors.icon)}>
-                <FieldLabel htmlFor={`${idPrefix}icon`}>Icon</FieldLabel>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        id={`${idPrefix}icon`}
-                        aria-invalid={Boolean(state.fieldErrors.icon)}
-                        aria-describedby={
-                          state.fieldErrors.icon
-                            ? `${idPrefix}icon-error`
-                            : undefined
-                        }
-                        variant={"outline"}
-                        className="h-[100px] w-full"
-                      />
-                    }
-                  >
-                    {values.icon ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <CategoryIcon
-                          icon={values.icon}
-                          iconKind={values.iconKind}
-                          iconColor={values.iconColor}
-                          className="size-10 text-3xl"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Click to change
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <CircleOff className="h-[40px] w-[40px]" />
-                        <p className="text-xs text-muted-foreground">
-                          Click to select
-                        </p>
-                      </div>
-                    )}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[22rem]">
-                    <CategoryIconPicker
-                      icon={values.icon}
-                      iconKind={values.iconKind}
-                      iconColor={values.iconColor}
-                      onChange={(next) =>
-                        setValues((current) => ({ ...current, ...next }))
+            <Field data-invalid={Boolean(state.fieldErrors.icon)}>
+              <FieldLabel htmlFor={`${idPrefix}icon`}>Icon</FieldLabel>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id={`${idPrefix}icon`}
+                      aria-invalid={Boolean(state.fieldErrors.icon)}
+                      aria-describedby={
+                        state.fieldErrors.icon
+                          ? `${idPrefix}icon-error`
+                          : undefined
                       }
+                      variant={"outline"}
+                      className="h-[100px] w-full"
                     />
-                  </PopoverContent>
-                </Popover>
-                {state.fieldErrors.icon ? (
-                  <FieldError id={`${idPrefix}icon-error`}>
-                    {state.fieldErrors.icon}
-                  </FieldError>
-                ) : null}
-              </Field>
-              <DialogFooter>
-                <DialogClose
-                  render={<Button variant={"secondary"} type="button" />}
+                  }
                 >
-                  Cancel
-                </DialogClose>
-                <FormSubmitButton>{copy.submit}</FormSubmitButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+                  {values.icon ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <CategoryIcon
+                        icon={values.icon}
+                        iconKind={values.iconKind}
+                        iconColor={values.iconColor}
+                        className="size-10 text-3xl"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Click to change
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <CircleOff className="h-[40px] w-[40px]" />
+                      <p className="text-xs text-muted-foreground">
+                        Click to select
+                      </p>
+                    </div>
+                  )}
+                </PopoverTrigger>
+                <PopoverContent className="w-[22rem]">
+                  <CategoryIconPicker
+                    icon={values.icon}
+                    iconKind={values.iconKind}
+                    iconColor={values.iconColor}
+                    onChange={(next) =>
+                      setValues((current) => ({ ...current, ...next }))
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+              {state.fieldErrors.icon ? (
+                <FieldError id={`${idPrefix}icon-error`}>
+                  {state.fieldErrors.icon}
+                </FieldError>
+              ) : null}
+            </Field>
+            <DialogFooter>
+              <DialogClose
+                render={<Button variant={"secondary"} type="button" />}
+              >
+                Cancel
+              </DialogClose>
+              <FormSubmitButton>{copy.submit}</FormSubmitButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </FormGate>
   );
 };
 

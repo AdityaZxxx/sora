@@ -1,19 +1,11 @@
 "use server";
 
-import type { DeleteIdSchemaType } from "@/schemas/delete";
-import type {
-  CreateGoalSchemaType,
-  UpdateGoalSchemaType,
-} from "@/schemas/goals";
-
 import { withHouseholdAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
 import {
-  fieldErrorsFromIssues,
   formDate,
-  formError,
   formText,
-  fromActionResult,
+  submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
 import {
@@ -24,86 +16,77 @@ import {
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateGoalSchema, UpdateGoalSchema } from "@/schemas/goals";
 
-export async function createGoal(form: CreateGoalSchemaType) {
-  return withHouseholdAction(
-    "Unable to create the goal. Check the name and target amount, then try again.",
-    async ({ caller }) => {
-      const created = await createHouseholdGoal(caller, form);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
-      return created;
-    },
-  );
-}
+const CREATE_ERROR =
+  "Unable to create the goal. Check the name and target amount, then try again.";
+const UPDATE_ERROR =
+  "Unable to update the goal. Check the name and target amount, then try again.";
+const DELETE_ERROR = "Unable to delete the goal. Check the goal and try again.";
 
-export async function updateGoal(form: UpdateGoalSchemaType) {
-  return withHouseholdAction(
-    "Unable to update the goal. Check the name and target amount, then try again.",
-    async ({ caller }) => {
-      const updated = await updateHouseholdGoal(caller, form);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
-      return updated;
-    },
-  );
-}
-
-export async function deleteGoal(form: DeleteIdSchemaType) {
-  return withHouseholdAction(
-    "Unable to delete the goal. Check the goal and try again.",
-    async ({ caller }) => {
-      const deleted = await deleteHouseholdGoal(caller, form.id);
-      revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
-      return deleted;
-    },
-  );
+function idField(formData: FormData) {
+  return { id: formText(formData, "id") };
 }
 
 export async function createGoalForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = CreateGoalSchema.safeParse({
-    name: formText(formData, "name"),
-    target: formText(formData, "target"),
-    deadline: formDate(formData, "deadline"),
+  return submitFormAction({
+    formData,
+    fields: (data) => ({
+      name: formText(data, "name"),
+      target: formText(data, "target"),
+      deadline: formDate(data, "deadline"),
+    }),
+    schema: CreateGoalSchema,
+    fallback: CREATE_ERROR,
+    success: "Goal added",
+    run: (input) =>
+      withHouseholdAction(CREATE_ERROR, async ({ caller }) => {
+        const created = await createHouseholdGoal(caller, input);
+        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+        return created;
+      }),
   });
-  if (!parsed.success) {
-    return formError(
-      "Unable to create the goal. Check the name and target amount, then try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(await createGoal(parsed.data), "Goal added");
 }
 
 export async function updateGoalForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = UpdateGoalSchema.safeParse({
-    id: formText(formData, "id"),
-    name: formText(formData, "name"),
-    target: formText(formData, "target"),
-    deadline: formDate(formData, "deadline") ?? null,
+  return submitFormAction({
+    formData,
+    fields: (data) => ({
+      ...idField(data),
+      name: formText(data, "name"),
+      target: formText(data, "target"),
+      deadline: formDate(data, "deadline") ?? null,
+    }),
+    schema: UpdateGoalSchema,
+    fallback: UPDATE_ERROR,
+    success: "Goal updated",
+    run: (input) =>
+      withHouseholdAction(UPDATE_ERROR, async ({ caller }) => {
+        const updated = await updateHouseholdGoal(caller, input);
+        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+        return updated;
+      }),
   });
-  if (!parsed.success) {
-    return formError(
-      "Unable to update the goal. Check the name and target amount, then try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(await updateGoal(parsed.data), "Goal updated");
 }
 
 export async function deleteGoalForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = DeleteIdSchema.safeParse({ id: formText(formData, "id") });
-  if (!parsed.success) {
-    return formError(
-      "Unable to delete the goal. Check the goal and try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(await deleteGoal(parsed.data), "Goal deleted");
+  return submitFormAction({
+    formData,
+    fields: idField,
+    schema: DeleteIdSchema,
+    fallback: DELETE_ERROR,
+    success: "Goal deleted",
+    run: (input) =>
+      withHouseholdAction(DELETE_ERROR, async ({ caller }) => {
+        await deleteHouseholdGoal(caller, input.id);
+        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+      }),
+  });
 }

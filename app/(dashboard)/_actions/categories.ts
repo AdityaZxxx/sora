@@ -1,11 +1,5 @@
 "use server";
 
-import type {
-  CreateCategorySchemaType,
-  UpdateCategorySchemaType,
-} from "@/schemas/categories";
-import type { DeleteIdSchemaType } from "@/schemas/delete";
-
 import { withHouseholdAction } from "@/lib/action-result";
 import {
   createHouseholdCategory,
@@ -13,11 +7,10 @@ import {
   updateHouseholdCategory,
 } from "@/lib/categories";
 import {
-  fieldErrorsFromIssues,
-  formError,
   formOptionalText,
   formText,
-  fromActionResult,
+  idField,
+  submitFormAction,
   type FormActionState,
 } from "@/lib/form-action";
 import {
@@ -26,32 +19,12 @@ import {
 } from "@/schemas/categories";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-export async function CreateCategory(form: CreateCategorySchemaType) {
-  return withHouseholdAction(
-    "Unable to create the category. Check the name and icon, then try again.",
-    async ({ caller }) => {
-      return createHouseholdCategory(caller, form);
-    },
-  );
-}
-
-export async function UpdateCategory(form: UpdateCategorySchemaType) {
-  return withHouseholdAction(
-    "Unable to update the category. Check the name and icon, then try again.",
-    async ({ caller }) => {
-      return updateHouseholdCategory(caller, form);
-    },
-  );
-}
-
-export async function DeleteCategory(form: DeleteIdSchemaType) {
-  return withHouseholdAction(
-    "Unable to delete the category. Check the category and try again.",
-    async ({ caller }) => {
-      return deleteHouseholdCategory(caller, form.id);
-    },
-  );
-}
+const CREATE_ERROR =
+  "Unable to create the category. Check the name and icon, then try again.";
+const UPDATE_ERROR =
+  "Unable to update the category. Check the name and icon, then try again.";
+const DELETE_ERROR =
+  "Unable to delete the category. Check the category and try again.";
 
 function categoryFields(formData: FormData) {
   return {
@@ -67,49 +40,54 @@ export async function createCategoryForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = CreateCategorySchema.safeParse(categoryFields(formData));
-  if (!parsed.success) {
-    return formError(
-      "Unable to create the category. Check the name and icon, then try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(await CreateCategory(parsed.data), "Category added");
+  return submitFormAction({
+    formData,
+    fields: categoryFields,
+    schema: CreateCategorySchema,
+    fallback: CREATE_ERROR,
+    success: "Category added",
+    run: (input) =>
+      withHouseholdAction(CREATE_ERROR, async ({ caller }) => {
+        const created = await createHouseholdCategory(caller, input);
+        return created;
+      }),
+  });
 }
 
 export async function updateCategoryForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = UpdateCategorySchema.safeParse({
-    originalName: formText(formData, "originalName"),
-    ...categoryFields(formData),
+  return submitFormAction({
+    formData,
+    fields: (data) => ({
+      originalName: formText(data, "originalName"),
+      ...categoryFields(data),
+    }),
+    schema: UpdateCategorySchema,
+    fallback: UPDATE_ERROR,
+    success: "Category updated",
+    run: (input) =>
+      withHouseholdAction(UPDATE_ERROR, async ({ caller }) => {
+        const updated = await updateHouseholdCategory(caller, input);
+        return updated;
+      }),
   });
-  if (!parsed.success) {
-    return formError(
-      "Unable to update the category. Check the name and icon, then try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(
-    await UpdateCategory(parsed.data),
-    "Category updated",
-  );
 }
 
 export async function deleteCategoryForm(
   _previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const parsed = DeleteIdSchema.safeParse({ id: formText(formData, "id") });
-  if (!parsed.success) {
-    return formError(
-      "Unable to delete the category. Check the category and try again.",
-      fieldErrorsFromIssues(parsed.error.issues),
-    );
-  }
-  return fromActionResult(
-    await DeleteCategory(parsed.data),
-    "Category deleted",
-  );
+  return submitFormAction({
+    formData,
+    fields: idField,
+    schema: DeleteIdSchema,
+    fallback: DELETE_ERROR,
+    success: "Category deleted",
+    run: (input) =>
+      withHouseholdAction(DELETE_ERROR, async ({ caller }) => {
+        await deleteHouseholdCategory(caller, input.id);
+      }),
+  });
 }

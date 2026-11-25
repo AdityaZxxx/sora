@@ -8,6 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import {
   AlertDialog,
@@ -94,53 +96,49 @@ function ConfirmDialog({
   ));
 
   return (
-    <>
-      {!hydrated ? (
-        <form action={plainAction} className="space-y-3 rounded-lg border p-4">
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      className="space-y-3 rounded-lg border p-4"
+      plain={
+        <>
           <p className="font-medium">{title}</p>
           <p className="text-sm text-muted-foreground">{description}</p>
           {hiddenFields}
-          {plainState.status === "error" && (
-            <p role="alert" className="text-sm text-destructive">
-              {plainState.message}
-            </p>
-          )}
+          <FormActionErrors state={plainState} />
           <FormSubmitButton variant="destructive" pendingLabel={loadingLabel}>
             {confirmLabel}
           </FormSubmitButton>
-        </form>
-      ) : null}
-      <div className={hydrated ? undefined : "hidden"}>
-        <AlertDialog open={open} onOpenChange={setOpen}>
-          {trigger ? (
-            <AlertDialogTrigger render={trigger as ReactElement} />
-          ) : null}
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{title}</AlertDialogTitle>
-              <AlertDialogDescription>{description}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <form action={action}>
-              {hiddenFields}
-              {state.status === "error" && (
-                <p role="alert" className="pb-3 text-sm text-destructive">
-                  {state.message}
-                </p>
-              )}
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <FormSubmitButton
-                  variant="destructive"
-                  pendingLabel={loadingLabel}
-                >
-                  {confirmLabel}
-                </FormSubmitButton>
-              </AlertDialogFooter>
-            </form>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </>
+        </>
+      }
+    >
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        {trigger ? (
+          <AlertDialogTrigger render={trigger as ReactElement} />
+        ) : null}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
+            <AlertDialogDescription>{description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <form action={action}>
+            {hiddenFields}
+            <div className="pb-3">
+              <FormActionErrors state={state} />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <FormSubmitButton
+                variant="destructive"
+                pendingLabel={loadingLabel}
+              >
+                {confirmLabel}
+              </FormSubmitButton>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+    </FormGate>
   );
 }
 

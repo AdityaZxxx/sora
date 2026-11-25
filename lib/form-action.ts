@@ -34,6 +34,42 @@ export function fromActionResult<T>(
     : formError(result.message || fallback, fieldErrors);
 }
 
+type InputSchema<TRaw, TInput> = {
+  safeParse: (input: TRaw) =>
+    | { success: true; data: TInput }
+    | {
+        success: false;
+        error: {
+          issues: readonly { path: readonly PropertyKey[]; message: string }[];
+        };
+      };
+};
+
+export async function submitFormAction<TRaw, TInput, TResult>({
+  formData,
+  fields,
+  schema,
+  fallback,
+  success,
+  run,
+}: {
+  formData: FormData;
+  fields: (formData: FormData) => TRaw;
+  schema: InputSchema<TRaw, TInput>;
+  fallback: string;
+  success: string;
+  run: (input: TInput) => Promise<ActionResult<TResult>>;
+}): Promise<FormActionState<TResult>> {
+  const parsed = schema.safeParse(fields(formData));
+  if (!parsed.success) {
+    return formError<TResult>(
+      fallback,
+      fieldErrorsFromIssues(parsed.error.issues),
+    );
+  }
+  return fromActionResult(await run(parsed.data), success);
+}
+
 type FormIssue = { path: readonly PropertyKey[]; message: string };
 
 export function fieldErrorsFromIssues(issues: readonly FormIssue[]) {

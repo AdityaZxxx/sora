@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Separator } from "../../components/ui/separator";
-import { startHousehold } from "./_actions/household";
+import { GetStartedForm } from "./_components/GetStartedForm";
 
 export const instant = false;
 
@@ -41,11 +41,7 @@ const page = async () => {
           </h2>
         </div>
         <Separator />
-        <form action={startHousehold} className="w-full">
-          <Button type="submit" className="w-full">
-            Get started
-          </Button>
-        </form>
+        <GetStartedForm />
         <div className="mt-8">
           <Logo />
         </div>

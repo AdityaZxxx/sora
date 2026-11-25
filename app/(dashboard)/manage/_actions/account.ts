@@ -1,14 +1,17 @@
 "use server";
 
+import type { FormActionState } from "@/lib/form-action";
+
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { deleteUserAccount } from "@/lib/account";
-import { type ActionResult } from "@/lib/action-result";
 import { auth, getSession } from "@/lib/auth";
-import { fromActionResult, type FormActionState } from "@/lib/form-action";
 
-export async function deleteAccount(): Promise<ActionResult> {
+export async function deleteAccountForm(
+  _previous: FormActionState,
+  _formData: FormData,
+): Promise<FormActionState> {
   const session = await getSession();
   if (!session) {
     redirect("/sign-in");
@@ -29,11 +32,4 @@ export async function deleteAccount(): Promise<ActionResult> {
   });
 
   redirect("/sign-in");
-}
-
-export async function deleteAccountForm(
-  _previous: FormActionState,
-  _formData: FormData,
-): Promise<FormActionState> {
-  return fromActionResult(await deleteAccount(), "Your account was deleted");
 }

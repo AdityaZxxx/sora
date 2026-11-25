@@ -10,6 +10,8 @@ import { useActionState, useState } from "react";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
 
+import { FormActionErrors } from "@/components/FormActionErrors";
+import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -263,9 +265,11 @@ const GoalFormDialog = ({
   );
 
   return (
-    <>
-      {!hydrated ? (
-        <form action={plainAction} className="space-y-4 rounded-lg border p-4">
+    <FormGate
+      hydrated={hydrated}
+      action={plainAction}
+      plain={
+        <>
           <h2 className="text-lg font-medium">{copy.title}</h2>
           {goal ? <input type="hidden" name="id" value={goal.id} /> : null}
           <Field>
@@ -297,52 +301,43 @@ const GoalFormDialog = ({
               defaultValue={deadlineValue}
             />
           </Field>
-          {plainState.status === "error" ? (
-            <p role="alert" className="text-sm text-destructive">
-              {plainState.message}
-            </p>
-          ) : null}
+          <FormActionErrors state={plainState} />
           <FormSubmitButton className="w-auto">{copy.submit}</FormSubmitButton>
-        </form>
-      ) : null}
-      <div className={hydrated ? undefined : "hidden"}>
-        <Dialog
-          open={open}
-          onOpenChange={(next) => {
-            if (!next) resetDraft();
-            setOpen(next);
-          }}
-        >
-          {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-lg sm:text-lg">
-                {copy.title}
-              </DialogTitle>
-            </DialogHeader>
-            <form action={action} className="space-y-4">
-              {fields}
-              <DialogFooter>
-                <DialogClose
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-auto"
-                    />
-                  }
-                >
-                  Cancel
-                </DialogClose>
-                <FormSubmitButton className="w-auto">
-                  {copy.submit}
-                </FormSubmitButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+        </>
+      }
+    >
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) resetDraft();
+          setOpen(next);
+        }}
+      >
+        {trigger ? <DialogTrigger render={trigger as ReactElement} /> : null}
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-lg">
+              {copy.title}
+            </DialogTitle>
+          </DialogHeader>
+          <form action={action} className="space-y-4">
+            {fields}
+            <DialogFooter>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" className="w-auto" />
+                }
+              >
+                Cancel
+              </DialogClose>
+              <FormSubmitButton className="w-auto">
+                {copy.submit}
+              </FormSubmitButton>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </FormGate>
   );
 };
 
