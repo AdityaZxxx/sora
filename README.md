@@ -1,25 +1,25 @@
 # Sora
 
-Sora is a free finance app for individuals, couples, and households. Each household has one ledger for income and expenses, with budgets, goals, balances, and a scoped API for agents. There is no subscription and no advertising. Sora records what you owe and what you paid; it never holds, moves, or transfers money.
+Sora is a free finance app for individuals, couples, and households. Each wallet has one ledger for income and expenses, with budgets, goals, balances, and a scoped API for agents. There is no subscription and no advertising. Sora records what you owe and what you paid; it never holds, moves, or transfers money.
 
 ## How it works
 
-A **household** is the space where money records live. It can have one member or several, and every money record belongs to exactly one household. A one-member household is a first-class case, so the app addresses a solo user as a person rather than as a group.
+A **wallet** is the space where money records live. It has one member, in which case the app calls it a personal wallet, or several, in which case it is a shared household. Every money record belongs to exactly one wallet. Solo use is a first-class case, so the app addresses a solo user as a person rather than as a group.
 
-A wallet has four roles: owner, co-owner, member and viewer. Members add transactions and edit their own entries; owners and co-owners also manage budgets, goals, settings, invites and removals; only the owner changes roles and transfers ownership. Viewers read the ledger without writing. People join through a revocable invite link or QR code, and transactions a departing member added stay in the ledger with their name attached. Amounts are stored as fixed-point decimals and shown in the household's single currency, chosen at onboarding.
+A wallet has four roles: owner, co-owner, member and viewer. Members add transactions and edit their own entries; owners and co-owners also manage budgets, goals, settings, invites and removals; only the owner changes roles and transfers ownership. Viewers read the ledger without writing. People join through a revocable invite link or QR code, and transactions a departing member added stay in the ledger with their name attached. Amounts are stored as fixed-point decimals and shown in the wallet's own currency, chosen at onboarding.
 
 Sora is a ledger, not a bank. A **settlement** records that one member paid another what they owed; no funds move through the app. Recurring items produce an **Upcoming bills** list that a member confirms into a real transaction, so nothing posts automatically.
 
 ## Features
 
-- **Shared ledger.** Income and expense transactions, custom categories with icons, and filters over the transaction history. Shared transactions count toward household totals; personal transactions stay visible only to their author. Split a shared expense evenly, by amount, or by percent.
+- **Shared ledger.** Income and expense transactions, custom categories with icons, and filters over the transaction history. Every transaction counts toward its wallet totals. Split an expense evenly, by amount, or by percent. Settlements are separate records whose amounts only the two involved members see.
 - **Balances and settlements.** See who owes whom, simplify debts, and record a settlement as its own record. Only the two involved members see its amount. No money changes hands inside Sora.
-- **Budgets.** Monthly spending limits per category, either soft (warn at the limit) or hard (block an over-limit shared expense). Safe-to-spend totals the remaining budget for the month.
-- **Goals.** A household savings target with an optional deadline, funded by transactions tagged to the goal.
-- **Insights.** The household's own numbers: savings rate for the current month and the trend of monthly net over the last six months. Unusual spending is flagged in-app against a category's recent average.
+- **Budgets.** Monthly spending limits per category, either soft (warn at the limit) or hard (block an over-limit expense). Safe-to-spend totals the remaining budget for the month.
+- **Goals.** A wallet savings target with an optional deadline, funded by transactions tagged to the goal.
+- **Insights.** The active wallet's own numbers: savings rate for the current month and the trend of monthly net over the last six months. Unusual spending is flagged in-app against a category's recent average.
 - **Recurring items.** Weekly or monthly definitions with an Upcoming bills list. The member confirms the real date and amount before anything lands in the ledger.
-- **Agent access.** Enable it per household, issue scoped API tokens, and reach the same domain logic through the MCP endpoint at `/api/mcp` or the `sora` CLI. See [Agent access](#agent-access).
-- **Account and data.** Full JSON and CSV export, in-app account deletion that cascades household data, a short privacy page, optional email digest, and a light and dark theme.
+- **Agent access.** Enable it per wallet, issue scoped API tokens, and reach the same domain logic through the MCP endpoint at `/api/mcp` or the `sora` CLI. See [Agent access](#agent-access).
+- **Account and data.** Full JSON and CSV export, in-app account deletion that cascades sole-member wallets, a short privacy page, optional email digest, and a light and dark theme.
 
 Sora is in active development. The build order, milestones, and launch plan live in [docs/ROADMAP.md](docs/ROADMAP.md).
 
