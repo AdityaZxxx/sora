@@ -24,6 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -32,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 const NotificationBell = () => {
   const queryClient = useQueryClient();
+  const hydrated = useHydrated();
   const seenIdsRef = useRef<Set<string> | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
@@ -70,6 +72,7 @@ const NotificationBell = () => {
   const unreadCount = notifications.filter(
     (notification) => !notification.readAt,
   ).length;
+  const shownUnreadCount = hydrated ? unreadCount : 0;
   const hasUnreadWarning = notifications.some(
     (notification) =>
       !notification.readAt && notification.type === UNUSUAL_SPENDING_TYPE,
@@ -129,7 +132,7 @@ const NotificationBell = () => {
                     variant="ghost"
                     size="icon"
                     className="relative"
-                    aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+                    aria-label="Notifications"
                   />
                 }
               />
@@ -143,13 +146,13 @@ const NotificationBell = () => {
                   hasUnreadWarning ? "bg-amber-500" : "bg-destructive",
                 )}
               >
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {shownUnreadCount > 9 ? "9+" : shownUnreadCount}
               </span>
             )}
           </TooltipTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-[min(20rem,calc(100vw-2rem))]"
+            className="w-[22rem] max-w-[calc(100vw-2rem)]"
           >
             <div className="flex items-center justify-between px-2 py-1.5">
               <DropdownMenuGroup>
@@ -172,7 +175,7 @@ const NotificationBell = () => {
                 No notifications yet
               </p>
             ) : (
-              <ScrollArea viewportClassName="max-h-80">
+              <ScrollArea viewportClassName="max-h-80 pr-3">
                 {notifications.map((notification) => {
                   const isWarning = notification.type === UNUSUAL_SPENDING_TYPE;
                   const isUnread = !notification.readAt;
@@ -181,7 +184,7 @@ const NotificationBell = () => {
                     { addSuffix: true },
                   );
                   const rowClass = cn(
-                    "flex items-start gap-2 px-2 py-2",
+                    "flex items-start gap-2 px-2 py-2 whitespace-normal",
                     isUnread &&
                       (isWarning ? "bg-amber-500/10" : "bg-accent/50"),
                   );
@@ -195,7 +198,12 @@ const NotificationBell = () => {
                   ) : null;
                   const content = (
                     <>
-                      <p className={cn("text-sm", isUnread && "font-medium")}>
+                      <p
+                        className={cn(
+                          "text-sm break-words",
+                          isUnread && "font-medium",
+                        )}
+                      >
                         {notification.message}
                       </p>
                       <time
