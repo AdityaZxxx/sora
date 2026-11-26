@@ -58,7 +58,7 @@ model Wallet {
   notifications Notification[]
   monthHistory MonthHistory[]
   yearHistory  YearHistory[]
-  apiTokens    ApiToken[]
+  apiTokenWallets ApiTokenWallet[]
   recurringItems RecurringItem[]
 }
 
@@ -96,8 +96,6 @@ model InviteLink {
 // stored, so the plaintext is shown once at creation and never again.
 model ApiToken {
   id          String    @id @default(uuid())
-  walletId String
-  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
@@ -107,6 +105,16 @@ model ApiToken {
   createdAt   DateTime  @default(now())
   revokedAt   DateTime?
 
+  wallets ApiTokenWallet[]
+}
+
+model ApiTokenWallet {
+  tokenId  String
+  token    ApiToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  walletId String
+  wallet   Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@id([tokenId, walletId])
   @@index([walletId])
 }
 

@@ -1,26 +1,21 @@
 import type { TokenScope } from "@/lib/types";
 import type {
   ApiToken,
-  Wallet,
-  WalletMembership,
   Prisma,
   User,
+  Wallet,
+  WalletMembership,
 } from "@prisma/client";
 
 import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
-import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import {
-  assertCallerCanManage,
-  assertCallerCanWrite,
-  type Caller,
-} from "@/lib/caller";
+import { assertCallerCanWrite, type Caller } from "@/lib/caller";
 import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { parseMemberRole } from "@/lib/roles";
+import { assertCanManage, parseMemberRole } from "@/lib/roles";
 import {
   CreateApiTokenSchema,
   RevokeApiTokenSchema,
@@ -39,6 +34,8 @@ export function generateApiToken() {
   return { token, tokenHash: hashApiToken(token) };
 }
 
+export const TOKEN_WALLET_HEADER = "x-sora-wallet";
+
 export type TokenAuth =
   | {
       ok: true;
@@ -50,7 +47,10 @@ export type TokenAuth =
     }
   | { ok: false; status: number; error: string };
 
-export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
+export async function requireToken(
+  scope: TokenScope,
+  requestedWalletId?: string | null,
+): Promise<TokenAuth> {
   const authorization = (await headers()).get("authorization");
   const presented = authorization?.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length).trim()
@@ -62,7 +62,10 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
 
   const token = await prisma.apiToken.findUnique({
     where: { tokenHash: hashApiToken(presented) },
-    include: { wallet: true, user: true },
+    include: {
+      user: true,
+      wallets: { include: { wallet: true } },
+    },
   });
 
   if (!token || token.revokedAt) {
@@ -73,7 +76,28 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     return { ok: false, status: 401, error: "This token has expired" };
   }
 
-  if (!token.wallet.agentAccessEnabled) {
+  const allowed = token.wallets.map((entry) => entry.wallet);
+  const wallet = requestedWalletId
+    ? allowed.find((entry) => entry.id === requestedWalletId)
+    : allowed.length === 1
+      ? allowed[0]
+      : undefined;
+
+  if (requestedWalletId && !wallet) {
+    return {
+      ok: false,
+      status: 403,
+      error: "This token is not scoped to that wallet",
+    };
+  }
+  if (!wallet) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Choose a wallet with the ${TOKEN_WALLET_HEADER} header`,
+    };
+  }
+  if (!wallet.agentAccessEnabled) {
     return {
       ok: false,
       status: 401,
@@ -84,7 +108,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
   const membership = await prisma.walletMembership.findUnique({
     where: {
       walletId_userId: {
-        walletId: token.walletId,
+        walletId: wallet.id,
         userId: token.userId,
       },
       leftAt: null,
@@ -100,7 +124,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
   }
 
   const caller: Caller = {
-    walletId: token.walletId,
+    walletId: wallet.id,
     userId: token.userId,
     role: parseMemberRole(membership.role),
     scope: token.scope as TokenScope,
@@ -125,14 +149,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
     }
   }
 
-  return {
-    ok: true,
-    wallet: token.wallet,
-    user: token.user,
-    membership,
-    token,
-    caller,
-  };
+  return { ok: true, wallet, user: token.user, membership, token, caller };
 }
 
 const apiTokenSelect = {
@@ -141,10 +158,17 @@ const apiTokenSelect = {
   scope: true,
   createdAt: true,
   expiresAt: true,
-  user: {
+  revokedAt: true,
+  wallets: {
     select: {
-      id: true,
-      name: true,
+      wallet: {
+        select: {
+          id: true,
+          name: true,
+          currency: true,
+          agentAccessEnabled: true,
+        },
+      },
     },
   },
 } as const;
@@ -154,7 +178,7 @@ export type ApiTokenSummary = Prisma.ApiTokenGetPayload<{
 }>;
 
 export async function createApiToken(
-  caller: Caller,
+  userId: string,
   input: CreateApiTokenSchemaType,
 ): Promise<{ id: string; token: string }> {
   const parsed = CreateApiTokenSchema.safeParse(input);
@@ -164,32 +188,52 @@ export async function createApiToken(
     );
   }
 
-  const wallet = await prisma.wallet.findUnique({
-    where: { id: caller.walletId },
-    select: { agentAccessEnabled: true },
+  const { name, scope, expiresAt, walletIds } = parsed.data;
+
+  const wallets = await prisma.wallet.findMany({
+    where: {
+      id: { in: walletIds },
+      memberships: { some: { userId, leftAt: null } },
+    },
+    select: { id: true, agentAccessEnabled: true },
   });
-  if (!wallet?.agentAccessEnabled) {
+  if (wallets.length !== walletIds.length) {
+    throw new DomainError("Choose wallets you belong to");
+  }
+  if (wallets.some((wallet) => !wallet.agentAccessEnabled)) {
     throw new DomainError(
-      "Agent access is off for this wallet. Turn it on and try again.",
+      "Turn on agent access for every selected wallet before creating a token",
     );
   }
 
-  if (parsed.data.scope === READ_WRITE_SCOPE) {
-    assertCallerCanWrite(
-      caller,
-      "Viewers cannot create a read-write token. Choose read only instead.",
-    );
+  if (scope === READ_WRITE_SCOPE) {
+    const viewer = await prisma.walletMembership.findFirst({
+      where: {
+        userId,
+        walletId: { in: walletIds },
+        leftAt: null,
+        role: "viewer",
+      },
+      select: { walletId: true },
+    });
+    if (viewer) {
+      throw new DomainError(
+        "Viewers cannot create a read-write token. Choose read only instead.",
+      );
+    }
   }
 
   const { token, tokenHash } = generateApiToken();
   const created = await prisma.apiToken.create({
     data: {
-      walletId: caller.walletId,
-      userId: caller.userId,
-      name: parsed.data.name,
-      scope: parsed.data.scope,
+      userId,
+      name,
+      scope,
       tokenHash,
-      expiresAt: parsed.data.expiresAt ?? null,
+      expiresAt: expiresAt ?? null,
+      wallets: {
+        create: walletIds.map((walletId) => ({ walletId })),
+      },
     },
   });
 
@@ -197,26 +241,21 @@ export async function createApiToken(
 }
 
 export async function listApiTokens(
-  walletId: string,
+  userId: string,
 ): Promise<ApiTokenSummary[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(walletTag(walletId, CACHE_RESOURCE.apiTokens));
+  cacheTag(`user:${userId}:api-tokens`);
 
   return await prisma.apiToken.findMany({
-    where: {
-      walletId,
-      revokedAt: null,
-    },
+    where: { userId },
     select: apiTokenSelect,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
   });
 }
 
 export async function revokeApiToken(
-  caller: Caller,
+  userId: string,
   input: RevokeApiTokenSchemaType,
 ) {
   const parsed = RevokeApiTokenSchema.safeParse(input);
@@ -226,60 +265,50 @@ export async function revokeApiToken(
     );
   }
 
-  const token = await prisma.apiToken.findFirst({
-    where: {
-      id: parsed.data.id,
-      walletId: caller.walletId,
-    },
-    select: {
-      id: true,
-      userId: true,
-    },
+  const result = await prisma.apiToken.updateMany({
+    where: { id: parsed.data.id, userId, revokedAt: null },
+    data: { revokedAt: new Date() },
   });
-
-  if (!token) {
+  if (result.count === 0) {
     throw new DomainError(
       "Token not found. It may have been revoked. Refresh and try again.",
     );
   }
-
-  if (token.userId !== caller.userId) {
-    assertCallerCanManage(
-      caller,
-      "Only an owner or co-owner can revoke another member's token",
-    );
-  }
-
-  await prisma.apiToken.updateMany({
-    where: {
-      id: token.id,
-      revokedAt: null,
-    },
-    data: { revokedAt: new Date() },
-  });
 }
 
 export async function setAgentAccess(
-  caller: Caller,
-  enabled: SetAgentAccessSchemaType["enabled"],
+  userId: string,
+  input: SetAgentAccessSchemaType,
 ) {
-  assertCallerCanManage(caller);
-
-  const parsed = SetAgentAccessSchema.safeParse({ enabled });
+  const parsed = SetAgentAccessSchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(parsed.error.issues[0]?.message ?? "Invalid setting");
   }
 
+  const membership = await prisma.walletMembership.findUnique({
+    where: {
+      walletId_userId: {
+        walletId: parsed.data.walletId,
+        userId,
+      },
+      leftAt: null,
+    },
+  });
+  if (!membership) {
+    throw new DomainError("You cannot change agent access for this wallet");
+  }
+  assertCanManage(parseMemberRole(membership.role));
+
   await prisma.$transaction(async (tx) => {
     await tx.wallet.update({
-      where: { id: caller.walletId },
-      data: { agentAccessEnabled: enabled },
+      where: { id: parsed.data.walletId },
+      data: { agentAccessEnabled: parsed.data.enabled },
     });
 
-    if (!enabled) {
+    if (!parsed.data.enabled) {
       await tx.apiToken.updateMany({
         where: {
-          walletId: caller.walletId,
+          wallets: { some: { walletId: parsed.data.walletId } },
           revokedAt: null,
         },
         data: { revokedAt: new Date() },

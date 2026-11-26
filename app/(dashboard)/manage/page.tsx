@@ -3,7 +3,6 @@ import { type Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { listApiTokens } from "@/lib/api-token";
 import { getBudgetsWithProgress } from "@/lib/budgets";
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { getCategories } from "@/lib/categories";
@@ -43,12 +42,11 @@ const SeededManage = async () => {
   }
 
   const walletId = result.wallet.id;
-  const [incomeCategories, expenseCategories, budgets, apiTokens, inviteLinks] =
+  const [incomeCategories, expenseCategories, budgets, inviteLinks] =
     await Promise.all([
       getCategories(walletId, "income"),
       getCategories(walletId, "expense"),
       getBudgetsWithProgress(walletId),
-      listApiTokens(walletId),
       listInviteLinks(walletId),
     ]);
 
@@ -57,13 +55,11 @@ const SeededManage = async () => {
       seedQuery(queryKeys.categories("income"), incomeCategories),
       seedQuery(queryKeys.categories("expense"), expenseCategories),
       seedQuery(queryKeys.budgets, budgets),
-      seedQuery(queryKeys.apiTokens, apiTokens),
       seedQuery(queryKeys.inviteLinks, inviteLinks),
     ],
     [
       walletTag(walletId, CACHE_RESOURCE.categories),
       walletTag(walletId, CACHE_RESOURCE.budgets),
-      walletTag(walletId, CACHE_RESOURCE.apiTokens),
       walletTag(walletId, CACHE_RESOURCE.invites),
     ],
   );

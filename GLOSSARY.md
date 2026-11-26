@@ -35,6 +35,12 @@ _Avoid_: admin
 A member who reads the ledger, balances, budgets and goals without writing.
 _Avoid_: view-only member
 
+**API token**:
+A user owned credential for the MCP endpoint and CLI. It lists the wallets it may reach and an access level of read only or read write. Effective access is the intersection with the current role in each listed wallet.
+
+**Account Settings**:
+The page for user scope concerns: profile, authentication, appearance, agent access and account deletion. Wallet data stays on Manage.
+
 **Invite link**:
 A revocable, shareable link (also shown as a QR code) that adds a person to a household when they sign in through it.
 _Avoid_: invite code, email invite

@@ -1,7 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
 import { rejection } from "@/lib/api-route";
-import { requireToken } from "@/lib/api-token";
+import { requireToken, TOKEN_WALLET_HEADER } from "@/lib/api-token";
 import { READ_ONLY_SCOPE } from "@/lib/constants";
 import { contextFromToken } from "@/lib/mcp/context";
 import { createMcpServer } from "@/lib/mcp/server";
@@ -11,7 +11,7 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, mcp-session-id, mcp-protocol-version, Last-Event-ID",
+    "Authorization, X-Sora-Wallet, Content-Type, mcp-session-id, mcp-protocol-version, Last-Event-ID",
   "Access-Control-Expose-Headers": "mcp-session-id, mcp-protocol-version",
 };
 
@@ -20,7 +20,8 @@ export function OPTIONS() {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireToken(READ_ONLY_SCOPE);
+  const walletId = request.headers.get(TOKEN_WALLET_HEADER);
+  const auth = await requireToken(READ_ONLY_SCOPE, walletId);
 
   if (!auth.ok) {
     return rejection(auth.error, auth.status, CORS_HEADERS);

@@ -297,24 +297,22 @@ async function main() {
 
   const readWriteToken = newToken();
   const readOnlyToken = newToken();
-  await prisma.apiToken.createMany({
-    data: [
-      {
-        walletId,
-        userId: averyId,
-        name: "verification read-write",
-        scope: "read-write",
-        tokenHash: hashToken(readWriteToken),
-      },
-      {
-        walletId,
-        userId: averyId,
-        name: "verification read-only",
-        scope: "read-only",
-        tokenHash: hashToken(readOnlyToken),
-      },
-    ],
-  });
+  await Promise.all(
+    [
+      ["verification read-write", "read-write", readWriteToken],
+      ["verification read-only", "read-only", readOnlyToken],
+    ].map(([name, scope, plain]) =>
+      prisma.apiToken.create({
+        data: {
+          userId: averyId,
+          name,
+          scope,
+          tokenHash: hashToken(plain),
+          wallets: { create: { walletId } },
+        },
+      }),
+    ),
+  );
 
   const expected = {
     overview: { income: 5000, expenses: 1900.5, net: 3099.5 },

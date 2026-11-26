@@ -611,24 +611,22 @@ async function main() {
 
   const readWriteToken = newToken();
   const readOnlyToken = newToken();
-  await prisma.apiToken.createMany({
-    data: [
-      {
-        walletId,
-        userId: averyId,
-        name: "average read-write",
-        scope: "read-write",
-        tokenHash: hashToken(readWriteToken),
-      },
-      {
-        walletId,
-        userId: blakeId,
-        name: "average read-only",
-        scope: "read-only",
-        tokenHash: hashToken(readOnlyToken),
-      },
-    ],
-  });
+  await Promise.all(
+    [
+      [averyId, "average read-write", "read-write", readWriteToken],
+      [blakeId, "average read-only", "read-only", readOnlyToken],
+    ].map(([userId, name, scope, plain]) =>
+      prisma.apiToken.create({
+        data: {
+          userId,
+          name,
+          scope,
+          tokenHash: hashToken(plain),
+          wallets: { create: { walletId } },
+        },
+      }),
+    ),
+  );
 
   // Expected values, computed from the rows we really seeded.
   const all = await prisma.transaction.findMany({

@@ -170,6 +170,7 @@ Run `stop` after every failed attempt too, so a broken iteration does not strand
 | `features/goals.md`                | Goals, their progress, and contributions                                   |
 | `features/balances-settlements.md` | Who owes what, and recording a settlement                                  |
 | `features/manage.md`               | Space name, invite links, members, digest, export, account deletion        |
+| `features/account-settings.md`     | Profile, authentication, appearance and account deletion                   |
 | `features/agent-access.md`         | Agent access, API tokens, and what a token can do                          |
 | `features/validation.md`           | Rejected input at the web form, MCP surface, and the CLI                   |
 

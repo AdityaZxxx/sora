@@ -130,6 +130,7 @@ export function usage(): string {
     "",
     "Flags:",
     "  -h, --help    Show the help of a command.",
+    "  --wallet ID   Choose which allowed wallet a token acts on.",
     "",
     'Run "sora <command> --help" for the flags of one command.',
     "",

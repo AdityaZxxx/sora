@@ -17,7 +17,7 @@ const FAILURE = 1;
 const NO_TOKEN = [
   "No Sora token found.",
   "",
-  'Create a token on the Manage page under "Agent access", then give it to the CLI:',
+  'Create a token on Account Settings under "Agent access", then give it to the CLI:',
   "",
   "  SORA_TOKEN=<token> sora balance",
   '  or write {"token":"<token>"} to ~/.config/sora/config.json',
@@ -61,10 +61,12 @@ async function run(argv: string[]): Promise<number> {
     throw new CliError(NO_TOKEN);
   }
 
-  const outcome = await callTool(endpoint, token, {
-    name: command.tool,
-    arguments: toolArguments,
-  });
+  const outcome = await callTool(
+    endpoint,
+    token,
+    { name: command.tool, arguments: toolArguments },
+    values.wallet,
+  );
 
   if (outcome.isError) {
     process.stderr.write(`${outcome.text}\n`);
@@ -85,6 +87,7 @@ function parseFlags(
 ): { help: boolean; values: FlagValues } {
   const options: ParseArgsOptionsConfig = {
     help: { type: "boolean", short: "h" },
+    wallet: { type: "string" },
   };
 
   for (const entry of command.flags) {
