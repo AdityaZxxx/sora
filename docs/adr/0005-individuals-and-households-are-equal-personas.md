@@ -8,7 +8,7 @@ The personal wallet is marked on the user's first membership and stays separate 
 
 - The Wallet switcher is always visible. A one-member personal wallet is labelled Personal wallet, and New wallet is reachable from the switcher. Sharing is offered, never pushed.
 - The Shared/Personal choice in the transaction dialog does not exist. Every transaction belongs to exactly one wallet and counts toward that wallet's rollups, budgets, goals, and charts. A personal wallet has one member, so its money is private by construction and stays correct if the user later adds a member.
-- Household-only features (Balances, SharedSpendingCard, SimplifyDebts) hide below their member-count threshold, which already holds; new features must ship with a solo path, not a shared-only one.
+- Balances, SharedSpendingCard and SimplifyDebts hide below their member-count threshold. Settlement history is the exception: it appears whenever settlements exist, even at one member, so history stays readable after a departure. New features must ship with a solo path, not a shared-only one.
 - When the product needs new shared infrastructure (for example recurring bill definitions), it defaults to household scope like everything else, visible to all members, and stays correct for a one-member household.
 - Docs, glossary, roadmap, and the future landing page name both personas. In UI copy, a one-member household is never addressed as a "household".
 

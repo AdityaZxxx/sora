@@ -13,7 +13,7 @@ Sora is a ledger, not a bank. A **settlement** records that one member paid anot
 ## Features
 
 - **Shared ledger.** Income and expense transactions, custom categories with icons, and filters over the transaction history. Shared transactions count toward household totals; personal transactions stay visible only to their author. Split a shared expense evenly, by amount, or by percent.
-- **Balances and settlements.** See who owes whom, simplify debts, and record a settlement as a transaction. No money changes hands inside Sora.
+- **Balances and settlements.** See who owes whom, simplify debts, and record a settlement as its own record. Only the two involved members see its amount. No money changes hands inside Sora.
 - **Budgets.** Monthly spending limits per category, either soft (warn at the limit) or hard (block an over-limit shared expense). Safe-to-spend totals the remaining budget for the month.
 - **Goals.** A household savings target with an optional deadline, funded by transactions tagged to the goal.
 - **Insights.** The household's own numbers: savings rate for the current month and the trend of monthly net over the last six months. Unusual spending is flagged in-app against a category's recent average.

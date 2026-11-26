@@ -49,6 +49,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
   const [open, setOpen] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [amount, setAmount] = useState(0);
+  const [direction, setDirection] = useState<"paid" | "received">("paid");
 
   const queryClient = useQueryClient();
 
@@ -80,6 +81,9 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.simplifiedDebts,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settlements,
       });
       setMemberId("");
       setAmount(0);
@@ -114,7 +118,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
       return;
     }
     toast.loading("Recording settlement…", { id: "record-settlement" });
-    mutate({ memberId, amount });
+    mutate({ memberId, amount, direction });
   };
 
   return (
@@ -127,6 +131,29 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
           </DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit}>
+          <Field>
+            <FieldLabel htmlFor="settlement-direction">Direction</FieldLabel>
+            <Select
+              value={direction}
+              onValueChange={(value) => {
+                if (value === "paid" || value === "received")
+                  setDirection(value);
+              }}
+              items={{ paid: "I paid them", received: "I received from them" }}
+            >
+              <SelectTrigger id="settlement-direction" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paid">I paid them</SelectItem>
+                <SelectItem value="received">I received from them</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldDescription className="text-xs sm:text-sm">
+              Record a payment you made or received yourself.
+            </FieldDescription>
+          </Field>
+
           <Field>
             <FieldLabel htmlFor="settlement-member">Member</FieldLabel>
             <Select
@@ -151,7 +178,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
               </SelectContent>
             </Select>
             <FieldDescription className="text-xs sm:text-sm">
-              The member you paid. The settlement is recorded under your name.
+              The other member in the settlement.
             </FieldDescription>
           </Field>
 
@@ -173,7 +200,7 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
               allowNegative={false}
             />
             <FieldDescription className="text-xs sm:text-sm">
-              How much you paid them
+              The amount that moved outside Sora
             </FieldDescription>
           </Field>
 

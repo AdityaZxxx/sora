@@ -47,7 +47,7 @@ const SimplifyDebts = ({ currency }: Props) => {
           <CardTitle className="text-lg">Simplify debts</CardTitle>
           <CardDescription>
             The fewest transfers that settle every balance. No money moves
-            inside the app. Record what you paid as a Settlement.
+            inside the app. Record a settlement you paid or received.
           </CardDescription>
         </CardHeader>
         <CardContent>

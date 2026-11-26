@@ -11,6 +11,7 @@ import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
 import { moneyText } from "@/lib/money";
+import { listSettlements } from "@/lib/settlements";
 import {
   getBalanceStats,
   getTransactionsHistory,
@@ -251,6 +252,35 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             iconKind: category.iconKind,
             iconColor: category.iconColor,
             type: category.type,
+          })),
+        });
+      } catch (error) {
+        return toolError(toolErrorMessage(error));
+      }
+    },
+  );
+  server.registerTool(
+    "list_settlements",
+    {
+      title: "List settlements",
+      description:
+        "Settlements recorded in this Wallet. Only the two parties see amounts and names; other members see a masked entry.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const settlements = await listSettlements(
+          context.walletId,
+          context.userId,
+        );
+        return toolResult({
+          settlements: settlements.map((settlement) => ({
+            id: settlement.id,
+            date: settlement.date.toISOString(),
+            amount:
+              settlement.amount === null ? null : moneyText(settlement.amount),
+            payerName: settlement.payerName,
+            receiverName: settlement.receiverName,
           })),
         });
       } catch (error) {

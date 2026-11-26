@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 export const CACHE_RESOURCE = {
   transactions: "transactions",
   balances: "balances",
+  settlements: "settlements",
   budgets: "budgets",
   goals: "goals",
   insights: "insights",
