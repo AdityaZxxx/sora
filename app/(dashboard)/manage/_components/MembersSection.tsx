@@ -3,6 +3,7 @@ import type { listMembers } from "@/lib/members";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +17,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -68,6 +78,11 @@ const MembersSection = () => {
   });
 
   const { role: callerRole, canManage, isOwner } = useCallerRole();
+  const [transferTarget, setTransferTarget] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [ownerLeaveOpen, setOwnerLeaveOpen] = useState(false);
 
   const { mutate: toggleDigest, isPending: isTogglingDigest } = useMutation({
     mutationFn: async (input: Parameters<typeof setEmailDigest>[0]) => {
@@ -225,6 +240,16 @@ const MembersSection = () => {
                               ) {
                                 return;
                               }
+                              if (
+                                role === OWNER_ROLE &&
+                                member.role === CO_OWNER_ROLE
+                              ) {
+                                setTransferTarget({
+                                  userId: member.user.id,
+                                  name: member.user.name,
+                                });
+                                return;
+                              }
                               changeRole({
                                 userId: member.user.id,
                                 role: parseMemberRole(role),
@@ -315,9 +340,14 @@ const MembersSection = () => {
         <CardFooter>
           {!isLoading &&
             (callerRole === OWNER_ROLE ? (
-              <p className="text-sm text-muted-foreground">
-                Promote a co-owner to owner before leaving this wallet.
-              </p>
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive hover:text-destructive sm:w-auto"
+                onClick={() => setOwnerLeaveOpen(true)}
+              >
+                <LogOut className="h-4 w-4" />
+                Leave wallet
+              </Button>
             ) : (
               <LeaveWalletDialog
                 memberCount={members.length}
@@ -336,6 +366,81 @@ const MembersSection = () => {
             ))}
         </CardFooter>
       </Card>
+
+      <Dialog
+        open={transferTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setTransferTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Make {transferTarget?.name} the owner?</DialogTitle>
+            <DialogDescription>
+              You will become a co-owner. The change takes effect immediately
+              and cannot be undone from this screen.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button
+              onClick={() => {
+                if (!transferTarget) return;
+                changeRole({
+                  userId: transferTarget.userId,
+                  role: OWNER_ROLE,
+                });
+                setTransferTarget(null);
+              }}
+            >
+              Transfer ownership
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ownerLeaveOpen} onOpenChange={setOwnerLeaveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer ownership before leaving</DialogTitle>
+            <DialogDescription>
+              Choose a co-owner to become the new owner. You will become a
+              co-owner and can then leave.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {members.filter((member) => member.role === CO_OWNER_ROLE)
+              .length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Appoint a co-owner in the role list first, then come back here
+                to leave.
+              </p>
+            ) : (
+              members
+                .filter((member) => member.role === CO_OWNER_ROLE)
+                .map((member) => (
+                  <Button
+                    key={member.userId}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      changeRole({
+                        userId: member.userId,
+                        role: OWNER_ROLE,
+                      });
+                      setOwnerLeaveOpen(false);
+                    }}
+                  >
+                    <span>Make {member.user.name} owner</span>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
