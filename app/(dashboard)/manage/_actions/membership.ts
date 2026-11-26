@@ -24,6 +24,7 @@ import {
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyWalletExcept } from "@/lib/notifications";
+import { roleLabel } from "@/lib/roles";
 import {
   clearActiveWalletCookie,
   firstWalletIdForUser,
@@ -103,7 +104,7 @@ export async function setMemberRole(
         caller.walletId,
         form.userId,
         "member_role",
-        `${caller.actorName} set your role to ${nextRole} in this wallet.`,
+        `${caller.actorName} set your role to ${roleLabel(nextRole).toLowerCase()} in this wallet.`,
       );
       revalidateWallet(caller.walletId, [
         CACHE_RESOURCE.members,
