@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useWallets } from "@/hooks/use-wallets";
+import { useWallets, type WalletsResponse } from "@/hooks/use-wallets";
 import { DEFAULT_WALLET_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,17 @@ import {
   createWallet,
   switchWallet,
 } from "../app/(dashboard)/manage/_actions/wallets";
+
+type WalletLabelInput = Pick<
+  WalletsResponse["wallets"][number],
+  "name" | "isPersonal" | "memberCount"
+>;
+
+function labelFor(wallet: WalletLabelInput) {
+  return wallet.isPersonal && wallet.memberCount === 1
+    ? "Personal wallet"
+    : (wallet.name ?? DEFAULT_WALLET_NAME);
+}
 
 interface WalletSwitcherProps {
   variant?: "default" | "row";
@@ -53,7 +64,6 @@ export default function WalletSwitcher({
   const wallets = walletsQuery.data?.wallets ?? [];
   const activeId = walletsQuery.data?.active.id;
   const active = wallets.find((wallet) => wallet.id === activeId);
-
   const { mutate: switchTo, isPending: isSwitching } = useMutation({
     mutationFn: switchWallet,
     onSuccess: () => {
@@ -85,12 +95,6 @@ export default function WalletSwitcher({
     },
   });
 
-  const showSwitcher = !walletsQuery.isSuccess || wallets.length > 1;
-
-  if (!showSwitcher) {
-    return null;
-  }
-
   return (
     <>
       <DropdownMenu>
@@ -119,7 +123,7 @@ export default function WalletSwitcher({
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
                 <span className="truncate text-sm leading-5 font-medium">
-                  {active?.name ?? "Wallet"}
+                  {active ? labelFor(active) : "Wallet"}
                 </span>
                 {active && (
                   <span className="text-xs leading-4 text-muted-foreground">
@@ -134,7 +138,7 @@ export default function WalletSwitcher({
             <>
               <House className="h-4 w-4" />
               <span className="max-w-32 truncate">
-                {active?.name ?? "Wallet"}
+                {active ? labelFor(active) : "Wallet"}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </>
@@ -161,7 +165,7 @@ export default function WalletSwitcher({
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">
-                  {wallet.name ?? DEFAULT_WALLET_NAME}
+                  {labelFor(wallet)}
                 </span>
                 <span
                   className={cn(

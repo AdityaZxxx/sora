@@ -97,7 +97,7 @@ export async function GET() {
     const members = paginate(
       (cursor: MembershipCursor | null) =>
         prisma.walletMembership.findMany({
-          where: { walletId },
+          where: { walletId, leftAt: null },
           select: {
             userId: true,
             joinedAt: true,

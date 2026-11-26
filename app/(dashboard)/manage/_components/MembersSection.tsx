@@ -1,5 +1,5 @@
 "use client";
-import type { listMembers } from "@/lib/members";
+import type { listFormerMembers, listMembers } from "@/lib/members";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
@@ -54,6 +54,16 @@ const MembersSection = () => {
   const { data: session } = useSession();
 
   const queryClient = useQueryClient();
+
+  const formerMembersQuery = useQuery({
+    queryKey: queryKeys.formerMembers,
+    queryFn: () =>
+      fetchReadJson<Awaited<ReturnType<typeof listFormerMembers>>>(
+        "/api/former-members",
+        "Unable to load past members. Refresh the page and try again.",
+      ),
+    staleTime: QUERY_STALE_TIME,
+  });
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.walletMembers,
@@ -292,6 +302,21 @@ const MembersSection = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {formerMembersQuery.data && formerMembersQuery.data.length > 0 && (
+            <div className="mt-6 border-t pt-4">
+              <p className="pb-2 text-xs font-medium text-muted-foreground">
+                Past members
+              </p>
+              {formerMembersQuery.data.map((member) => (
+                <p
+                  key={member.userId}
+                  className="py-1 text-sm text-muted-foreground"
+                >
+                  {member.user.name} left this wallet
+                </p>
+              ))}
             </div>
           )}
         </CardContent>

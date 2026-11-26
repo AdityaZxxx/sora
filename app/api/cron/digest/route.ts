@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const memberships = await prisma.walletMembership.findMany({
     where: {
       emailDigest: true,
+      leftAt: null,
     },
     include: {
       user: {

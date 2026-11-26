@@ -44,6 +44,7 @@ Keep implementation details out of the map. Name only user paths, stable handles
 
 ## Features
 
+- [Wallets](./wallets.md) covers the personal wallet, creating a second wallet, switching, invite joins and invite rotation.
 - [Onboarding](./onboarding.md) covers signing up, the currency wizard, and the first empty dashboard.
 - [Overview](./overview.md) covers the dashboard's totals, its category breakdowns, the shared spending card, and the history chart.
 - [Transactions](./transactions.md) covers the transaction table, its filters, the CSV export, and adding and deleting a transaction.

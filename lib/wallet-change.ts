@@ -101,6 +101,7 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
     serverTags: ["members"],
     clientKeys: [
       queryKeys.walletMembers,
+      queryKeys.formerMembers,
       queryKeys.wallets,
       queryKeys.balances,
       queryKeys.simplifiedDebts,

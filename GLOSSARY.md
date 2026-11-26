@@ -8,6 +8,10 @@ Sora is a free finance app for individuals and for couples and households. This 
 A sign-in identity (email/password or Google). A user exists independently of any household.
 _Avoid_: member, partner
 
+**Personal wallet**:
+The wallet created at first run and marked as the user's personal wallet. It holds private money while it has one member. Additional shared households are separate wallets and never replace it.
+_Avoid_: personal household
+
 **Household**:
 The space where a person keeps their finances, alone or shared. A couple or family keeps theirs together; an individual keeps their own. All money records belong to exactly one household. A household may have exactly one member (a solo household); solo and shared households are the same model, and the product treats the solo case as a first-class persona (ADR 0005). User-facing copy addresses a one-member household as the person, never as a "household".
 _Avoid_: account, family, budget space, and "household" in copy aimed at a solo user
@@ -68,8 +72,8 @@ _Avoid_: payment, transfer
 The Member on the other side of a Settlement from the member who recorded it.
 _Avoid_: payee, recipient
 
-**Active household**:
-The household a user is currently working in when they belong to more than one. Remembered per browser and validated against memberships on every read; switching changes every screen at once.
+**Active wallet**:
+The wallet a user is currently working in. Remembered per browser and validated against active memberships on every read; switching changes every screen at once. The switcher is always visible so a second wallet can be created from it.
 _Avoid_: current workspace, selected account
 
 **Balance**:

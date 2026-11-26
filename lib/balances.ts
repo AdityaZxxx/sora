@@ -22,6 +22,7 @@ async function loadBalanceEdges(walletId: string) {
     prisma.walletMembership.findMany({
       where: {
         walletId,
+        leftAt: null,
       },
       select: {
         user: {
@@ -39,7 +40,7 @@ async function loadBalanceEdges(walletId: string) {
       WITH member_ids AS (
         SELECT "userId" AS id
         FROM "WalletMembership"
-        WHERE "walletId" = ${walletId}
+        WHERE "walletId" = ${walletId} AND "leftAt" IS NULL
       ),
       member_count AS (
         SELECT COUNT(*)::integer AS n FROM member_ids
@@ -111,6 +112,18 @@ async function loadBalanceEdges(walletId: string) {
   }
 
   return { memberships, edges };
+}
+
+export async function hasOpenBalance(walletId: string, userId: string) {
+  const { edges } = await loadBalanceEdges(walletId);
+  for (const [creditorId, debtors] of edges) {
+    for (const [debtorId, amount] of debtors) {
+      if ((creditorId === userId || debtorId === userId) && !amount.isZero()) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function edgeAmount(

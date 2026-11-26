@@ -174,6 +174,7 @@ export async function notifyIfGoalReached(input: {
   const members = await prisma.walletMembership.findMany({
     where: {
       walletId,
+      leftAt: null,
     },
     select: {
       userId: true,

@@ -102,6 +102,7 @@ export async function notifyWalletExcept(
   const memberships = await prisma.walletMembership.findMany({
     where: {
       walletId,
+      leftAt: null,
       userId: {
         not: exceptUserId,
       },

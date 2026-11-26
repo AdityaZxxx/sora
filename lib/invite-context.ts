@@ -11,6 +11,7 @@ export const getInviteByToken = cache(async (token: string) =>
         select: {
           name: true,
           memberships: {
+            where: { leftAt: null },
             take: 4,
             select: { user: { select: { name: true } } },
           },

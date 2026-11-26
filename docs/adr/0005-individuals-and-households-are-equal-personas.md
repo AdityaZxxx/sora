@@ -2,11 +2,11 @@
 
 Sora is a finance app for individuals tracking their own money and for households sharing a ledger. The two personas get the same product quality: the same features, the same dashboard, the same onboarding shape. Solo is not a degraded mode and not a waiting room for inviting a partner; it is a first-class way to use Sora.
 
-Solo use keeps the same model as a shared wallet with one member. The wallet redesign renames the technical Household to Wallet and scopes every money record to it; it does not fork a separate personal ledger. This decision changes the product surface, not the parity between the two personas: UI copy, onboarding, and feature design treat the individual as a full persona alongside the household.
+The personal wallet is marked on the user's first membership and stays separate from any shared household the user joins or creates later. The wallet redesign renames the technical Household to Wallet and scopes every money record to it; it does not fork a separate personal ledger. This decision changes the product surface, not the parity between the two personas: UI copy, onboarding, and feature design treat the individual as a full persona alongside the household.
 
 ## Rules this creates
 
-- Wallet-level chrome (the Wallet switcher, invite-first CTAs) is hidden when the user can reach only one wallet and is a member of it. Sharing is offered, never pushed.
+- The Wallet switcher is always visible. A one-member personal wallet is labelled Personal wallet, and New wallet is reachable from the switcher. Sharing is offered, never pushed.
 - The Shared/Personal choice in the transaction dialog does not exist. Every transaction belongs to exactly one wallet and counts toward that wallet's rollups, budgets, goals, and charts. A personal wallet has one member, so its money is private by construction and stays correct if the user later adds a member.
 - Household-only features (Balances, SharedSpendingCard, SimplifyDebts) hide below their member-count threshold, which already holds; new features must ship with a solo path, not a shared-only one.
 - When the product needs new shared infrastructure (for example recurring bill definitions), it defaults to household scope like everything else, visible to all members, and stays correct for a one-member household.

@@ -7,12 +7,15 @@ import {
   CACHE_RESOURCE,
   walletTag,
   revalidateMemberWallets,
+  revalidateWallet,
 } from "@/lib/cache";
+import { MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
 import { assertCanManage, type MemberRole } from "@/lib/roles";
+import { createPersonalWallet } from "@/lib/wallet";
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function createInviteLink(
@@ -27,6 +30,28 @@ export async function createInviteLink(
       walletId,
       createdById: userId,
     },
+  });
+}
+
+// seam-parse-exempt: inputs are session values, never user input.
+export async function rotateInviteLink(
+  walletId: string,
+  userId: string,
+  role: MemberRole,
+) {
+  assertCanManage(role);
+  return await prisma.$transaction(async (tx) => {
+    await tx.inviteLink.updateMany({
+      where: { walletId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return await tx.inviteLink.create({
+      data: {
+        token: crypto.randomUUID(),
+        walletId,
+        createdById: userId,
+      },
+    });
   });
 }
 
@@ -99,6 +124,7 @@ export async function joinWalletByInviteToken(
       token: parsed.data.token,
       revokedAt: null,
     },
+    include: { wallet: { select: { currency: true } } },
   });
   if (!inviteLink) {
     throw new DomainError(
@@ -115,14 +141,34 @@ export async function joinWalletByInviteToken(
     },
   });
 
-  if (!existingMembership) {
+  let joined = false;
+  if (existingMembership?.leftAt) {
+    await prisma.walletMembership.update({
+      where: {
+        walletId_userId: {
+          walletId: inviteLink.walletId,
+          userId,
+        },
+      },
+      data: {
+        leftAt: null,
+        role: MEMBER_ROLE,
+        isPersonal: false,
+      },
+    });
+    joined = true;
+  } else if (!existingMembership) {
     await prisma.walletMembership.create({
       data: {
         walletId: inviteLink.walletId,
         userId,
+        role: MEMBER_ROLE,
       },
     });
+    joined = true;
+  }
 
+  if (joined) {
     const actor = { actorId: userId, actorName: userName };
     await publishWalletChange({
       walletId: inviteLink.walletId,
@@ -135,6 +181,7 @@ export async function joinWalletByInviteToken(
     const otherMembers = await prisma.walletMembership.findMany({
       where: {
         walletId: inviteLink.walletId,
+        leftAt: null,
         userId: {
           notIn: [userId, inviteLink.createdById],
         },
@@ -160,6 +207,18 @@ export async function joinWalletByInviteToken(
       );
     }
     revalidateMemberWallets(userId);
+    revalidateWallet(inviteLink.walletId, [
+      CACHE_RESOURCE.members,
+      CACHE_RESOURCE.wallet,
+    ]);
+  }
+
+  const personal = await prisma.walletMembership.findFirst({
+    where: { userId, leftAt: null, isPersonal: true },
+    select: { walletId: true },
+  });
+  if (!personal) {
+    await createPersonalWallet(userId, inviteLink.wallet.currency);
   }
 
   return inviteLink.walletId;

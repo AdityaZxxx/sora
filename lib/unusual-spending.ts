@@ -123,6 +123,7 @@ export async function evaluateUnusualSpending(
   const recipients = await deps.repo.walletMembership.findMany({
     where: {
       walletId: transaction.walletId,
+      leftAt: null,
       role: { in: WRITING_ROLES },
     },
     select: { userId: true },

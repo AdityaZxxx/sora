@@ -63,6 +63,7 @@ const InvitePage = async ({
         walletId: invite.walletId,
         userId: session.user.id,
       },
+      leftAt: null,
     },
   });
 
