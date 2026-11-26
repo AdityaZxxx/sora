@@ -26,25 +26,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useWallets, type WalletsResponse } from "@/hooks/use-wallets";
-import { DEFAULT_WALLET_NAME } from "@/lib/constants";
+import { useWallets } from "@/hooks/use-wallets";
 import { cn } from "@/lib/utils";
+import { walletLabel } from "@/lib/wallet-label";
 
 import {
   createWallet,
   switchWallet,
 } from "../app/(dashboard)/manage/_actions/wallets";
-
-type WalletLabelInput = Pick<
-  WalletsResponse["wallets"][number],
-  "name" | "isPersonal" | "memberCount"
->;
-
-function labelFor(wallet: WalletLabelInput) {
-  return wallet.isPersonal && wallet.memberCount === 1
-    ? "Personal wallet"
-    : (wallet.name ?? DEFAULT_WALLET_NAME);
-}
 
 interface WalletSwitcherProps {
   variant?: "default" | "row";
@@ -123,7 +112,7 @@ export default function WalletSwitcher({
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
                 <span className="truncate text-sm leading-5 font-medium">
-                  {active ? labelFor(active) : "Wallet"}
+                  {active ? walletLabel(active) : "Wallet"}
                 </span>
                 {active && (
                   <span className="text-xs leading-4 text-muted-foreground">
@@ -138,7 +127,7 @@ export default function WalletSwitcher({
             <>
               <House className="h-4 w-4" />
               <span className="max-w-32 truncate">
-                {active ? labelFor(active) : "Wallet"}
+                {active ? walletLabel(active) : "Wallet"}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </>
@@ -165,7 +154,7 @@ export default function WalletSwitcher({
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">
-                  {labelFor(wallet)}
+                  {walletLabel(wallet)}
                 </span>
                 <span
                   className={cn(

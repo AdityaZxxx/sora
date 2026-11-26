@@ -14,7 +14,7 @@ The manage page is the household admin surface: the space name, appearance, the 
 - `manage-members-remove` an owner or co-owner can remove non-owners.
 - `manage-members-digest` a member can toggle their own daily email digest.
 - `manage-space-currency` the household currency, editable here through the currency combobox.
-- `manage-categories` creating, editing, and deleting categories.
+- `manage-categories` creating, editing and deleting categories. Cards show the wallet label, creator name and why a control is unavailable.
 - `manage-budgets` see [Budgets](./budgets.md); the card is placed on this page.
 - `manage-export` a member with edit access can download a full export of the household as JSON; amounts are fixed-2-decimal strings.
 - `manage-delete-account` a member can delete their sign-in; a household where they are the last member is deleted with all its data.
@@ -48,6 +48,6 @@ Preconditions:
 - The page orders cards top to bottom as listed above; `Agent access` is above `Members`.
 - The currency is editable here. Changing it applies immediately and changes household formatting everywhere.
 - The invite link's QR code uses an inlined SVG and does not appear in the DOM's responsive snapshot; use the `Copy invite link` button to copy it.
-- `Budgets` and `Transaction categories` are interactive; exercise them via their own feature files.
+- `Transaction categories` cards show the owning wallet and the creator name. Members see an explanation instead of rename and delete controls; owners and co-owners see the actions menu.
 - An owner or co-owner can remove non-owners; the owner cannot be removed by another member. A viewer sees no `Remove` control.
 - The `Leave wallet` button appears for non-owner members when at least one other member exists. The owner sees a prompt to promote a co-owner instead.

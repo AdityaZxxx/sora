@@ -20,6 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useCallerRole } from "@/hooks/use-members";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
@@ -43,6 +44,7 @@ const CategoryPicker = ({
   value: initialValue,
   ...ariaProps
 }: Props) => {
+  const { canEdit } = useCallerRole();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue ?? "");
   const [search, setSearch] = useState("");
@@ -135,25 +137,31 @@ const CategoryPicker = ({
                   />
                 </CommandItem>
               ))}
-              <CreateCategoryDialog
-                key={`create-${search.trim()}`}
-                type={type}
-                successCallback={SuccessCallback}
-                defaultName={search.trim()}
-                trigger={
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm whitespace-nowrap text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
-                  >
-                    <PlusSquare className="size-4 shrink-0 text-muted-foreground" />
-                    <span>
-                      {categories.length === 0 && search.trim()
-                        ? `Create ${search.trim()}`
-                        : "Add new"}
-                    </span>
-                  </button>
-                }
-              />
+              {canEdit ? (
+                <CreateCategoryDialog
+                  key={`create-${search.trim()}`}
+                  type={type}
+                  successCallback={SuccessCallback}
+                  defaultName={search.trim()}
+                  trigger={
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-start text-sm whitespace-nowrap text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
+                    >
+                      <PlusSquare className="size-4 shrink-0 text-muted-foreground" />
+                      <span>
+                        {categories.length === 0 && search.trim()
+                          ? `Create ${search.trim()}`
+                          : "Add new"}
+                      </span>
+                    </button>
+                  }
+                />
+              ) : (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                  Viewers cannot add categories
+                </p>
+              )}
             </CommandList>
           </CommandGroup>
         </Command>

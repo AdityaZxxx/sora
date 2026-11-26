@@ -33,6 +33,7 @@ model User {
   createdInviteLinks InviteLink[]
   notifications      Notification[]
   transactionShares  TransactionShare[]
+  createdCategories  Category[] @relation("CategoryCreator")
   apiTokens          ApiToken[]
 }
 
@@ -165,6 +166,9 @@ model Category {
   iconKind String @default("emoji")
   iconColor String?
   type String @default("income")
+  createdById String?
+  createdByName String?
+  createdBy User? @relation("CategoryCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([name, walletId, type])
   @@index([walletId, type])
