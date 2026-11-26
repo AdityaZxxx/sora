@@ -15,13 +15,13 @@ type UseBalanceStatsOptions = {
 };
 
 export function useBalanceStats(
-  householdId: string | undefined,
+  walletId: string | undefined,
   from: Date,
   to: Date,
   { enabled = true, initialData }: UseBalanceStatsOptions = {},
 ) {
   return useQuery<GetBalanceStatsResponseType>({
-    queryKey: queryKeys.overview.stats(householdId, from, to),
+    queryKey: queryKeys.overview.stats(walletId, from, to),
     initialData,
     queryFn: async () => {
       try {

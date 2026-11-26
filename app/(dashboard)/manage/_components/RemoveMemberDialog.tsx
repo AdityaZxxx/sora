@@ -17,16 +17,16 @@ interface Props {
 const RemoveMemberDialog = ({ trigger, member }: Props) => (
   <ConfirmDialog
     trigger={trigger}
-    title={<>Remove {member.user.name} from the household?</>}
-    description="They will lose access to this household's transactions, categories, and invite links. Their past transactions stay in the ledger, attributed to them."
+    title={<>Remove {member.user.name} from the wallet?</>}
+    description="They will lose access to this wallet's transactions, categories, and invite links. Their past transactions stay in the ledger, attributed to them."
     confirmLabel="Remove member"
     loadingLabel="Removing member…"
-    successMessage={`${member.user.name} removed from the household`}
+    successMessage={`${member.user.name} removed from the wallet`}
     errorMessage="Unable to remove this member. Try again."
     toastId={`remove-member-${member.userId}`}
     input={{ userId: member.userId }}
     formAction={removeMemberForm}
-    queryKeys={[queryKeys.householdMembers]}
+    queryKeys={[queryKeys.walletMembers]}
   />
 );
 

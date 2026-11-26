@@ -1,15 +1,15 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { withWalletAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { markNotificationsRead } from "@/lib/notifications";
 
 export async function markAllRead() {
-  return withHouseholdAction(
+  return withWalletAction(
     "Unable to mark the notifications as read. Refresh the page and try again.",
-    async ({ household, session }) => {
-      await markNotificationsRead(household.id, session.user.id);
-      revalidateHousehold(household.id, [CACHE_RESOURCE.notifications]);
+    async ({ wallet, session }) => {
+      await markNotificationsRead(wallet.id, session.user.id);
+      revalidateWallet(wallet.id, [CACHE_RESOURCE.notifications]);
     },
   );
 }

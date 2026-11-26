@@ -11,12 +11,12 @@ export const POLL_INTERVAL = 0;
 export const QUERY_GC_TIME = 5 * 60_000;
 export const SSE_HEARTBEAT_INTERVAL = 20_000;
 
-export const ACTIVE_HOUSEHOLD_COOKIE = "sora_active_household";
+export const ACTIVE_WALLET_COOKIE = "sora_active_wallet";
 
 export const FULL_MEMBER_ROLE = "member";
 export const VIEW_ONLY_ROLE = "view_only";
 
-export const DEFAULT_HOUSEHOLD_NAME = "My household";
+export const DEFAULT_WALLET_NAME = "My wallet";
 export const DEFAULT_CURRENCY = "USD";
 
 export const READ_ONLY_SCOPE = "read-only";

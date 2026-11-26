@@ -91,7 +91,7 @@ function describeFailure(cause: unknown, endpoint: string): string {
 
   if (isStreamableHttpError(cause)) {
     if (cause.code === 401) {
-      return "The Sora server rejected the token. Check the token, and check that the Household has agent access turned on.";
+      return "The Sora server rejected the token. Check the token, and check that the Wallet has agent access turned on.";
     }
     if (cause.code === 403) {
       return "The token does not have access to this operation.";

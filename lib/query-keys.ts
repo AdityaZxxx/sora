@@ -10,34 +10,35 @@ export const queryKeys = {
   categories: (type?: string | null): QueryKey =>
     type ? ["categories", type] : ["categories"],
   goals: ["goals"] satisfies QueryKey,
-  household: ["household"] satisfies QueryKey,
-  householdMembers: ["householdMembers"] satisfies QueryKey,
-  households: ["households"] satisfies QueryKey,
+  wallet: ["wallet"] satisfies QueryKey,
+  walletMembers: ["walletMembers"] satisfies QueryKey,
+  wallets: ["wallets"] satisfies QueryKey,
   insights: ["insights"] satisfies QueryKey,
   inviteLinks: ["inviteLinks"] satisfies QueryKey,
   notifications: ["notifications"] satisfies QueryKey,
   overview: {
     all: ["overview"] satisfies QueryKey,
     statsAll: ["overview", "stats"] satisfies QueryKey,
-    stats: (
-      householdId: string | undefined,
-      from: Date,
-      to: Date,
-    ): QueryKey => ["overview", "stats", householdId, from, to],
-    categories: (householdId: string, from: Date, to: Date): QueryKey => [
+    stats: (walletId: string | undefined, from: Date, to: Date): QueryKey => [
       "overview",
       "stats",
-      "categories",
-      householdId,
+      walletId,
       from,
       to,
     ],
-    history: (timeframe: Timeframe, period: Period): QueryKey => [
+    categories: (walletId: string, from: Date, to: Date): QueryKey => [
       "overview",
-      "history",
-      timeframe,
-      period,
+      "stats",
+      "categories",
+      walletId,
+      from,
+      to,
     ],
+    history: (
+      walletId: string,
+      timeframe: Timeframe,
+      period: Period,
+    ): QueryKey => ["overview", "history", walletId, timeframe, period],
   },
   recurringItems: ["recurringItems"] satisfies QueryKey,
   sharedSpending: ["shared-spending"] satisfies QueryKey,
@@ -57,7 +58,6 @@ export const queryKeys = {
 type TransactionOptimisticInput = {
   amount: number;
   date: Date;
-  shared: boolean;
   type: TransactionType;
 };
 
@@ -91,8 +91,7 @@ export async function applyTransactionOptimistic(
       typeof stats.expense !== "number" ||
       !range ||
       input.date < range.from ||
-      input.date > range.to ||
-      !input.shared
+      input.date > range.to
     ) {
       continue;
     }

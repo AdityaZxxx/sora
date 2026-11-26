@@ -1,6 +1,6 @@
 # Goals
 
-A goal is a named household savings target with an optional deadline. It holds no money; each goal's progress is the sum of shared transactions tagged with that goal.
+A goal is a named household savings target with an optional deadline. It holds no money; each goal's progress is the sum of transactions in its wallet tagged with that goal.
 
 ## Sub-features
 
@@ -8,7 +8,7 @@ A goal is a named household savings target with an optional deadline. It holds n
 - `goals-edit` a full member can rename a goal, change its target, or set or clear its deadline.
 - `goals-delete` a full member can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
 - `goals-progress` the card shows the percentage and the contributed and target amounts.
-- `goals-reached-notify` reaching the target fires a one-shot `goal_reached` notification to all members when a shared transaction crosses the line.
+- `goals-reached-notify` reaching the target fires a one-shot `goal_reached` notification to all members when a transaction crosses the line.
 - `goal-tag-transaction` a transaction can be tagged with a goal when adding it.
 - `goals-list-mcp` list goals with the MCP surface; amounts are fixed-2-decimal strings.
 
@@ -37,7 +37,7 @@ Preconditions:
 ## Gotchas
 
 - The `Goal (optional)` select is only offered on the expense dialog and only when at least one goal exists; income transactions can never be tagged with a goal.
-- `goal_reached` fires once, when the shared transaction takes the goal over the line; later shared transactions never fire it again.
+- `goal_reached` fires once, when the transaction takes the goal over the line; later transactions never fire it again.
 - Tagging a transaction does not move any money; it is a label.
 - The progress bar always shows base progress, capped at 100%; an over-target goal reads at 100%.
 - Deleting a goal nulls the goal tag on its transactions; the money stays in the ledger. The confirm button is `Delete goal`, not `Remove from ledger`.

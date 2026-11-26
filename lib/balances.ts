@@ -3,9 +3,8 @@ import type { MemberBalance, SimplifiedTransfer } from "@/schemas/balances";
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import prisma from "@/lib/prisma";
-import { settlementCategoryEquals } from "@/lib/settlements";
 
 const { Decimal } = Prisma;
 const ZERO = new Decimal(0);
@@ -18,13 +17,11 @@ type BalanceEdgeRow = {
 
 type NetEdges = Map<string, Map<string, Prisma.Decimal>>;
 
-async function loadBalanceEdges(householdId: string) {
-  const settlementCategory = settlementCategoryEquals().equals;
-
+async function loadBalanceEdges(walletId: string) {
   const [memberships, rows] = await Promise.all([
-    prisma.householdMembership.findMany({
+    prisma.walletMembership.findMany({
       where: {
-        householdId,
+        walletId,
       },
       select: {
         user: {
@@ -41,8 +38,8 @@ async function loadBalanceEdges(householdId: string) {
     prisma.$queryRaw<BalanceEdgeRow[]>`
       WITH member_ids AS (
         SELECT "userId" AS id
-        FROM "HouseholdMembership"
-        WHERE "householdId" = ${householdId}
+        FROM "WalletMembership"
+        WHERE "walletId" = ${walletId}
       ),
       member_count AS (
         SELECT COUNT(*)::integer AS n FROM member_ids
@@ -58,8 +55,7 @@ async function loadBalanceEdges(householdId: string) {
             WHERE s."transactionId" = t.id
           ) AS share_count
         FROM "Transaction" t
-        WHERE t."householdId" = ${householdId}
-          AND t.shared = TRUE
+        WHERE t."walletId" = ${walletId}
           AND t.type = 'expense'
       ),
       share_edges AS (
@@ -77,15 +73,11 @@ async function loadBalanceEdges(householdId: string) {
       ),
       settlement_edges AS (
         SELECT
-          t."addedById" AS creditor,
-          t."counterpartyId" AS debtor,
-          t.amount AS amount
-        FROM "Transaction" t
-        WHERE t."householdId" = ${householdId}
-          AND t.shared = FALSE
-          AND t.type = 'expense'
-          AND t.category = ${settlementCategory}
-          AND t."counterpartyId" IS NOT NULL
+          s."payerId" AS creditor,
+          s."receiverId" AS debtor,
+          s.amount AS amount
+        FROM "Settlement" s
+        WHERE s."walletId" = ${walletId}
       ),
       edges AS (
         SELECT * FROM share_edges
@@ -130,14 +122,14 @@ function edgeAmount(
 }
 
 export async function getMemberBalances(
-  householdId: string,
+  walletId: string,
   callerId: string,
 ): Promise<MemberBalance[]> {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.balances));
 
-  const { memberships, edges } = await loadBalanceEdges(householdId);
+  const { memberships, edges } = await loadBalanceEdges(walletId);
 
   return memberships
     .filter((membership) => membership.user.id !== callerId)
@@ -156,13 +148,13 @@ export async function getMemberBalances(
 }
 
 export async function getSimplifiedTransfers(
-  householdId: string,
+  walletId: string,
 ): Promise<SimplifiedTransfer[]> {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.balances));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.balances));
 
-  const { memberships, edges } = await loadBalanceEdges(householdId);
+  const { memberships, edges } = await loadBalanceEdges(walletId);
 
   const netReceivableByUserId = new Map<string, Prisma.Decimal>(
     memberships.map((membership) => [membership.user.id, new Decimal(0)]),

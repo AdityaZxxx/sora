@@ -8,14 +8,14 @@ import {
   formSuccess,
   type FormActionState,
 } from "@/lib/form-action";
-import { createPersonalHousehold } from "@/lib/household";
 import { logError } from "@/lib/log";
+import { createPersonalWallet } from "@/lib/wallet";
 
 const SESSION_ERROR =
   "Your session expired. Sign in again to set up your space.";
 const CREATE_ERROR = "Unable to set up your space. Try again.";
 
-export async function startHousehold(
+export async function startWallet(
   _previous: FormActionState,
   _formData: FormData,
 ): Promise<FormActionState> {
@@ -25,9 +25,9 @@ export async function startHousehold(
   }
 
   try {
-    await createPersonalHousehold(session.user.id);
+    await createPersonalWallet(session.user.id);
   } catch (cause) {
-    logError("household.setup.failed", {
+    logError("wallet.setup.failed", {
       userId: session.user.id,
       outcome: "failed",
       error: cause instanceof Error ? cause.message : String(cause),

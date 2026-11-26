@@ -10,12 +10,12 @@ import { useReportWebVitals } from "next/web-vitals";
 import { useState } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useHouseholdEvents } from "@/hooks/use-household-events";
+import { useWalletEvents } from "@/hooks/use-wallet-events";
 import { logClientInfo } from "@/instrumentation-client";
 import { QUERY_GC_TIME, QUERY_STALE_TIME } from "@/lib/constants";
 
-const HouseholdEvents = () => {
-  useHouseholdEvents();
+const WalletEvents = () => {
+  useWalletEvents();
   return null;
 };
 
@@ -55,7 +55,7 @@ const RootProvider = ({ children }: { children: ReactNode }) => {
           disableTransitionOnChange
         >
           <TooltipProvider>{children}</TooltipProvider>
-          <HouseholdEvents />
+          <WalletEvents />
         </ThemeProvider>
         {process.env.NODE_ENV === "development" && (
           <ReactQueryDevtools initialIsOpen={false} />

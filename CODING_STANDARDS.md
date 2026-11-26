@@ -2,32 +2,27 @@
 
 These are the judgement calls this repo makes. Mechanical rules (where a file lives, what a function is called) belong in the linter rather than here, because a check fails loudly and prose drifts silently. The product also runs on free tiers only (`docs/adr/0002-free-forever-zero-cost.md`), so a diff that needs a paid service is a finding.
 
-## Household scope is the authorization model
+## Wallet scope is the authorization model
 
-Authorization is membership, not ownership. Resolve the caller's Household first, then scope every read and write by `householdId`.
+Authorization is membership, not ownership of a row. Resolve the caller's Wallet first, then scope every read and write by `walletId`. A personal wallet has one member, so its money is private by construction; a shared wallet holds only shared money.
 
-Attribution and visibility are different questions. A transaction records the member who added it (`addedById`), and that member can leave the household without their transactions disappearing. So "who added it" never answers "who can see it", and only the household does.
+Attribution and visibility are different questions. A transaction records the member who added it (`addedById`), and that member can leave the wallet without their transactions disappearing. So "who added it" never answers "who can see it", and only the wallet does.
 
-There is no owner. Full members can all edit or delete any transaction, invite others, and remove others; view-only members can do none of those. A diff that adds an owner check is a finding.
+Full members can edit or delete any transaction, invite others, and remove others; view-only members can do none of those. A diff that adds an owner check is a finding.
 
-A reviewer should be able to point at the `householdId` filter in every query the diff touches. A query that filters by `addedById` where the intent was "in this household" is a bug even when it returns the right rows today.
+A reviewer should be able to point at the `walletId` filter in every query the diff touches. A query that filters by `addedById` where the intent was "in this wallet" is a bug even when it returns the right rows today.
 
-## Shared and personal are two ledgers
+## Every wallet is one ledger
 
-`shared: true` counts toward household totals, budgets, and history rollups. `shared: false` is visible only to the member who added it and stays out of all three. Settlements are personal.
+Every transaction in a wallet counts toward that wallet's totals, budgets, and history rollups. There are no private rows inside a wallet and no cross wallet aggregation. Settlements are first class records outside the transaction ledger.
 
-Two filter shapes cover the whole codebase, and each is for one purpose:
-
-- **Household aggregate** (totals, category stats, budget spend): `shared: true` only.
-- **Member view** (transaction history, export): `shared: true` plus the caller's own, as `OR: [{ shared: true }, { addedById: userId }]`.
-
-When a diff adds a query, decide which of the two it is before writing the filter. An aggregate that forgets `shared: true` leaks one member's private spending into a shared number. A member view that filters on `shared: true` alone hides the caller's own personal rows.
+One filter shape covers the whole codebase: scope by `walletId`. A query that leaves out the wallet filter can mix one wallet's figures into another's, so the filter belongs on reads and writes alike. Switching the active wallet changes every screen at once.
 
 ## Rollups move with the transaction
 
-`MonthHistory` and `YearHistory` are denormalised counters that the dashboard reads instead of scanning transactions. Creating or deleting a shared transaction updates them in the same `prisma.$transaction`, incrementing or decrementing the matching month. Personal transactions leave them alone, because they were never counted.
+`MonthHistory` and `YearHistory` are denormalised counters that the dashboard reads instead of scanning transactions. Creating or deleting a transaction updates them in the same `prisma.$transaction`, incrementing or decrementing the matching month.
 
-A diff that writes a shared transaction without touching the rollups passes every type check and silently corrupts the dashboard. Check the pair: transaction write, rollup write, same transaction, same `shared` condition.
+A diff that writes a transaction without touching the rollups passes every type check and silently corrupts the dashboard. Check the pair: transaction write, rollup write, same transaction.
 
 ## Dates are UTC
 
@@ -35,23 +30,23 @@ Transaction dates are stored as UTC (`dateToUtcDate`) and rollup buckets use the
 
 Mixing local-time getters into a bucket key files a transaction under a different month than the one the rollups counted. Use the UTC getters for any date that names a bucket.
 
-## Money is formatted through the household currency
+## Money is formatted through the wallet currency
 
-The household holds one currency. Format amounts with `getFormatterForCurrency(household.currency ?? "USD")`; it picks the locale from the currency and drops the decimals on whole amounts.
+The wallet holds one currency. Format amounts with `getFormatterForCurrency(wallet.currency ?? "USD")`; it picks the locale from the currency and drops the decimals on whole amounts.
 
-A diff that formats an amount inline, or hardcodes a currency, breaks a household whose currency is not USD.
+A diff that formats an amount inline, or hardcodes a currency, breaks a wallet whose currency is not USD. Changing one wallet's currency never changes another's.
 
 ## Budgets are soft or hard, per budget
 
 A budget is a monthly limit on one category. `soft` warns at 80% and 100%; `hard` rejects the transaction that would take the month over the limit. The mode is a property of the budget, not a global setting.
 
-Budgets apply to shared expenses only. Settlements are excluded from budget spend, because a settlement is not spending. The threshold check reads the month's spend before the transaction lands, so adding one recomputes rather than double counts, and one transaction produces at most one notification, for the highest threshold it crossed.
+Budgets apply to all expenses in the wallet. Settlements are excluded from budget spend, because a settlement is not a transaction. The threshold check reads the month's spend before the transaction lands, so adding one recomputes rather than double counts, and one transaction produces at most one notification, for the highest threshold it crossed.
 
 ## Writes are actions, reads are cached lib functions exposed over GET routes
 
-Mutations are server actions, so the household check runs inside the same call as the write, with no second entry point to forget. Initial reads may run as cached `lib/` functions inside Server Components when their output is part of the server-rendered shell. Client refetch and external clients still use `GET` routes, so the UI stays live.
+Mutations are server actions, so the wallet check runs inside the same call as the write, with no second entry point to forget. Initial reads may run as cached `lib/` functions inside Server Components when their output is part of the server-rendered shell. Client refetch and external clients still use `GET` routes, so the UI stays live.
 
-A diff that adds a mutation should land as an action with the household check inside it. A diff that adds a client-side query should follow the polling pattern its neighbouring queries already use, a diff that seeds the server-rendered shell may read a cached `lib/` function directly, and a diff that mutates data should invalidate the query keys it affects.
+A diff that adds a mutation should land as an action with the wallet check inside it. A diff that adds a client-side query should follow the polling pattern its neighbouring queries already use, a diff that seeds the server-rendered shell may read a cached `lib/` function directly, and a diff that mutates data should invalidate the query keys it affects.
 
 ## Every surface reaches the same seam
 
@@ -97,12 +92,12 @@ Product copy is plain. A period, a comma, a colon, or parentheses where a dash w
 
 Before a diff that reads or writes money is called done, point at each of these:
 
-1. Every query filters by `householdId`.
-2. The filter is one of the two shapes: household aggregate, or member view.
-3. A shared transaction write moves the matching `MonthHistory` and `YearHistory` in the same `prisma.$transaction`.
+1. Every query filters by `walletId`.
+2. The filter is wallet scoped, with no private-row or cross wallet branch.
+3. A transaction write moves the matching `MonthHistory` and `YearHistory` in the same `prisma.$transaction`.
 4. Any date that names a bucket uses the UTC getters.
 5. Any amount is formatted with `getFormatterForCurrency`.
-6. A mutation is a server action with the household check inside it; a read is a cached `lib/` function, exposed through a `GET` route for client and external callers.
+6. A mutation is a server action with the wallet check inside it; a read is a cached `lib/` function, exposed through a `GET` route for client and external callers.
 7. The mutation invalidates the query keys its change affects.
 8. Both paths reach the change: the web action and the MCP tool.
 

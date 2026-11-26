@@ -1,22 +1,21 @@
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
-import { settlementCategoryExclusion } from "@/lib/settlements";
+import { publishWalletChange } from "@/lib/realtime";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-export async function getSharedSpending(householdId: string) {
+export async function getSharedSpending(walletId: string) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.budgets));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.budgets));
 
   const now = new Date();
   const ranges = [utcMonthRangeFor(now), previousMonthRange(now)];
@@ -25,10 +24,8 @@ export async function getSharedSpending(householdId: string) {
     ranges.map((range) =>
       prisma.transaction.aggregate({
         where: {
-          householdId,
-          shared: true,
+          walletId,
           type: "expense" as const,
-          category: settlementCategoryExclusion(),
           date: {
             gte: range.from,
             lte: range.to,
@@ -52,17 +49,15 @@ export type GetSharedSpendingResponseType = Awaited<
 >;
 
 export async function getMonthSpentByCategory(
-  householdId: string,
+  walletId: string,
   date: Date,
 ): Promise<Map<string, Prisma.Decimal>> {
   const { from, to } = utcMonthRangeFor(date);
   const rows = await prisma.transaction.groupBy({
     by: ["category"],
     where: {
-      householdId,
-      shared: true,
+      walletId,
       type: "expense" as const,
-      category: settlementCategoryExclusion(),
       date: {
         gte: from,
         lte: to,
@@ -77,15 +72,15 @@ export async function getMonthSpentByCategory(
   );
 }
 
-export async function getBudgetsWithProgress(householdId: string) {
+export async function getBudgetsWithProgress(walletId: string) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.budgets));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.budgets));
 
   const [budgets, spentByCategory] = await Promise.all([
     prisma.budget.findMany({
       where: {
-        householdId,
+        walletId,
       },
       select: {
         id: true,
@@ -97,7 +92,7 @@ export async function getBudgetsWithProgress(householdId: string) {
         createdAt: "asc",
       },
     }),
-    getMonthSpentByCategory(householdId, new Date()),
+    getMonthSpentByCategory(walletId, new Date()),
   ]);
 
   return budgets.map((budget) => {
@@ -131,7 +126,7 @@ export type UpdateBudgetInput = CreateBudgetInput & {
   id: string;
 };
 
-export async function createHouseholdBudget(
+export async function createWalletBudget(
   caller: Caller,
   input: CreateBudgetInput,
 ) {
@@ -143,22 +138,22 @@ export async function createHouseholdBudget(
 
   const { category, amount, mode } = parsed.data;
   const expenseCategory = await requireCategory(
-    caller.householdId,
+    caller.walletId,
     category,
     "expense",
   );
 
   const budget = await prisma.budget.create({
     data: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       category: expenseCategory.name,
       amount,
       mode,
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "budgets",
     message: `added a ${expenseCategory.name} budget`,
@@ -167,7 +162,7 @@ export async function createHouseholdBudget(
   return { ...budget, amount: budget.amount.toNumber() };
 }
 
-export async function updateHouseholdBudget(
+export async function updateWalletBudget(
   caller: Caller,
   input: UpdateBudgetInput,
 ) {
@@ -179,7 +174,7 @@ export async function updateHouseholdBudget(
 
   const { id, category, amount, mode } = parsed.data;
   const expenseCategory = await requireCategory(
-    caller.householdId,
+    caller.walletId,
     category,
     "expense",
   );
@@ -187,7 +182,7 @@ export async function updateHouseholdBudget(
   const budget = await prisma.budget.update({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
     data: {
       category: expenseCategory.name,
@@ -196,8 +191,8 @@ export async function updateHouseholdBudget(
     },
   });
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "budgets",
     message: `changed the ${expenseCategory.name} budget`,
@@ -206,7 +201,7 @@ export async function updateHouseholdBudget(
   return { ...budget, amount: budget.amount.toNumber() };
 }
 
-export async function setHouseholdBudget(
+export async function setWalletBudget(
   caller: Caller,
   input: CreateBudgetInput,
 ) {
@@ -217,19 +212,19 @@ export async function setHouseholdBudget(
 
   const existing = await prisma.budget.findFirst({
     where: {
-      householdId: caller.householdId,
+      walletId: caller.walletId,
       category: parsed.data.category,
     },
   });
 
   if (existing) {
-    return await updateHouseholdBudget(caller, { ...input, id: existing.id });
+    return await updateWalletBudget(caller, { ...input, id: existing.id });
   }
 
-  return await createHouseholdBudget(caller, input);
+  return await createWalletBudget(caller, input);
 }
 
-export async function deleteHouseholdBudget(caller: Caller, id: string) {
+export async function deleteWalletBudget(caller: Caller, id: string) {
   assertCallerFullMember(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
@@ -242,7 +237,7 @@ export async function deleteHouseholdBudget(caller: Caller, id: string) {
   const budget = await prisma.budget.findFirst({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (!budget) {
@@ -252,15 +247,15 @@ export async function deleteHouseholdBudget(caller: Caller, id: string) {
   const deleted = await prisma.budget.deleteMany({
     where: {
       id,
-      householdId: caller.householdId,
+      walletId: caller.walletId,
     },
   });
   if (deleted.count === 0) {
     throw new DomainError("Budget not found");
   }
 
-  await publishHouseholdChange({
-    householdId: caller.householdId,
+  await publishWalletChange({
+    walletId: caller.walletId,
     actor: actorFor(caller),
     resource: "budgets",
     message: `removed the ${budget.category} budget`,
@@ -270,25 +265,24 @@ export async function deleteHouseholdBudget(caller: Caller, id: string) {
 }
 
 export type BudgetGateInput = {
-  householdId: string;
+  walletId: string;
   currency: string;
   category: string;
   type: string;
-  shared: boolean;
   amount: number;
   date: Date;
 };
 
 export async function assertBudgetAllows(input: BudgetGateInput) {
-  const { householdId, currency, category, type, shared, amount, date } = input;
-  if (type !== "expense" || !shared) {
+  const { walletId, currency, category, type, amount, date } = input;
+  if (type !== "expense") {
     return null;
   }
 
   const budget = await prisma.budget.findUnique({
     where: {
-      householdId_category: {
-        householdId,
+      walletId_category: {
+        walletId,
         category,
       },
     },
@@ -298,7 +292,7 @@ export async function assertBudgetAllows(input: BudgetGateInput) {
   }
 
   const formatAmount = getFormatterForCurrency(currency).format;
-  const spentByCategory = await getMonthSpentByCategory(householdId, date);
+  const spentByCategory = await getMonthSpentByCategory(walletId, date);
   const spentBefore = spentByCategory.get(category) ?? new Prisma.Decimal(0);
   const spentAfter = spentBefore.plus(amount);
   const budgetAmount = budget.amount;

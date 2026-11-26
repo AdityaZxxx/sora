@@ -28,7 +28,7 @@ const amountFlag = flag(
 const categoryFlag = flag(
   "category",
   "<category>",
-  "Name of a Category in the Household. Run 'sora categories' to see them.",
+  "Name of a Category in the Wallet. Run 'sora categories' to see them.",
   true,
 );
 
@@ -63,13 +63,13 @@ const categoryTypeFlag = flag(
 export const COMMANDS: Record<string, Command> = {
   "add-expense": {
     tool: "add_transaction",
-    summary: "Record a shared expense Transaction.",
+    summary: "Record an expense Transaction.",
     flags: [amountFlag, categoryFlag, descriptionFlag, dateFlag],
     build: (values) => transactionArgs(values, "add-expense", "expense"),
   },
   "add-income": {
     tool: "add_transaction",
-    summary: "Record a shared income Transaction.",
+    summary: "Record an income Transaction.",
     flags: [amountFlag, categoryFlag, descriptionFlag, dateFlag],
     build: (values) => transactionArgs(values, "add-income", "income"),
   },
@@ -81,26 +81,26 @@ export const COMMANDS: Record<string, Command> = {
   },
   transactions: {
     tool: "list_transactions",
-    summary: "List the Household's Transactions.",
+    summary: "List the Wallet's Transactions.",
     flags: [monthFlag],
     build: (values) =>
       values.month === undefined ? {} : monthRange(values.month),
   },
   budgets: {
     tool: "list_budgets",
-    summary: "List the Household's Budgets.",
+    summary: "List the Wallet's Budgets.",
     flags: [],
     build: () => ({}),
   },
   goals: {
     tool: "list_goals",
-    summary: "List the Household's Goals.",
+    summary: "List the Wallet's Goals.",
     flags: [],
     build: () => ({}),
   },
   categories: {
     tool: "list_categories",
-    summary: "List the Household's Categories.",
+    summary: "List the Wallet's Categories.",
     flags: [categoryTypeFlag],
     build: (values) => {
       const args: ToolArguments = {};
@@ -120,7 +120,7 @@ export function usage(): string {
     .join("\n");
 
   return [
-    "sora is a command line client for your Sora Household.",
+    "sora is a command line client for your Sora Wallet.",
     "",
     "Usage:",
     "  sora <command> [flags]",
@@ -228,7 +228,6 @@ function transactionArgs(
     amount: parseAmount(requireValue(values, "amount", command)),
     category: requireValue(values, "category", command),
     type,
-    shared: true,
   };
 
   if (values.description) {

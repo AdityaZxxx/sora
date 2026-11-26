@@ -3,16 +3,16 @@ import { type Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import {
   DEFAULT_CURRENCY,
   TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,
 } from "@/lib/constants";
 import { resolveDateRange, utcDateValue } from "@/lib/dates";
-import { requireHousehold } from "@/lib/household";
 import { seedQuery, seededHydrationState } from "@/lib/hydration";
 import { queryKeys } from "@/lib/query-keys";
 import { getTransactionsHistory } from "@/lib/transactions";
+import { requireWallet } from "@/lib/wallet";
 
 import TransactionsClient from "./_components/TransactionsClient";
 import Loading from "./loading";
@@ -50,12 +50,12 @@ const TransactionsPage = async () => {
 };
 
 const SeededTransactions = async () => {
-  const result = await requireHousehold();
+  const result = await requireWallet();
   if (!result) {
     notFound();
   }
 
-  const householdId = result.household.id;
+  const walletId = result.wallet.id;
   const dateRange = resolveDateRange();
   const values = {
     from: utcDateValue(dateRange.from),
@@ -63,8 +63,7 @@ const SeededTransactions = async () => {
   };
   const pageSize = TRANSACTION_HISTORY_INITIAL_PAGE_SIZE;
   const page = await getTransactionsHistory(
-    householdId,
-    result.session.user.id,
+    walletId,
     dateRange.from,
     dateRange.to,
     { limit: pageSize },
@@ -78,13 +77,13 @@ const SeededTransactions = async () => {
         true,
       ),
     ],
-    [householdTag(householdId, CACHE_RESOURCE.transactions)],
+    [walletTag(walletId, CACHE_RESOURCE.transactions)],
   );
 
   return (
     <HydrationBoundary state={state}>
       <TransactionsClient
-        currency={result.household.currency ?? DEFAULT_CURRENCY}
+        currency={result.wallet.currency ?? DEFAULT_CURRENCY}
         initialDateRange={values}
       />
     </HydrationBoundary>

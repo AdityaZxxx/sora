@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useBalanceStats } from "@/hooks/use-balance-stats";
-import { useHouseholds } from "@/hooks/use-households";
+import { useWallets } from "@/hooks/use-wallets";
 import { useSession } from "@/lib/auth-client";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
@@ -27,7 +27,7 @@ const getServerRange = () => PENDING_RANGE;
 
 type OfflineSnapshot = {
   schema: number;
-  householdId: string;
+  walletId: string;
   savedAt: number;
   currency: string;
   stats: { income: number; expense: number; net: number };
@@ -80,7 +80,7 @@ function useOnlineStatus() {
 
 export function useOfflineSnapshot() {
   const isOnline = useOnlineStatus();
-  const { data: households } = useHouseholds();
+  const { data: wallets } = useWallets();
   const { data: session } = useSession();
   const range = useSyncExternalStore(
     subscribeToRange,
@@ -88,10 +88,10 @@ export function useOfflineSnapshot() {
     getServerRange,
   );
 
-  const householdId = households?.active.id;
+  const walletId = wallets?.active.id;
   const currency =
-    households?.households.find((household) => household.id === householdId)
-      ?.currency ?? DEFAULT_CURRENCY;
+    wallets?.wallets.find((wallet) => wallet.id === walletId)?.currency ??
+    DEFAULT_CURRENCY;
 
   const { data: balances, isFetching: balancesFetching } = useQuery<
     MemberBalance[]
@@ -105,13 +105,13 @@ export function useOfflineSnapshot() {
   });
 
   const { data: stats, isFetching: statsFetching } = useBalanceStats(
-    householdId,
+    walletId,
     range.from,
     range.to,
-    { enabled: range !== PENDING_RANGE && householdId !== undefined },
+    { enabled: range !== PENDING_RANGE && walletId !== undefined },
   );
 
-  const activeHousehold = useRef<string | undefined>(undefined);
+  const activeWallet = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const marked = document.cookie
@@ -124,13 +124,13 @@ export function useOfflineSnapshot() {
   }, []);
 
   useEffect(() => {
-    if (!householdId) return;
-    const previous = activeHousehold.current;
-    activeHousehold.current = householdId;
-    if (previous !== undefined && previous !== householdId) {
+    if (!walletId) return;
+    const previous = activeWallet.current;
+    activeWallet.current = walletId;
+    if (previous !== undefined && previous !== walletId) {
       clearOfflineSnapshot();
     }
-  }, [householdId]);
+  }, [walletId]);
 
   useEffect(() => {
     if (session === null && isOnline) {
@@ -140,7 +140,7 @@ export function useOfflineSnapshot() {
 
   useEffect(() => {
     if (
-      !householdId ||
+      !walletId ||
       !balances ||
       !stats ||
       !isOnline ||
@@ -152,7 +152,7 @@ export function useOfflineSnapshot() {
 
     const snapshot: OfflineSnapshot = {
       schema: SNAPSHOT_SCHEMA,
-      householdId,
+      walletId,
       savedAt: Date.now(),
       currency,
       stats: {
@@ -163,10 +163,10 @@ export function useOfflineSnapshot() {
       balances: balances.map(({ name, balance }) => ({ name, balance })),
     };
 
-    storeValue(KEY_PREFIX + householdId, JSON.stringify(snapshot));
-    storeValue(ACTIVE_KEY, householdId);
+    storeValue(KEY_PREFIX + walletId, JSON.stringify(snapshot));
+    storeValue(ACTIVE_KEY, walletId);
   }, [
-    householdId,
+    walletId,
     currency,
     balances,
     stats,

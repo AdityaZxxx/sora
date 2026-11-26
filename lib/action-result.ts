@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { DomainError } from "@/lib/errors";
-import { requireHousehold } from "@/lib/household";
 import { firstIssueMessage } from "@/lib/issue-message";
 import { logError, logInfo, logWarn } from "@/lib/log";
 import { rememberErrorRequestId, withRequestId } from "@/lib/request-id";
+import { requireWallet } from "@/lib/wallet";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
@@ -20,17 +20,17 @@ export function fail(message: string): ActionResult<never> {
   return { ok: false, message };
 }
 
-export type HouseholdActionContext = NonNullable<
-  Awaited<ReturnType<typeof requireHousehold>>
+export type WalletActionContext = NonNullable<
+  Awaited<ReturnType<typeof requireWallet>>
 >;
 
-export async function withHouseholdAction<T>(
+export async function withWalletAction<T>(
   fallback: string,
-  operation: (context: HouseholdActionContext) => Promise<T> | T,
+  operation: (context: WalletActionContext) => Promise<T> | T,
 ): Promise<ActionResult<T>> {
   return withRequestId(async () => {
     const startedAt = Date.now();
-    const result = await requireHousehold();
+    const result = await requireWallet();
     if (!result) {
       logWarn("action.unauthorized", {
         outcome: "rejected",
@@ -39,13 +39,13 @@ export async function withHouseholdAction<T>(
       redirect("/sign-in");
     }
 
-    const householdId = result.household.id;
+    const walletId = result.wallet.id;
     const userId = result.session.user.id;
 
     try {
       const data = await operation(result);
       logInfo("action.completed", {
-        householdId,
+        walletId,
         userId,
         outcome: "ok",
         durationMs: Date.now() - startedAt,
@@ -56,7 +56,7 @@ export async function withHouseholdAction<T>(
       if (cause instanceof DomainError) {
         const message = firstIssueMessage(cause.message, fallback);
         logWarn("action.rejected", {
-          householdId,
+          walletId,
           userId,
           outcome: "rejected",
           durationMs,
@@ -65,7 +65,7 @@ export async function withHouseholdAction<T>(
         return fail(message);
       }
       logError("action.failed", {
-        householdId,
+        walletId,
         userId,
         outcome: "failed",
         durationMs,

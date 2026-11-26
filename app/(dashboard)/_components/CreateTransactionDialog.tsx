@@ -18,7 +18,6 @@ import { FormGate } from "@/components/FormGate";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -81,7 +80,6 @@ interface Props {
     amount?: number;
     type?: TransactionType;
     date?: Date;
-    shared?: boolean;
   };
   recurringItemId?: string;
 }
@@ -92,7 +90,6 @@ type CreateTransactionFormValues = {
   amount: number;
   type: TransactionType;
   date: Date;
-  shared: boolean;
   goalId: string;
 };
 
@@ -121,7 +118,6 @@ const CreateTransactionDialog = ({
     amount: initialValues?.amount ?? 0,
     type: dialogType,
     date: initialValues?.date ?? initialDate,
-    shared: initialValues?.shared ?? true,
     goalId: "",
   });
   const [splitMode, setSplitMode] = useState<SplitMode>("equal");
@@ -149,9 +145,8 @@ const CreateTransactionDialog = ({
   });
   const goals = goalsQuery.data ?? [];
 
-  const showSharedToggle = memberCount > 1;
   const membersQuery = useQuery({
-    queryKey: queryKeys.householdMembers,
+    queryKey: queryKeys.walletMembers,
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",
@@ -164,8 +159,7 @@ const CreateTransactionDialog = ({
   const members = membersQuery.data ?? [];
   const { data: session } = useSession();
 
-  const showSplitOptions =
-    dialogType === "expense" && memberCount > 1 && values.shared;
+  const showSplitOptions = dialogType === "expense" && memberCount > 1;
   const sharePlan = buildShares(
     splitMode,
     splitMode === "percent" ? splitPercents : splitAmounts,
@@ -182,10 +176,9 @@ const CreateTransactionDialog = ({
     amount: values.amount,
     type: values.type,
     date: dateToUtcDate(values.date),
-    shared: values.shared,
     goalId: values.goalId,
     shares:
-      values.type !== "expense" || !values.shared
+      values.type !== "expense"
         ? undefined
         : buildShares(
             splitMode,
@@ -203,7 +196,6 @@ const CreateTransactionDialog = ({
       amount: initialValues?.amount ?? 0,
       type: dialogType,
       date: initialValues?.date ?? initialDate,
-      shared: initialValues?.shared ?? true,
       goalId: "",
     });
     setSplitMode("equal");
@@ -266,11 +258,6 @@ const CreateTransactionDialog = ({
       <input type="hidden" name="category" value={values.category} />
       <input type="hidden" name="date" value={values.date.toISOString()} />
       <input type="hidden" name="type" value={values.type} />
-      <input
-        type="hidden"
-        name="shared"
-        value={values.shared ? "true" : "false"}
-      />
       <input type="hidden" name="goalId" value={values.goalId} />
       <input
         type="hidden"
@@ -293,7 +280,6 @@ const CreateTransactionDialog = ({
             Add a <span className="capitalize">{dialogType}</span> transaction
           </h2>
           <input type="hidden" name="type" value={dialogType} />
-          <input type="hidden" name="shared" value="true" />
           <Field>
             <FieldLabel htmlFor="plain-transaction-description">
               Description
@@ -514,30 +500,6 @@ const CreateTransactionDialog = ({
                 </Select>
                 <FieldDescription className="text-xs sm:text-sm">
                   Tag this expense as a contribution to a goal
-                </FieldDescription>
-              </Field>
-            ) : null}
-
-            {showSharedToggle ? (
-              <Field>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="shared"
-                    checked={values.shared}
-                    onCheckedChange={(checked) =>
-                      setValues((current) => ({
-                        ...current,
-                        shared: checked === true,
-                      }))
-                    }
-                  />
-                  <FieldLabel htmlFor="shared" className="text-sm font-normal">
-                    Shared with household
-                  </FieldLabel>
-                </div>
-                <FieldDescription className="text-xs sm:text-sm">
-                  Personal transactions are visible only to you and excluded
-                  from household totals and budgets
                 </FieldDescription>
               </Field>
             ) : null}

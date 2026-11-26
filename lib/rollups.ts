@@ -5,7 +5,7 @@ import { zeroMoney, type Money } from "@/lib/money";
 type RollupClient = Prisma.TransactionClient;
 
 export type RollupEntry = {
-  householdId: string;
+  walletId: string;
   date: Date;
   type: string;
   amount: Money;
@@ -39,19 +39,19 @@ export async function incrementRollups(
   tx: RollupClient,
   entry: RollupEntry,
 ): Promise<void> {
-  const { householdId, date } = entry;
+  const { walletId, date } = entry;
   const expense = expensePart(entry);
   const income = incomePart(entry);
 
   await tx.monthHistory.upsert({
     where: {
-      householdId_day_month_year: {
-        householdId,
+      walletId_day_month_year: {
+        walletId,
         ...monthBucket(date),
       },
     },
     create: {
-      householdId,
+      walletId,
       ...monthBucket(date),
       expense,
       income,
@@ -68,13 +68,13 @@ export async function incrementRollups(
 
   await tx.yearHistory.upsert({
     where: {
-      householdId_month_year: {
-        householdId,
+      walletId_month_year: {
+        walletId,
         ...yearBucket(date),
       },
     },
     create: {
-      householdId,
+      walletId,
       ...yearBucket(date),
       expense,
       income,
@@ -95,12 +95,12 @@ export async function decrementRollups(
   tx: RollupClient,
   entry: RollupEntry,
 ): Promise<void> {
-  const { householdId, date, type, amount } = entry;
+  const { walletId, date, type, amount } = entry;
 
   await tx.monthHistory.update({
     where: {
-      householdId_day_month_year: {
-        householdId,
+      walletId_day_month_year: {
+        walletId,
         ...monthBucket(date),
       },
     },
@@ -120,8 +120,8 @@ export async function decrementRollups(
 
   await tx.yearHistory.update({
     where: {
-      householdId_month_year: {
-        householdId,
+      walletId_month_year: {
+        walletId,
         ...yearBucket(date),
       },
     },

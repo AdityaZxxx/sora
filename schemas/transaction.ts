@@ -9,7 +9,6 @@ export function transactionFields(coerced: boolean) {
     description: freeText({ max: 200 }).optional(),
     category: z.string().min(1, "Select a category"),
     type: z.enum(["income", "expense"]),
-    shared: z.boolean().default(true),
     goalId: z.string().optional(),
     shares: sharesArray(coerced).optional(),
     recurringItemId: z.string().min(1).optional(),

@@ -24,35 +24,35 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useHouseholds } from "@/hooks/use-households";
+import { useWallets } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
-import { DEFAULT_HOUSEHOLD_NAME } from "@/lib/constants";
+import { DEFAULT_WALLET_NAME } from "@/lib/constants";
 import { queryKeys } from "@/lib/query-keys";
 
-import { renameHousehold } from "../_actions/households";
+import { renameWallet } from "../_actions/wallets";
 
-const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
+const WalletSection = ({ canEdit }: { canEdit: boolean }) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
-  const householdsQuery = useHouseholds();
-  const active = householdsQuery.data?.households.find(
-    (household) => household.id === householdsQuery.data?.active.id,
+  const walletsQuery = useWallets();
+  const active = walletsQuery.data?.wallets.find(
+    (wallet) => wallet.id === walletsQuery.data?.active.id,
   );
-  const displayName = active?.name ?? DEFAULT_HOUSEHOLD_NAME;
+  const displayName = active?.name ?? DEFAULT_WALLET_NAME;
 
   const { mutate: rename, isPending } = useMutation({
     mutationFn: async () => {
-      return unwrapAction(await renameHousehold(name));
+      return unwrapAction(await renameWallet(name));
     },
     onSuccess: () => {
       toast.success("Space renamed", {
-        id: "rename-household",
+        id: "rename-wallet",
       });
 
       queryClient.invalidateQueries({
-        queryKey: queryKeys.households,
+        queryKey: queryKeys.wallets,
       });
       setOpen(false);
     },
@@ -63,7 +63,7 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
           "Unable to rename this space. Check the name and try again.",
         ),
         {
-          id: "rename-household",
+          id: "rename-wallet",
         },
       );
     },
@@ -82,7 +82,7 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
           <div className="flex items-center justify-between gap-3">
             <span className="flex min-w-0 items-center gap-2">
               <House className="h-4 w-4 shrink-0 text-muted-foreground" />
-              {householdsQuery.isLoading ? (
+              {walletsQuery.isLoading ? (
                 <Skeleton className="h-5 w-32" />
               ) : (
                 <span className="text-sm font-medium break-words">
@@ -113,9 +113,9 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
                     <DialogTitle>Rename your space</DialogTitle>
                   </DialogHeader>
                   <Field>
-                    <FieldLabel htmlFor="household-rename">Name</FieldLabel>
+                    <FieldLabel htmlFor="wallet-rename">Name</FieldLabel>
                     <Input
-                      id="household-rename"
+                      id="wallet-rename"
                       value={name}
                       maxLength={50}
                       placeholder="e.g. Family, Flat 12"
@@ -152,4 +152,4 @@ const HouseholdSection = ({ canEdit }: { canEdit: boolean }) => {
   );
 };
 
-export default HouseholdSection;
+export default WalletSection;

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   dateRangeFromParams,
   jsonReadResponse,
-  withHouseholdRoute,
+  withWalletRoute,
 } from "@/lib/api-route";
 import {
   TRANSACTION_HISTORY_MAX_PAGE_SIZE,
@@ -12,7 +12,7 @@ import {
 import { getTransactionsHistory } from "@/lib/transactions";
 
 export async function GET(request: NextRequest) {
-  return withHouseholdRoute(async (result) => {
+  return withWalletRoute(async (result) => {
     const { searchParams } = new URL(request.url);
     const range = dateRangeFromParams(searchParams);
 
@@ -27,8 +27,7 @@ export async function GET(request: NextRequest) {
       : TRANSACTION_HISTORY_PAGE_SIZE;
 
     const page = await getTransactionsHistory(
-      result.household.id,
-      result.session.user.id,
+      result.wallet.id,
       range.from,
       range.to,
       {

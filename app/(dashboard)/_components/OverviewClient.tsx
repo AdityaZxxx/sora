@@ -16,7 +16,7 @@ import CategoriesStats from "./CategoriesStats";
 import StatsCards from "./StatsCards";
 
 interface Props {
-  householdId: string;
+  walletId: string;
   currency: string | null;
   initialDateRange: { from: Date; to: Date };
   initialStats: GetBalanceStatsResponseType;
@@ -24,7 +24,7 @@ interface Props {
 }
 
 const OverviewClient = ({
-  householdId,
+  walletId,
   currency,
   initialDateRange,
   initialStats,
@@ -64,7 +64,7 @@ const OverviewClient = ({
 
       <div className="flex w-full flex-col gap-4">
         <StatsCards
-          householdId={householdId}
+          walletId={walletId}
           currency={currency}
           from={dateRange.from}
           to={dateRange.to}
@@ -72,7 +72,7 @@ const OverviewClient = ({
         />
 
         <CategoriesStats
-          householdId={householdId}
+          walletId={walletId}
           currency={currency}
           from={dateRange.from}
           to={dateRange.to}

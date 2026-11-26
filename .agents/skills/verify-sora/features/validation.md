@@ -10,7 +10,7 @@ The rules are written once, at the lib/ seam: each writer parses its own schema 
 - `validation-amount` zero, negative, or over `1e12` is rejected. (`1e12` itself is allowed.)
 - `validation-amount-precision` on MCP and CLI the amount is text matching `^\d+(?:\.\d{1,2})?$`; more than two decimals fails that pattern. The web form coerces numbers and enforces `multipleOf(0.01)`.
 - `validation-amount-boolean` a boolean passed as an amount is rejected by the MCP SDK as an expected-string error before the seam.
-- `validation-shares-misplaced` shares are rejected for an income or a personal transaction.
+- `validation-shares-misplaced` shares are rejected for an income transaction.
 - `validation-shares-split` the member shares add up to the transaction amount or they are rejected.
 - `validation-goal-unknown-id` a transaction tagged with an unknown goal id is rejected with `Goal not found`.
 - `validation-recurring-unknown-id` an upcoming bill action targeted at an unknown id is rejected with `Recurring item not found`; a tagged transaction reports `Recurring item not found`.
@@ -18,7 +18,7 @@ The rules are written once, at the lib/ seam: each writer parses its own schema 
 - `validation-settlement-member-unknown` a transaction tagged to a member who is not in the household is rejected with `Member not found`.
 - `validation-category-mismatch` an unknown category name is rejected with `Category not found`.
 - `validation-unknown-id` an unrecognised id is rejected with a plain message, never a Prisma trace.
-- `validation-hard-budget` a shared expense over a hard budget cap is rejected with the message from the budget.
+- `validation-hard-budget` an expense over a hard budget cap is rejected with the message from the budget.
 - `validation-text-caps` every free-text cap rejects over-length input (category name 3–20, category emoji icon ≤20, category Lucide icon name ≤64, goal 50, recurring bill name ≤60, description ≤200, household name ≤50, token name ≤60, budget amount ≤1e12).
 - `validation-settlement-shares` shares name each member at most once.
 - `validation-view-only` a view-only member's writes are rejected by the seam through `assertCallerFullMember`.

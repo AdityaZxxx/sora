@@ -50,4 +50,4 @@ Preconditions:
 - The invite link's QR code uses an inlined SVG and does not appear in the DOM's responsive snapshot; use the `Copy invite link` button to copy it.
 - `Budgets` and `Transaction categories` are interactive; exercise them via their own feature files.
 - A full member can remove any other member; self-removal is rejected. A view-only member sees no `Remove` control.
-- The `Leave household` button only appears when at least one other member exists in the household.
+- The `Leave wallet` button only appears when at least one other member exists in the wallet.

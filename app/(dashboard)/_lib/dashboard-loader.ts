@@ -29,7 +29,7 @@ export type DashboardPayload = DashboardContext & {
 export async function loadDashboard(
   context: DashboardContext,
 ): Promise<DashboardPayload> {
-  const { householdId, userId, historyView } = context;
+  const { walletId, userId, historyView } = context;
 
   const [
     insights,
@@ -41,14 +41,14 @@ export async function loadDashboard(
     goals,
     historyData,
   ] = await Promise.all([
-    getMonthlyRollup(householdId),
-    getBudgetsWithProgress(householdId),
-    listRecurringItems(householdId),
-    getSharedSpending(householdId),
-    getMemberBalances(householdId, userId),
-    getSimplifiedTransfers(householdId),
-    getGoalsWithProgress(householdId),
-    getHistoryData(householdId, historyView.timeframe, historyView.period),
+    getMonthlyRollup(walletId),
+    getBudgetsWithProgress(walletId),
+    listRecurringItems(walletId),
+    getSharedSpending(walletId),
+    getMemberBalances(walletId, userId),
+    getSimplifiedTransfers(walletId),
+    getGoalsWithProgress(walletId),
+    getHistoryData(walletId, historyView.timeframe, historyView.period),
   ]);
 
   return {
@@ -78,6 +78,7 @@ export function dashboardHydrationState(
   queryClient.setQueryData(queryKeys.goals, payload.goals);
   queryClient.setQueryData(
     queryKeys.overview.history(
+      payload.walletId,
       payload.historyView.timeframe,
       payload.historyView.period,
     ),

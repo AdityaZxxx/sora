@@ -18,7 +18,7 @@ const DeleteAccountDialog = ({ trigger }: Props) => {
     <ConfirmDialog
       trigger={trigger}
       title="Delete your account?"
-      description="This permanently deletes your sign-in and sessions. Every household where you are the last member is deleted with all of its data. In households with other members you are removed; transactions you added are deleted with your account, while transactions added by other members stay. This action cannot be undone."
+      description="This permanently deletes your sign-in and sessions. Every wallet where you are the last member is deleted with all of its data. In wallets with other members you are removed; transactions you added are deleted with your account, while transactions added by other members stay. This action cannot be undone."
       confirmLabel="Delete account"
       loadingLabel="Deleting account…"
       successMessage="Your account was deleted"

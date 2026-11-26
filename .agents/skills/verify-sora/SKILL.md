@@ -5,7 +5,7 @@ description: "Drive the real Sora app — web UI with agent-browser, the sora CL
 
 # Verify Sora
 
-Sora is a shared finance app: one ledger per household, with budgets, goals, and balances. This skill proves what Sora actually does, in a disposable instance, so a claim about the app is backed by a run rather than by reading the code.
+Sora is a shared finance app: one ledger per wallet, with budgets, goals, and balances. This skill proves what Sora actually does, in a disposable instance, so a claim about the app is backed by a run rather than by reading the code.
 
 The app has three surfaces and this skill covers all three:
 
@@ -125,7 +125,7 @@ To switch to the realistic fixture:
 .agents/skills/verify-sora/scripts/control-sora reset --average
 ```
 
-This wipes the database and seeds ~130 transactions across six months, a settled rent balance, a funded Emergency fund, an almost-done Vacation goal, a stalled camera fund, and a mid-month settlement — the same shape of data a real household accumulates. `fixtures.json` is rewritten with its own expected values (a few of which, like the balance, are computed from the actual rows rather than pinned). `.agents/skills/verify-sora/scripts/seed-average.mjs` is the source of truth; `control-sora reset` without `--average` returns to the minimal fixture used for assertions.
+This wipes the database and seeds ~130 transactions across six months, a settled rent balance, a funded Emergency fund, an almost-done Vacation goal, a stalled camera fund, and a mid-month settlement, the same shape of data a real household accumulates. `fixtures.json` is rewritten with its own expected values (a few of which, like the balance, are computed from the actual rows rather than pinned). `.agents/skills/verify-sora/scripts/seed-average.mjs` is the source of truth; `control-sora reset` without `--average` returns to the minimal fixture used for assertions.
 
 `fixtures.json` in `.scratch/verify-sora/` holds the same numbers in machine-readable form, plus the ids of the household, the members, and the goal.
 

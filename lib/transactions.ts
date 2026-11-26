@@ -7,13 +7,8 @@ import { after } from "next/server";
 import { randomUUID } from "node:crypto";
 
 import { assertBudgetAllows } from "@/lib/budgets";
-import { CACHE_RESOURCE, householdTag } from "@/lib/cache";
-import {
-  actorFor,
-  assertCallerFullMember,
-  type Actor,
-  type Caller,
-} from "@/lib/caller";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
+import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
 import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import {
@@ -24,13 +19,8 @@ import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
-import {
-  notifyHouseholdChange,
-  publishHouseholdChange,
-  type DeferredRevalidation,
-} from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
-import { settlementCategoryExclusion } from "@/lib/settlements";
 import { sharesMatchExpense, sharesTotal } from "@/lib/split-shares";
 import {
   buildPostCommitEffects,
@@ -43,24 +33,6 @@ type TransactionCursor = { date: string; id: string };
 
 const IDEMPOTENCY_KEY_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function notifyPersonalTransactionChange(
-  householdId: string,
-  actor: Actor,
-  recipientId: string,
-  message: string,
-  executor: Prisma.TransactionClient,
-) {
-  return notifyHouseholdChange({
-    householdId,
-    actor,
-    resource: "transactions",
-    message,
-    recipientId,
-    scope: "personal-transaction",
-    executor,
-  });
-}
 
 function encodeCursor(date: Date, id: string) {
   return Buffer.from(
@@ -96,20 +68,18 @@ function decodeCursor(
 }
 
 export async function getTransactionsHistory(
-  householdId: string,
-  userId: string,
+  walletId: string,
   from: Date,
   to: Date,
   options: {
     category?: string;
-    shared?: boolean;
     cursor?: string | null;
     limit?: number;
   } = {},
 ) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.transactions));
 
   const cursor = decodeCursor(options.cursor);
   const limit = options.limit ?? TRANSACTION_HISTORY_PAGE_SIZE;
@@ -124,14 +94,12 @@ export async function getTransactionsHistory(
 
   const transactions = await prisma.transaction.findMany({
     where: {
-      householdId,
+      walletId,
       date: {
         gte: from,
         lte: to,
       },
-      OR: [{ shared: true }, { addedById: userId }],
       ...(options.category && { category: options.category }),
-      ...(options.shared !== undefined && { shared: options.shared }),
       ...(cursorFilter && { AND: [cursorFilter] }),
     },
     orderBy: [
@@ -153,7 +121,6 @@ export async function getTransactionsHistory(
       categoryIcon: true,
       categoryIconKind: true,
       categoryIconColor: true,
-      shared: true,
       addedById: true,
       addedVia: true,
       addedBy: {
@@ -185,20 +152,15 @@ export type GetTransactionsHistoryResponseType = Awaited<
 export type TransactionHistoryRow =
   GetTransactionsHistoryResponseType["transactions"][number];
 
-export async function getBalanceStats(
-  householdId: string,
-  from: Date,
-  to: Date,
-) {
+export async function getBalanceStats(walletId: string, from: Date, to: Date) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.transactions));
 
   const totals = await prisma.transaction.groupBy({
     by: ["type"],
     where: {
-      householdId,
-      shared: true,
+      walletId,
       date: {
         gte: from,
         lte: to,
@@ -228,13 +190,13 @@ export type GetBalanceStatsResponseType = Awaited<
 >;
 
 export async function getCategoriesStats(
-  householdId: string,
+  walletId: string,
   from: Date,
   to: Date,
 ) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.transactions));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.transactions));
 
   const stats = await prisma.transaction.groupBy({
     by: [
@@ -245,9 +207,7 @@ export async function getCategoriesStats(
       "categoryIconColor",
     ],
     where: {
-      householdId,
-      shared: true,
-      category: settlementCategoryExclusion(),
+      walletId,
       date: {
         gte: from,
         lte: to,
@@ -301,13 +261,12 @@ type StoredTransaction = NonNullable<
 >;
 
 type NewTransaction = {
-  householdId: string;
+  walletId: string;
   addedById: string;
   amount: number;
   date: Date;
   description: string;
   type: TransactionType;
-  shared: boolean;
   category: string;
   goalId: string | null;
   addedVia: "agent" | null;
@@ -322,7 +281,6 @@ function isSameTransaction(existing: StoredTransaction, next: NewTransaction) {
     existing.amount.eq(toMoney(next.amount)) &&
     existing.date.getTime() === next.date.getTime() &&
     existing.type === next.type &&
-    existing.shared === next.shared &&
     existing.category === next.category &&
     existing.addedById === next.addedById &&
     existing.description === next.description &&
@@ -333,13 +291,13 @@ function isSameTransaction(existing: StoredTransaction, next: NewTransaction) {
 
 async function resolveIdempotentWrite(
   tx: Prisma.TransactionClient,
-  householdId: string,
+  walletId: string,
   key: string | undefined,
   next: NewTransaction,
 ): Promise<{ existing: StoredTransaction } | { id: string | undefined }> {
   if (!key) return { id: undefined };
   const existing = await tx.transaction.findFirst({
-    where: { id: key, householdId },
+    where: { id: key, walletId },
   });
   if (!existing) return { id: key };
   if (isSameTransaction(existing, next)) return { existing };
@@ -362,13 +320,13 @@ async function createTransactionWithDeps(
   deps: CreateTransactionDeps,
 ) {
   assertCallerFullMember(caller);
-  const { householdId, userId } = caller;
+  const { walletId, userId } = caller;
   const actor = actorFor(caller);
 
   const key = readIdempotencyKey(input.idempotencyKey);
 
   const categoryRow = await requireCategory(
-    householdId,
+    walletId,
     input.category,
     input.type,
   );
@@ -390,10 +348,10 @@ async function createTransactionWithDeps(
   const recurringItemId = input.recurringItemId || undefined;
   const shareInput = parsedBody.data.shares ?? [];
 
-  const [household, goal, memberships, recurringItem] = await Promise.all([
-    prisma.household.findUnique({
+  const [wallet, goal, memberships, recurringItem] = await Promise.all([
+    prisma.wallet.findUnique({
       where: {
-        id: householdId,
+        id: walletId,
       },
       select: {
         currency: true,
@@ -403,13 +361,13 @@ async function createTransactionWithDeps(
       ? prisma.goal.findFirst({
           where: {
             id: goalId,
-            householdId,
+            walletId,
           },
         })
       : null,
-    prisma.householdMembership.findMany({
+    prisma.walletMembership.findMany({
       where: {
-        householdId,
+        walletId,
       },
       select: {
         userId: true,
@@ -419,16 +377,14 @@ async function createTransactionWithDeps(
       ? prisma.recurringItem.findFirst({
           where: {
             id: recurringItemId,
-            householdId,
+            walletId,
           },
         })
       : null,
   ]);
 
-  const shared = memberships.length === 1 ? true : parsedBody.data.shared;
-
-  if (shareInput.length > 0 && (type !== "expense" || !shared)) {
-    throw new DomainError("Shares are only valid for shared expenses");
+  if (shareInput.length > 0 && type !== "expense") {
+    throw new DomainError("Shares are only valid for expenses");
   }
 
   if (goalId && !goal) {
@@ -439,7 +395,7 @@ async function createTransactionWithDeps(
   }
 
   const formatAmount = getFormatterForCurrency(
-    household?.currency ?? DEFAULT_CURRENCY,
+    wallet?.currency ?? DEFAULT_CURRENCY,
   ).format;
 
   const memberIds = new Set(memberships.map((m) => m.userId));
@@ -449,7 +405,7 @@ async function createTransactionWithDeps(
     new Set(shareUserIds).size !== shareUserIds.length;
   if (hasForeignOrDuplicateMember) {
     throw new DomainError(
-      "Shares must name each member of this household at most once",
+      "Shares must name each member of this wallet at most once",
     );
   }
 
@@ -460,35 +416,31 @@ async function createTransactionWithDeps(
   }
 
   const thresholdMessage = await assertBudgetAllows({
-    householdId,
-    currency: household?.currency ?? DEFAULT_CURRENCY,
+    walletId,
+    currency: wallet?.currency ?? DEFAULT_CURRENCY,
     category: categoryRow.name,
     type,
-    shared,
     amount,
     date,
   });
 
   const next: NewTransaction = {
-    householdId,
+    walletId,
     addedById: userId,
     amount,
     date,
     description: description || "",
     type,
-    shared,
     category: categoryRow.name,
     goalId: goalId ?? null,
     addedVia,
   };
 
-  let personalRevalidation: DeferredRevalidation | undefined;
-
   const attemptWrite = async (writeKey: string | undefined) =>
     prisma.$transaction(async (tx) => {
       const resolved = await resolveIdempotentWrite(
         tx,
-        householdId,
+        walletId,
         writeKey,
         next,
       );
@@ -523,25 +475,14 @@ async function createTransactionWithDeps(
         });
       }
 
-      if (!shared) {
-        personalRevalidation = await notifyPersonalTransactionChange(
-          householdId,
-          actor,
-          userId,
-          "added a personal transaction",
-          tx,
-        );
-        return transaction;
-      }
-
       await incrementRollups(tx, {
-        householdId,
+        walletId,
         date,
         type,
         amount: moneyAmount,
       });
-      await publishHouseholdChange({
-        householdId,
+      await publishWalletChange({
+        walletId,
         actor,
         resource: "transactions",
         message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
@@ -561,7 +502,7 @@ async function createTransactionWithDeps(
       cause.code === "P2002"
     ) {
       const existing = await prisma.transaction.findFirst({
-        where: { id: key, householdId },
+        where: { id: key, walletId },
       });
       created =
         existing && isSameTransaction(existing, next)
@@ -572,18 +513,15 @@ async function createTransactionWithDeps(
     }
   }
 
-  personalRevalidation?.();
-
   const effects = buildPostCommitEffects({
     actor,
-    householdId,
+    walletId,
     userId,
     actorName: caller.actorName,
     categoryName: categoryRow.name,
     amount,
     description: description ?? "",
     type,
-    shared,
     formattedAmount: formatAmount(amount),
     formatAmount,
     thresholdMessage,
@@ -598,7 +536,7 @@ async function createTransactionWithDeps(
 
 export async function deleteTransaction(caller: Caller, id: string) {
   assertCallerFullMember(caller);
-  const { householdId } = caller;
+  const { walletId } = caller;
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
@@ -609,7 +547,7 @@ export async function deleteTransaction(caller: Caller, id: string) {
 
   const transaction = await prisma.transaction.findUnique({
     where: {
-      householdId,
+      walletId,
       id,
     },
   });
@@ -618,44 +556,29 @@ export async function deleteTransaction(caller: Caller, id: string) {
     throw new DomainError("Transaction not found");
   }
 
-  let personalRevalidation: DeferredRevalidation | undefined;
-
   await prisma.$transaction(async (tx) => {
     const deleted = await tx.transaction.deleteMany({
       where: {
         id,
-        householdId,
+        walletId,
       },
     });
     if (deleted.count === 0) {
       throw new DomainError("Transaction not found");
     }
 
-    if (!transaction.shared) {
-      personalRevalidation = await notifyPersonalTransactionChange(
-        householdId,
-        actorFor(caller),
-        transaction.addedById,
-        "removed a personal transaction",
-        tx,
-      );
-      return;
-    }
-
     await decrementRollups(tx, {
-      householdId,
+      walletId,
       date: transaction.date,
       type: transaction.type,
       amount: transaction.amount,
     });
-    await publishHouseholdChange({
-      householdId,
+    await publishWalletChange({
+      walletId,
       actor: actorFor(caller),
       resource: "transactions",
       message: `removed ${transaction.description || transaction.category}`,
       executor: tx,
     });
   });
-
-  personalRevalidation?.();
 }

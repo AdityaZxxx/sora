@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const memberships = await prisma.householdMembership.findMany({
+  const memberships = await prisma.walletMembership.findMany({
     where: {
       emailDigest: true,
     },
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   const notifications = await prisma.notification.findMany({
     where: {
       OR: memberships.map((m) => ({
-        householdId: m.householdId,
+        walletId: m.walletId,
         userId: m.userId,
       })),
       createdAt: {
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   const notificationsByMember = new Map<string, typeof notifications>();
   for (const notification of notifications) {
-    const key = `${notification.householdId}:${notification.userId}`;
+    const key = `${notification.walletId}:${notification.userId}`;
     const memberNotifications = notificationsByMember.get(key);
     if (memberNotifications) {
       memberNotifications.push(notification);
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
   for (const membership of memberships) {
     const memberNotifications =
       notificationsByMember.get(
-        `${membership.householdId}:${membership.userId}`,
+        `${membership.walletId}:${membership.userId}`,
       ) ?? [];
 
     if (memberNotifications.length === 0) continue;

@@ -2,7 +2,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-// Seeds a disposable Sora household so a verification run starts from a known
+// Seeds a disposable Sora wallet so a verification run starts from a known
 // ledger. The browser still signs in through the real form; only the data is
 // planted.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -50,6 +50,7 @@ function currentMonthDates(count) {
 async function clean() {
   // Child rows first so the deletes never fight a foreign key.
   await prisma.$transaction([
+    prisma.settlement.deleteMany(),
     prisma.transactionShare.deleteMany(),
     prisma.transaction.deleteMany(),
     prisma.notification.deleteMany(),
@@ -60,11 +61,11 @@ async function clean() {
     prisma.monthHistory.deleteMany(),
     prisma.yearHistory.deleteMany(),
     prisma.inviteLink.deleteMany(),
-    prisma.householdMembership.deleteMany(),
+    prisma.walletMembership.deleteMany(),
     prisma.session.deleteMany(),
     prisma.account.deleteMany(),
     prisma.user.deleteMany(),
-    prisma.household.deleteMany(),
+    prisma.wallet.deleteMany(),
     prisma.rateLimit.deleteMany(),
   ]);
 }
@@ -94,7 +95,6 @@ function historyRollups(transactions) {
   const years = new Map();
 
   for (const transaction of transactions) {
-    if (!transaction.shared) continue;
     const monthKey = `${transaction.date.getUTCFullYear()}-${transaction.date.getUTCMonth()}-${transaction.date.getUTCDate()}`;
     const yearKey = `${transaction.date.getUTCFullYear()}-${transaction.date.getUTCMonth()}`;
     const month = months.get(monthKey) ?? { income: 0, expense: 0 };
@@ -114,7 +114,7 @@ async function main() {
 
   const averyId = randomUUID();
   const blakeId = randomUUID();
-  const householdId = randomUUID();
+  const walletId = randomUUID();
 
   await createUser({
     id: averyId,
@@ -130,26 +130,26 @@ async function main() {
   });
 
   const now = new Date();
-  await prisma.household.create({
+  await prisma.wallet.create({
     data: {
-      id: householdId,
-      name: "Sora Verification Household",
+      id: walletId,
+      name: "Sora Verification Wallet",
       currency: "USD",
       agentAccessEnabled: true,
       createdAt: now,
     },
   });
 
-  await prisma.householdMembership.createMany({
+  await prisma.walletMembership.createMany({
     data: [
       {
-        householdId,
+        walletId,
         userId: averyId,
         role: "member",
         joinedAt: new Date(now.getTime() - 2 * 86_400_000),
       },
       {
-        householdId,
+        walletId,
         userId: blakeId,
         role: "member",
         joinedAt: new Date(now.getTime() - 86_400_000),
@@ -159,19 +159,19 @@ async function main() {
 
   await prisma.category.createMany({
     data: [
-      { householdId, name: "Salary", icon: "💰", type: "income" },
-      { householdId, name: "Freelance", icon: "💻", type: "income" },
-      { householdId, name: "Rent", icon: "🏠", type: "expense" },
-      { householdId, name: "Groceries", icon: "🛒", type: "expense" },
-      { householdId, name: "Utilities", icon: "💡", type: "expense" },
-      { householdId, name: "Dining Out", icon: "🍽️", type: "expense" },
-      { householdId, name: "Travel", icon: "✈️", type: "expense" },
+      { walletId, name: "Salary", icon: "💰", type: "income" },
+      { walletId, name: "Freelance", icon: "💻", type: "income" },
+      { walletId, name: "Rent", icon: "🏠", type: "expense" },
+      { walletId, name: "Groceries", icon: "🛒", type: "expense" },
+      { walletId, name: "Utilities", icon: "💡", type: "expense" },
+      { walletId, name: "Dining Out", icon: "🍽️", type: "expense" },
+      { walletId, name: "Travel", icon: "✈️", type: "expense" },
     ],
   });
 
   const goal = await prisma.goal.create({
     data: {
-      householdId,
+      walletId,
       name: "Vacation",
       target: 2000,
       deadline: new Date(Date.UTC(now.getUTCFullYear() + 1, 5, 1)),
@@ -180,7 +180,7 @@ async function main() {
 
   await prisma.budget.create({
     data: {
-      householdId,
+      walletId,
       category: "Groceries",
       amount: 500,
       mode: "soft",
@@ -256,8 +256,7 @@ async function main() {
       const { shares, ...data } = fixture;
       const transaction = await prisma.transaction.create({
         data: {
-          householdId,
-          shared: true,
+          walletId,
           addedVia: null,
           ...data,
         },
@@ -277,14 +276,12 @@ async function main() {
     await prisma.transactionShare.createMany({ data: shareRows });
   }
 
-  const { months, years } = historyRollups(
-    created.map(({ data }) => ({ ...data, shared: true })),
-  );
+  const { months, years } = historyRollups(created.map(({ data }) => data));
   await Promise.all(
     [...months].map(([key, totals]) => {
       const [year, month, day] = key.split("-").map(Number);
       return prisma.monthHistory.create({
-        data: { householdId, day, month, year, ...totals },
+        data: { walletId, day, month, year, ...totals },
       });
     }),
   );
@@ -292,7 +289,7 @@ async function main() {
     [...years].map(([key, totals]) => {
       const [year, month] = key.split("-").map(Number);
       return prisma.yearHistory.create({
-        data: { householdId, month, year, ...totals },
+        data: { walletId, month, year, ...totals },
       });
     }),
   );
@@ -302,14 +299,14 @@ async function main() {
   await prisma.apiToken.createMany({
     data: [
       {
-        householdId,
+        walletId,
         userId: averyId,
         name: "verification read-write",
         scope: "read-write",
         tokenHash: hashToken(readWriteToken),
       },
       {
-        householdId,
+        walletId,
         userId: averyId,
         name: "verification read-only",
         scope: "read-only",
@@ -351,7 +348,7 @@ async function main() {
       {
         runId,
         baseUrl,
-        householdId,
+        walletId,
         currency: "USD",
         members: {
           avery: { id: averyId, email: primaryEmail, name: "Avery Quinn" },
@@ -374,7 +371,7 @@ async function main() {
     `SORA_VERIFY_PASSWORD=${primaryPassword}`,
     `SORA_VERIFY_MEMBER_EMAIL=${memberEmail}`,
     `SORA_VERIFY_MEMBER_PASSWORD=${memberPassword}`,
-    `SORA_VERIFY_HOUSEHOLD_ID=${householdId}`,
+    `SORA_VERIFY_WALLET_ID=${walletId}`,
     `SORA_VERIFY_USER_ID=${averyId}`,
     `SORA_VERIFY_MEMBER_ID=${blakeId}`,
     `SORA_VERIFY_GOAL_ID=${goal.id}`,
@@ -384,7 +381,7 @@ async function main() {
 
   const summary = {
     runId,
-    householdId,
+    walletId,
     users: [primaryEmail, memberEmail],
     tokens: ["read-write", "read-only"],
     transactions: fixtures.length,

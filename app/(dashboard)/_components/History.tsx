@@ -72,12 +72,18 @@ function HistoryLegend({
 }
 
 interface Props {
+  walletId: string;
   currency: string | null;
   initialTimeframe: Timeframe;
   initialPeriod: Period;
 }
 
-const History = ({ currency, initialTimeframe, initialPeriod }: Props) => {
+const History = ({
+  walletId,
+  currency,
+  initialTimeframe,
+  initialPeriod,
+}: Props) => {
   const [timeframe, setTimeframe] = useState<Timeframe>(initialTimeframe);
   const [hiddenSeries, setHiddenSeries] = useState<ReadonlySet<SeriesKey>>(
     () => new Set<SeriesKey>(),
@@ -119,6 +125,7 @@ const History = ({ currency, initialTimeframe, initialPeriod }: Props) => {
         <CardContent>
           <Suspense fallback={<Skeleton className="h-[300px] w-full" />}>
             <HistoryResults
+              walletId={walletId}
               timeframe={timeframe}
               period={period}
               hidden={hiddenSeries}
@@ -132,18 +139,20 @@ const History = ({ currency, initialTimeframe, initialPeriod }: Props) => {
 };
 
 const HistoryResults = ({
+  walletId,
   timeframe,
   period,
   hidden,
   formatter,
 }: {
+  walletId: string;
   timeframe: Timeframe;
   period: Period;
   hidden: ReadonlySet<SeriesKey>;
   formatter: ReturnType<typeof getFormatterForCurrency>;
 }) => {
   const { data, isPending } = useQuery<HistoryChartRow[]>({
-    queryKey: queryKeys.overview.history(timeframe, period),
+    queryKey: queryKeys.overview.history(walletId, timeframe, period),
     queryFn: () =>
       fetchReadJson<HistoryChartRow[]>(
         "/api/history-data",

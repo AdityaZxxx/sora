@@ -10,7 +10,6 @@ import {
 } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { sumMoney, zeroMoney, type Money } from "@/lib/money";
-import { isSettlementCategory } from "@/lib/settlements";
 
 const { Decimal } = Prisma;
 const FLOOR_MINIMUM = new Decimal(100);
@@ -22,8 +21,7 @@ export type SpendingCandidate = {
   category: string;
   description: string;
   type: string;
-  shared: boolean;
-  householdId: string;
+  walletId: string;
   userId: string;
 };
 
@@ -34,11 +32,11 @@ export type UnusualSpendingDeps = {
   clock: () => Date;
   repo: Pick<
     PrismaClient,
-    "transaction" | "monthHistory" | "household" | "householdMembership"
+    "transaction" | "monthHistory" | "wallet" | "walletMembership"
   >;
   notifier: (
     actor: Actor,
-    householdId: string,
+    walletId: string,
     userIds: string[],
     type: string,
     message: string,
@@ -61,7 +59,7 @@ function floorFor(trailingIncome: Money) {
 
 async function trailingMonthlyIncome(
   repo: UnusualSpendingDeps["repo"],
-  householdId: string,
+  walletId: string,
   window: Window,
 ) {
   const months: { year: number; month: number }[] = [];
@@ -75,7 +73,7 @@ async function trailingMonthlyIncome(
   }
   const rows = await repo.monthHistory.findMany({
     where: {
-      householdId,
+      walletId,
       OR: months,
     },
   });
@@ -89,28 +87,19 @@ export async function evaluateUnusualSpending(
   if (transaction.type !== "expense") {
     return { notified: 0 };
   }
-  if (isSettlementCategory(transaction.category)) {
-    return { notified: 0 };
-  }
-
   const window = trailingWindow(deps.clock());
-
-  const sharedScope = transaction.shared
-    ? { shared: true }
-    : { shared: false, addedById: transaction.userId };
 
   const [baseline, trailingIncome] = await Promise.all([
     deps.repo.transaction.aggregate({
       _sum: { amount: true },
       where: {
-        householdId: transaction.householdId,
+        walletId: transaction.walletId,
         category: transaction.category,
         type: "expense",
-        ...sharedScope,
         date: { gte: window.start, lt: window.end },
       },
     }),
-    trailingMonthlyIncome(deps.repo, transaction.householdId, window),
+    trailingMonthlyIncome(deps.repo, transaction.walletId, window),
   ]);
 
   const average = (baseline._sum.amount ?? zeroMoney()).div(3);
@@ -121,29 +110,27 @@ export async function evaluateUnusualSpending(
     return { notified: 0 };
   }
 
-  const household = await deps.repo.household.findUnique({
-    where: { id: transaction.householdId },
+  const wallet = await deps.repo.wallet.findUnique({
+    where: { id: transaction.walletId },
     select: { currency: true },
   });
   const format = getFormatterForCurrency(
-    household?.currency ?? DEFAULT_CURRENCY,
+    wallet?.currency ?? DEFAULT_CURRENCY,
   ).format;
 
-  const recipients = transaction.shared
-    ? await deps.repo.householdMembership.findMany({
-        where: {
-          householdId: transaction.householdId,
-          role: FULL_MEMBER_ROLE,
-        },
-        select: { userId: true },
-      })
-    : [{ userId: transaction.userId }];
+  const recipients = await deps.repo.walletMembership.findMany({
+    where: {
+      walletId: transaction.walletId,
+      role: FULL_MEMBER_ROLE,
+    },
+    select: { userId: true },
+  });
 
   const message = `Unusual spending: ${format(transaction.amount.toNumber())} on ${transaction.description || transaction.category} (${transaction.category}) is more than twice the three-month average of ${format(average.toNumber())}.`;
 
   await deps.notifier(
     deps.actor,
-    transaction.householdId,
+    transaction.walletId,
     recipients.map((recipient) => recipient.userId),
     UNUSUAL_SPENDING_TYPE,
     message,

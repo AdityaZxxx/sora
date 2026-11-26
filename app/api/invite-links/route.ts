@@ -1,9 +1,9 @@
-import { jsonReadResponse, withHouseholdRoute } from "@/lib/api-route";
+import { jsonReadResponse, withWalletRoute } from "@/lib/api-route";
 import { listInviteLinks } from "@/lib/invites";
 
 export async function GET(request: Request) {
-  return withHouseholdRoute(async (result) => {
-    const inviteLinks = await listInviteLinks(result.household.id);
+  return withWalletRoute(async (result) => {
+    const inviteLinks = await listInviteLinks(result.wallet.id);
     return jsonReadResponse(request, inviteLinks);
   });
 }

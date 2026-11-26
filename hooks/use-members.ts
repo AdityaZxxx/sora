@@ -9,7 +9,7 @@ import { queryKeys } from "@/lib/query-keys";
 
 export function useMembers() {
   return useQuery({
-    queryKey: queryKeys.householdMembers,
+    queryKey: queryKeys.walletMembers,
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",

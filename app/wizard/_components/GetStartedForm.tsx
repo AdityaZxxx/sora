@@ -6,13 +6,10 @@ import { FormActionErrors } from "@/components/FormActionErrors";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { initialFormActionState } from "@/lib/form-action";
 
-import { startHousehold } from "../_actions/household";
+import { startWallet } from "../_actions/wallet";
 
 export function GetStartedForm() {
-  const [state, action] = useActionState(
-    startHousehold,
-    initialFormActionState,
-  );
+  const [state, action] = useActionState(startWallet, initialFormActionState);
 
   return (
     <form action={action} className="w-full space-y-3">

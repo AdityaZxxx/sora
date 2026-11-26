@@ -26,36 +26,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useHouseholds } from "@/hooks/use-households";
-import { DEFAULT_HOUSEHOLD_NAME } from "@/lib/constants";
+import { useWallets } from "@/hooks/use-wallets";
+import { DEFAULT_WALLET_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import {
-  createHousehold,
-  switchHousehold,
-} from "../app/(dashboard)/manage/_actions/households";
+  createWallet,
+  switchWallet,
+} from "../app/(dashboard)/manage/_actions/wallets";
 
-interface HouseholdSwitcherProps {
+interface WalletSwitcherProps {
   variant?: "default" | "row";
 }
 
-export default function HouseholdSwitcher({
+export default function WalletSwitcher({
   variant = "default",
-}: HouseholdSwitcherProps) {
+}: WalletSwitcherProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [, startSwitchTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
 
-  const householdsQuery = useHouseholds();
+  const walletsQuery = useWallets();
 
-  const households = householdsQuery.data?.households ?? [];
-  const activeId = householdsQuery.data?.active.id;
-  const active = households.find((household) => household.id === activeId);
+  const wallets = walletsQuery.data?.wallets ?? [];
+  const activeId = walletsQuery.data?.active.id;
+  const active = wallets.find((wallet) => wallet.id === activeId);
 
   const { mutate: switchTo, isPending: isSwitching } = useMutation({
-    mutationFn: switchHousehold,
+    mutationFn: switchWallet,
     onSuccess: () => {
       startSwitchTransition(async () => {
         await queryClient.invalidateQueries();
@@ -63,14 +63,14 @@ export default function HouseholdSwitcher({
       });
     },
     onError: () => {
-      toast.error("Unable to switch household. Try again.", {
-        id: "switch-household",
+      toast.error("Unable to switch wallet. Try again.", {
+        id: "switch-wallet",
       });
     },
   });
 
   const { mutate: create, isPending: isCreating } = useMutation({
-    mutationFn: () => createHousehold(name),
+    mutationFn: () => createWallet(name),
     onSuccess: () => {
       queryClient.invalidateQueries();
       setCreateOpen(false);
@@ -79,13 +79,13 @@ export default function HouseholdSwitcher({
       router.refresh();
     },
     onError: () => {
-      toast.error("Unable to create household. Try again.", {
-        id: "create-household",
+      toast.error("Unable to create wallet. Try again.", {
+        id: "create-wallet",
       });
     },
   });
 
-  const showSwitcher = !householdsQuery.isSuccess || households.length > 1;
+  const showSwitcher = !walletsQuery.isSuccess || wallets.length > 1;
 
   if (!showSwitcher) {
     return null;
@@ -100,14 +100,14 @@ export default function HouseholdSwitcher({
               <Button
                 variant="ghost"
                 className="h-16 w-full justify-start gap-3 px-3 font-normal"
-                aria-label="Switch household"
+                aria-label="Switch wallet"
               />
             ) : (
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-1.5"
-                aria-label="Switch household"
+                aria-label="Switch wallet"
               />
             )
           }
@@ -119,7 +119,7 @@ export default function HouseholdSwitcher({
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
                 <span className="truncate text-sm leading-5 font-medium">
-                  {active?.name ?? "Household"}
+                  {active?.name ?? "Wallet"}
                 </span>
                 {active && (
                   <span className="text-xs leading-4 text-muted-foreground">
@@ -134,7 +134,7 @@ export default function HouseholdSwitcher({
             <>
               <House className="h-4 w-4" />
               <span className="max-w-32 truncate">
-                {active?.name ?? "Household"}
+                {active?.name ?? "Wallet"}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </>
@@ -142,34 +142,34 @@ export default function HouseholdSwitcher({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-60">
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Households</DropdownMenuLabel>
+            <DropdownMenuLabel>Wallets</DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          {households.length === 0 ? (
+          {wallets.length === 0 ? (
             <p className="px-2 py-3 text-sm text-muted-foreground">Loading…</p>
           ) : (
-            households.map((household) => (
+            wallets.map((wallet) => (
               <DropdownMenuItem
-                key={household.id}
-                disabled={isSwitching || household.id === activeId}
-                onClick={() => switchTo(household.id)}
-                aria-current={household.id === activeId ? "true" : undefined}
+                key={wallet.id}
+                disabled={isSwitching || wallet.id === activeId}
+                onClick={() => switchTo(wallet.id)}
+                aria-current={wallet.id === activeId ? "true" : undefined}
                 className={cn(
                   "gap-2",
-                  household.id === activeId &&
+                  wallet.id === activeId &&
                     "bg-accent text-accent-foreground data-disabled:opacity-100",
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">
-                  {household.name ?? DEFAULT_HOUSEHOLD_NAME}
+                  {wallet.name ?? DEFAULT_WALLET_NAME}
                 </span>
                 <span
                   className={cn(
                     "text-xs text-muted-foreground tabular-nums",
-                    household.id === activeId && "text-accent-foreground/70",
+                    wallet.id === activeId && "text-accent-foreground/70",
                   )}
                 >
-                  {household.memberCount}
+                  {wallet.memberCount}
                 </span>
               </DropdownMenuItem>
             ))
@@ -180,7 +180,7 @@ export default function HouseholdSwitcher({
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            New household
+            New wallet
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -188,12 +188,12 @@ export default function HouseholdSwitcher({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add household</DialogTitle>
+            <DialogTitle>Add wallet</DialogTitle>
           </DialogHeader>
           <Field>
-            <FieldLabel htmlFor="household-name">Name</FieldLabel>
+            <FieldLabel htmlFor="wallet-name">Name</FieldLabel>
             <Input
-              id="household-name"
+              id="wallet-name"
               maxLength={50}
               value={name}
               onChange={(event) => setName(event.target.value)}

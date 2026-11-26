@@ -1,12 +1,12 @@
 # Overview
 
-The dashboard is where a household sees the month's shared numbers at a glance: the stat cards, the shared spending card, the category breakdowns, the history chart, and the insights panel.
+The dashboard is where a wallet shows the month's numbers at a glance: the stat cards, the shared spending card, the category breakdowns, the history chart, and the insights panel.
 
 ## Sub-features
 
 - `overview-income-expense-net` the stat cards show Income, Expense, and Balance for the picked date range; Balance is the server-computed net.
-- `overview-by-category` both category lists show shared transactions for the picked range, with the largest first.
-- `overview-balance` the balance card shows the net of shared transactions and settlements.
+- `overview-by-category` both category lists show the wallet's transactions for the picked range, with the largest first.
+- `overview-balance` the balance card shows the net of transactions and settlements.
 - `overview-shared-spending` a separate card shows this month's shared spend and the change against last month.
 - `overview-history` a chart of daily income and expense for the selected month, or twelve monthly buckets for the selected year, with previous/next chevrons.
 - `overview-insights` the savings rate for the current month and a six-month trailing chart of income vs expense.
@@ -35,10 +35,9 @@ Preconditions:
 
 ## Gotchas
 
-- Totals count only `shared: true` transactions (all inclusive), from any member.
-- The category lists are not zero-filled: a category with no shared transaction in the range does not appear; an empty range shows `No data for the selected period`.
-- Settlement transactions are excluded from the shared-spending card and the category breakdowns, but the balance-stats totals do include them.
+- Totals count every transaction in the active wallet (all inclusive), from any member.
+- The category lists are not zero-filled: a category with no transaction in the range does not appear; an empty range shows `No data for the selected period`.
 - A solo household has no shared-spending card; the card renders only when memberCount > 1.
 - The date range is capped at 90 days; a wider range is refused by the picker with a toast.
 - The picker trigger shows today's date on first load. After picking `This Month` it shows the full range. Use the live date in assertions.
-- Personal transactions do not contribute to any of these numbers.
+- Switching wallets never mixes figures from another wallet.

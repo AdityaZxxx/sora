@@ -1,7 +1,7 @@
 "use server";
 
-import { withHouseholdAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateHousehold } from "@/lib/cache";
+import { withWalletAction } from "@/lib/action-result";
+import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   formDate,
   formText,
@@ -10,9 +10,9 @@ import {
   type FormActionState,
 } from "@/lib/form-action";
 import {
-  createHouseholdGoal,
-  deleteHouseholdGoal,
-  updateHouseholdGoal,
+  createWalletGoal,
+  deleteWalletGoal,
+  updateWalletGoal,
 } from "@/lib/goals";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { CreateGoalSchema, UpdateGoalSchema } from "@/schemas/goals";
@@ -38,9 +38,9 @@ export async function createGoalForm(
     fallback: CREATE_ERROR,
     success: "Goal added",
     run: (input) =>
-      withHouseholdAction(CREATE_ERROR, async ({ caller }) => {
-        const created = await createHouseholdGoal(caller, input);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+      withWalletAction(CREATE_ERROR, async ({ caller }) => {
+        const created = await createWalletGoal(caller, input);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
         return created;
       }),
   });
@@ -62,9 +62,9 @@ export async function updateGoalForm(
     fallback: UPDATE_ERROR,
     success: "Goal updated",
     run: (input) =>
-      withHouseholdAction(UPDATE_ERROR, async ({ caller }) => {
-        const updated = await updateHouseholdGoal(caller, input);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+      withWalletAction(UPDATE_ERROR, async ({ caller }) => {
+        const updated = await updateWalletGoal(caller, input);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
         return updated;
       }),
   });
@@ -81,9 +81,9 @@ export async function deleteGoalForm(
     fallback: DELETE_ERROR,
     success: "Goal deleted",
     run: (input) =>
-      withHouseholdAction(DELETE_ERROR, async ({ caller }) => {
-        await deleteHouseholdGoal(caller, input.id);
-        revalidateHousehold(caller.householdId, [CACHE_RESOURCE.goals]);
+      withWalletAction(DELETE_ERROR, async ({ caller }) => {
+        await deleteWalletGoal(caller, input.id);
+        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
       }),
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 import type { TransactionType } from "@/lib/types";
-import type { Category, Household } from "@prisma/client";
+import type { Category, Wallet } from "@prisma/client";
 
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -54,11 +54,11 @@ import AccountSection from "./AccountSection";
 import AgentAccessSection from "./AgentAccessSection";
 import AppearanceSection from "./AppearanceSection";
 import BudgetsSection from "./BudgetsSection";
-import HouseholdSection from "./HouseholdSection";
 import InviteLinkDialog from "./InviteLinkDialog";
 import MembersSection from "./MembersSection";
+import WalletSection from "./WalletSection";
 
-const ManagePageClient = ({ household }: { household: Household }) => {
+const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
   const { canEdit } = useCallerRole();
 
   return (
@@ -76,7 +76,7 @@ const ManagePageClient = ({ household }: { household: Household }) => {
 
       <div className="container py-8">
         <div className="space-y-8">
-          <HouseholdSection canEdit={canEdit} />
+          <WalletSection canEdit={canEdit} />
 
           <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
             {canEdit && (
@@ -86,7 +86,7 @@ const ManagePageClient = ({ household }: { household: Household }) => {
                     <CardTitle className="text-lg">Invite link</CardTitle>
                     <CardDescription>
                       Share a revocable link or QR code to add another member to
-                      your household
+                      your wallet
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -107,9 +107,9 @@ const ManagePageClient = ({ household }: { household: Household }) => {
           </div>
 
           <AgentAccessSection
-            key={`agent-access-${household.id}`}
+            key={`agent-access-${wallet.id}`}
             canEdit={canEdit}
-            agentAccessEnabled={household.agentAccessEnabled}
+            agentAccessEnabled={wallet.agentAccessEnabled}
           />
 
           <MembersSection />
@@ -125,8 +125,8 @@ const ManagePageClient = ({ household }: { household: Household }) => {
               <CardContent>
                 <div className="max-w-xs">
                   <CurrencyComboBox
-                    key={household.id}
-                    currency={household.currency ?? DEFAULT_CURRENCY}
+                    key={wallet.id}
+                    currency={wallet.currency ?? DEFAULT_CURRENCY}
                   />
                 </div>
               </CardContent>
@@ -144,9 +144,9 @@ const ManagePageClient = ({ household }: { household: Household }) => {
           </section>
 
           <BudgetsSection
-            key={`budgets-${household.id}`}
+            key={`budgets-${wallet.id}`}
             canEdit={canEdit}
-            household={household}
+            wallet={wallet}
           />
 
           <AccountSection />

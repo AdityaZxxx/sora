@@ -6,8 +6,8 @@ export const getInviteByToken = cache(async (token: string) =>
   prisma.inviteLink.findFirst({
     where: { token, revokedAt: null },
     select: {
-      householdId: true,
-      household: {
+      walletId: true,
+      wallet: {
         select: {
           name: true,
           memberships: {

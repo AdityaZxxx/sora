@@ -1,7 +1,7 @@
 {
   "name": "Sora",
   "short_name": "Sora",
-  "description": "A free shared finance app for couples and households: one ledger, budgets, and goals.",
+  "description": "A free shared finance app for couples and wallets: one ledger, budgets, and goals.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",
@@ -33,7 +33,7 @@
     {
       "name": "New expense",
       "short_name": "New expense",
-      "description": "Add an expense to your household ledger",
+      "description": "Add an expense to your wallet ledger",
       "url": "/?new=expense"
     }
   ]

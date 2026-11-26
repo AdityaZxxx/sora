@@ -31,7 +31,7 @@ export function CurrencyComboBox({ currency }: { currency: string }) {
   const [currencyValue, setCurrencyValue] = React.useState(currency);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const householdCurrency = Currencies.find(
+  const walletCurrency = Currencies.find(
     (option) => option.value === currencyValue,
   );
 
@@ -79,11 +79,7 @@ export function CurrencyComboBox({ currency }: { currency: string }) {
       className="w-full justify-start text-left"
       disabled={mutation.isPending}
     >
-      {householdCurrency ? (
-        <>{householdCurrency.label}</>
-      ) : (
-        <>Select currency…</>
-      )}
+      {walletCurrency ? <>{walletCurrency.label}</> : <>Select currency…</>}
       <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
     </Button>
   );

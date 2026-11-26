@@ -5,14 +5,14 @@ A budget is a per-category monthly limit with two modes. A soft budget warns whe
 ## Sub-features
 
 - `budget-soft-create` a full member can create a soft budget; the card shows `0%` used after creation.
-- `budget-soft-progress` the card shows how much of the month's shared expenses have been spent in the category.
+- `budget-soft-progress` the card shows how much of the month's expenses have been spent in the category.
 - `budget-soft-warning` a soft budget notifies the other members at 80% and again at 100%, at most one notification per transaction.
 - `budget-hard-create` a full member can create a hard budget; a hard limit is enforced at the transaction seam.
 - `budget-hard-reject` a transaction over the limit is refused with a derived message; no row is created.
 - `budget-edit` a full member can raise or lower the limit or switch mode.
 - `budget-delete` a full member can delete the budget; spent-vs-limit is no longer tracked; historical transactions stay.
 - `budget-member-edits` a full member can manage all budgets in the household; a view-only member can only see them.
-- `budget-shared-only` a personal transaction does not count toward any budget.
+- `budget-wallet-scope` a transaction in another wallet does not count toward this wallet's budget.
 - `budget-settlements-excluded` a settlement does not count toward any budget.
 
 ## How to get to it (user POV)

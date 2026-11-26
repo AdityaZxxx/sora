@@ -5,18 +5,18 @@ import { z } from "zod";
 
 import {
   CACHE_RESOURCE,
-  householdTag,
-  revalidateMemberHouseholds,
+  walletTag,
+  revalidateMemberWallets,
 } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import { notify, notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishHouseholdChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { assertFullMemberRole, type MemberRole } from "@/lib/roles";
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function createInviteLink(
-  householdId: string,
+  walletId: string,
   userId: string,
   role: MemberRole,
 ) {
@@ -24,7 +24,7 @@ export async function createInviteLink(
   return await prisma.inviteLink.create({
     data: {
       token: crypto.randomUUID(),
-      householdId,
+      walletId,
       createdById: userId,
     },
   });
@@ -39,7 +39,7 @@ const InviteTokenSchema = z.object({
 });
 
 export async function revokeInviteLink(
-  householdId: string,
+  walletId: string,
   inviteLinkId: string,
   role: MemberRole,
 ) {
@@ -54,7 +54,7 @@ export async function revokeInviteLink(
   const result = await prisma.inviteLink.updateMany({
     where: {
       id: inviteLinkId,
-      householdId,
+      walletId,
       revokedAt: null,
     },
     data: {
@@ -66,16 +66,14 @@ export async function revokeInviteLink(
   }
 }
 
-export async function listInviteLinks(
-  householdId: string,
-): Promise<InviteLink[]> {
+export async function listInviteLinks(walletId: string): Promise<InviteLink[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(householdTag(householdId, CACHE_RESOURCE.invites));
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.invites));
 
   return await prisma.inviteLink.findMany({
     where: {
-      householdId,
+      walletId,
       revokedAt: null,
     },
     orderBy: {
@@ -84,7 +82,7 @@ export async function listInviteLinks(
   });
 }
 
-export async function joinHouseholdByInviteToken(
+export async function joinWalletByInviteToken(
   token: string,
   userId: string,
   userName: string,
@@ -108,35 +106,35 @@ export async function joinHouseholdByInviteToken(
     );
   }
 
-  const existingMembership = await prisma.householdMembership.findUnique({
+  const existingMembership = await prisma.walletMembership.findUnique({
     where: {
-      householdId_userId: {
-        householdId: inviteLink.householdId,
+      walletId_userId: {
+        walletId: inviteLink.walletId,
         userId,
       },
     },
   });
 
   if (!existingMembership) {
-    await prisma.householdMembership.create({
+    await prisma.walletMembership.create({
       data: {
-        householdId: inviteLink.householdId,
+        walletId: inviteLink.walletId,
         userId,
       },
     });
 
     const actor = { actorId: userId, actorName: userName };
-    await publishHouseholdChange({
-      householdId: inviteLink.householdId,
+    await publishWalletChange({
+      walletId: inviteLink.walletId,
       actor,
       resource: "members",
-      message: "joined the household",
+      message: "joined the wallet",
       scope: "member-joined",
     });
 
-    const otherMembers = await prisma.householdMembership.findMany({
+    const otherMembers = await prisma.walletMembership.findMany({
       where: {
-        householdId: inviteLink.householdId,
+        walletId: inviteLink.walletId,
         userId: {
           notIn: [userId, inviteLink.createdById],
         },
@@ -147,22 +145,22 @@ export async function joinHouseholdByInviteToken(
     });
     await notifyMembers(
       actor,
-      inviteLink.householdId,
+      inviteLink.walletId,
       otherMembers.map((membership) => membership.userId),
       "member_joined",
-      `${userName} joined the household.`,
+      `${userName} joined the wallet.`,
     );
     if (inviteLink.createdById !== userId) {
       await notify(
         actor,
-        inviteLink.householdId,
+        inviteLink.walletId,
         inviteLink.createdById,
         "invite_accepted",
-        `${userName} accepted your invite and joined the household.`,
+        `${userName} accepted your invite and joined the wallet.`,
       );
     }
-    revalidateMemberHouseholds(userId);
+    revalidateMemberWallets(userId);
   }
 
-  return inviteLink.householdId;
+  return inviteLink.walletId;
 }
