@@ -12,6 +12,7 @@ export type WalletsResponse = {
     currency: string | null;
     memberCount: number;
     isPersonal: boolean;
+    agentAccessEnabled: boolean;
     joinedAt: string;
   }[];
 };

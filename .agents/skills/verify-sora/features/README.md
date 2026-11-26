@@ -52,6 +52,7 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Goals](./goals.md) covers creating and deleting a goal and tracking contributions towards it.
 - [Balances and settlements](./balances-settlements.md) covers who owes what, recording a settlement, and the shared spending card.
 - [Manage](./manage.md) covers the space name, invite links, appearance, members, digest, export, and account deletion.
+- [Account settings](./account-settings.md) covers profile, authentication, appearance, agent access and account deletion.
 - [Agent access](./agent-access.md) covers the agent access switch, API tokens, and what a token can and cannot do.
 - [Validation](./validation.md) covers rejected input at every entry point: the web form, the MCP surface, and the CLI.
 - [Dashboard extras](./dashboard-extras.md) covers insights, safe to spend, upcoming bills, notifications, and the install prompt.

@@ -233,6 +233,7 @@ async function buildWalletsPayload(
       currency: membership.wallet.currency,
       memberCount: countByWalletId.get(membership.wallet.id) ?? 1,
       isPersonal: membership.isPersonal,
+      agentAccessEnabled: membership.wallet.agentAccessEnabled,
       joinedAt: membership.joinedAt,
     })),
   };

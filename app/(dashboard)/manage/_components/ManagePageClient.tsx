@@ -56,9 +56,6 @@ import { walletLabel } from "@/lib/wallet-label";
 import CreateCategoryDialog from "../../_components/CreateCategoryDialog";
 import DeleteCategoryDialog from "../../_components/DeletecategoryDialog";
 import EditCategoryDialog from "../../_components/EditCategoryDialog";
-import AccountSection from "./AccountSection";
-import AgentAccessSection from "./AgentAccessSection";
-import AppearanceSection from "./AppearanceSection";
 import BudgetsSection from "./BudgetsSection";
 import InviteLinkDialog from "./InviteLinkDialog";
 import MembersSection from "./MembersSection";
@@ -88,7 +85,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">Manage</h1>
             <p className="text-muted-foreground">
-              Manage your categories, budgets, and account
+              Manage your wallet's members, categories and budgets
             </p>
           </div>
         </div>
@@ -126,15 +123,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 Only an owner or co-owner can manage invite links here.
               </p>
             )}
-
-            <AppearanceSection />
           </div>
-
-          <AgentAccessSection
-            key={`agent-access-${wallet.id}`}
-            canEdit={canManage}
-            agentAccessEnabled={wallet.agentAccessEnabled}
-          />
 
           <MembersSection />
 
@@ -195,8 +184,6 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
             canEdit={canManage}
             wallet={wallet}
           />
-
-          <AccountSection />
         </div>
       </div>
     </div>

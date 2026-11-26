@@ -31,12 +31,19 @@ export async function callTool(
   endpoint: string,
   token: string,
   call: ToolCall,
+  walletId?: string,
 ): Promise<ToolOutcome> {
   const client = new Client({ name: "sora-cli", version: "0.1.0" });
 
   try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+    if (walletId) {
+      headers["X-Sora-Wallet"] = walletId;
+    }
     const transport = new StreamableHTTPClientTransport(new URL(endpoint), {
-      requestInit: { headers: { Authorization: `Bearer ${token}` } },
+      requestInit: { headers },
     });
 
     await client.connect(transport);

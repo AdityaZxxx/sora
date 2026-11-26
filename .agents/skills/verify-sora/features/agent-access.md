@@ -1,47 +1,37 @@
 # Agent access
 
-Agent access is the household's switch for programmatic use. When it is on, a member with edit access can mint an API token and let an assistant or a script work on the ledger through the MCP endpoint.
+Agent access is the wallet's switch for programmatic use. Any member can mint a user owned API token on Account Settings. Each token lists the wallets it may reach and an access level. Effective access is the intersection of that list and the member's current role in each wallet.
 
 ## Sub-features
 
-- `agent-access-switch` turns programmatic access on and off for the household.
-- `agent-access-tokens` lists the household's active tokens.
-- `agent-access-show-once` shows the token's plaintext exactly once.
-- `agent-access-revoke` kills a token; `agent-access-revoke-own` for a viewer.
-- `agent-access-scope` decides whether a token can read (7 tools) or read and write (an extra 11 tools).
-- `agent-access-kill-switch` revokes every token when the switch is turned off.
-- `agent-access-role-gate` a viewer can hold read-only tokens only.
+- `agent-access-switch` turns programmatic access on and off per wallet from Account Settings.
+- `agent-access-tokens` lists the caller's tokens with their allowed wallets and effective access.
+- `agent-access-create` creates a token with a chosen wallet list and scope.
+- `agent-access-revoke` revokes a token; `agent-access-revoke-own` for a viewer.
+- `agent-access-role-gate` a viewer's token is read only, and a demotion immediately reduces access.
+- `agent-access-wallet-gate` a token scoped to one wallet cannot reach another, including through the CLI `--wallet` flag or the `X-Sora-Wallet` header.
 
 ## How to get to it (user POV)
 
-- Choose `Manage` in the top navigation; the `Agent access` card sits above the members section.
-- Open `/manage` directly.
-- Create a token with the `Create token` button on that card.
-- Use a token with the `sora` command line client or any MCP client against `/api/mcp`.
+- Choose `Account` in the top navigation.
+- Agent access and token management live here, not on Manage.
 
 ## Driving it with agent-browser
 
 Preconditions:
 
 - Sora is healthy at `$U`; `control-sora doctor` passes.
-- The seeded household is in place (`control-sora reset`): agent access is on, with one read-write and one read-only token.
-- The browser is signed in as `avery@sora.test` (`control-sora login`).
+- The seeded wallet is in place (`control-sora reset`): Avery is owner, Blake is member, agent access is on, and Avery has a read-write and a read-only token.
 
-- **Open the manage page.** Run `control-sora browser open "$U/manage"` and then `control-sora browser eval 'document.body.innerText'`. The `Agent access` card reads `Allow AI assistants and API access` and `2 active tokens.`; the tokens are listed as `verification read-write` (`Read and write · Avery Quinn`) and `verification read-only` (`Read only · Avery Quinn`). The switch is seeded from the household, so a loading page shows a skeleton, not an off switch.
-- **Create a token.** Run `control-sora browser find role button click --name "Create token"`. Fill `Name` with `verification-ui-token`. The `Access` combobox defaults to `Read only`; open it and choose `Read and write` to mint a write token. Set `Expires` to a future date, and submit. The dialog changes to `Copy your token`.
-- **Read the plaintext once.** Run `control-sora browser eval 'document.querySelector("code").textContent.trim()'`. The value is the token. Close the dialog with `Done`; the plaintext is never shown again, only the name and the scope.
-- **Use the token.** Run `control-sora cli balance` with the new token in the environment: `SORA_TOKEN=<token> control-sora cli balance` prints the balance.
-- **Revoke it.** Run `control-sora browser find role button click --name "Revoke verification-ui-token"`. A `Token revoked` toast appears and the token is gone from the list. Run `SORA_TOKEN=<token> control-sora cli balance` again: it fails with `The Sora server rejected the token. Check the token, and check that the Wallet has agent access turned on.` and exits non-zero.
-- **Turn agent access off.** Run `control-sora browser find role switch click --name "Allow AI assistants and API access"`. A toast appears, the token list disappears, and the seeded read-write token stops working: `SORA_TOKEN=<seeded token> control-sora cli balance` fails with the same message.
-- **Turn it back on.** Run the same switch again. The switch is on, but the tokens do not come back: the card reads `No tokens yet.`
-- **Proof.** Run `control-sora browser snapshot -i` and `control-sora browser screenshot <artifact-dir>/agent-access/manage.png` with the token list on screen.
+- **Open Account Settings.** Run `control-sora browser open "$U/account"` and snapshot the page. The Agent access card lists each wallet with its switch, and the token list shows allowed wallets and effective access.
+- **Create a token.** Fill `Token name`, choose a scope, select the wallets, click `Create token`, and copy the one-time plaintext value.
+- **Use the token.** `control-sora mcp get_overview '{}'` uses Avery's read-write token. For a token with several wallets, pass `--wallet <id>` through the CLI or the `X-Sora-Wallet` header. A wallet outside the list returns a 403.
+- **Demote.** Change the member's role on Manage. The token's effective access on Account Settings changes after refetch, and write tools reject immediately.
+- **Proof.** `control-sora browser screenshot <artifact-dir>/agent-access/account.png` and `browser snapshot -i`.
 
 ## Gotchas
 
-- The plaintext token exists only in the `Copy your token` dialog. Read it with `browser eval 'document.querySelector("code").textContent.trim()'` while the dialog is open, or it is gone.
-- Turning agent access off revokes **every** token in the household. Turning it back on does not restore them; the switch is a kill switch, not a promise.
-- The switch is named `Allow AI assistants and API access` and has the `switch` role.
-- The `Create token` button opens the dialog and the dialog's submit button has the same name. Open the dialog first, then click `Create token` again.
-- A read-only token sees 7 tools (`get_overview`, `list_transactions`, `get_balances`, `list_budgets`, `list_goals`, `list_categories`, `list_members`); calling `add_transaction` with it fails. A read-write token adds `add_transaction`, `delete_transaction`, `record_settlement`, `create_goal`, `update_goal`, `delete_goal`, `set_budget`, `delete_budget`, `create_category`, `update_category`, `delete_category`.
-- A viewer cannot create a read-write token: the `Read and write` option is not rendered in the dialog, and cannot toggle the switch. The server also enforces both rules.
-- A viewer clicking `Revoke` on another member's token sees the list unchanged: the server rejects with `Only an owner or co-owner can revoke another member's token`.
+- MCP is stateless JSON, so there is no SSE on this surface.
+- Turning agent access off revokes every token that lists that wallet.
+- A read-only token sees eight read tools: `get_overview`, `list_transactions`, `get_balances`, `list_budgets`, `list_goals`, `list_members`, `list_categories` and `list_settlements`. A read-write token adds eleven write tools.
+- `control-sora cli` uses `SORA_TOKEN` by default; pass `--wallet` when a token lists more than one wallet.

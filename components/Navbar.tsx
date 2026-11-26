@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   Settings,
+  UserRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -69,6 +70,7 @@ const items = [
   { label: "Dashboard", link: "/", icon: LayoutDashboard },
   { label: "Transactions", link: "/transactions", icon: ArrowLeftRight },
   { label: "Manage", link: "/manage", icon: Settings },
+  { label: "Account", link: "/account", icon: UserRound },
 ] as const;
 
 function MobileMenu() {
