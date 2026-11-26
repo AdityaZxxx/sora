@@ -5,8 +5,13 @@ import {
   walletTag,
   revalidateMemberWallets,
 } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
-import { FULL_MEMBER_ROLE } from "@/lib/constants";
+import {
+  actorFor,
+  assertCallerCanManage,
+  assertCallerIsOwner,
+  type Caller,
+} from "@/lib/caller";
+import { CO_OWNER_ROLE, OWNER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notifyWalletExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
@@ -47,6 +52,11 @@ export async function listMembers(walletId: string) {
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function leaveWallet(caller: Caller) {
+  if (caller.role === OWNER_ROLE) {
+    throw new DomainError(
+      "Appoint a co-owner as the new owner before leaving this wallet",
+    );
+  }
   const actor = actorFor(caller);
   await prisma.$transaction(async (tx) => {
     await tx.walletMembership.delete({
@@ -126,7 +136,7 @@ export async function removeMember(
   caller: Caller,
   input: RemoveMemberSchemaType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
 
   const parsed = RemoveMemberSchema.safeParse(input);
   if (!parsed.success) {
@@ -157,6 +167,12 @@ export async function removeMember(
 
   if (!removed) {
     throw new DomainError("Member not found");
+  }
+  if (removed.role === OWNER_ROLE) {
+    throw new DomainError("The owner cannot be removed by another member");
+  }
+  if (removed.role === CO_OWNER_ROLE && caller.role !== OWNER_ROLE) {
+    throw new DomainError("Only the owner can remove a co-owner");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -213,21 +229,10 @@ export async function setMemberRole(
 
   const { userId, role: nextRole } = parsed.data;
 
+  assertCallerIsOwner(caller, "Only the owner can change roles in this wallet");
+
   if (userId === caller.userId) {
-    if (nextRole !== FULL_MEMBER_ROLE) {
-      throw new DomainError("Use leave wallet to give up your own edit access");
-    }
-    const fullMemberCount = await prisma.walletMembership.count({
-      where: {
-        walletId: caller.walletId,
-        role: FULL_MEMBER_ROLE,
-      },
-    });
-    if (fullMemberCount > 0) {
-      throw new DomainError("Only another member can change your role");
-    }
-  } else {
-    assertCallerFullMember(caller);
+    throw new DomainError("Transfer ownership to another co-owner instead");
   }
 
   const target = await prisma.walletMembership.findUnique({
@@ -242,17 +247,34 @@ export async function setMemberRole(
   if (!target) {
     throw new DomainError("Member not found");
   }
+  if (target.role === OWNER_ROLE) {
+    throw new DomainError("The owner's role cannot be changed");
+  }
+  if (nextRole === OWNER_ROLE && target.role !== CO_OWNER_ROLE) {
+    throw new DomainError("Only a co-owner can become the owner");
+  }
 
-  await prisma.walletMembership.update({
-    where: {
-      walletId_userId: {
-        walletId: caller.walletId,
-        userId,
+  await prisma.$transaction(async (tx) => {
+    if (nextRole === OWNER_ROLE) {
+      await tx.walletMembership.update({
+        where: {
+          walletId_userId: {
+            walletId: caller.walletId,
+            userId: caller.userId,
+          },
+        },
+        data: { role: CO_OWNER_ROLE },
+      });
+    }
+    await tx.walletMembership.update({
+      where: {
+        walletId_userId: {
+          walletId: caller.walletId,
+          userId,
+        },
       },
-    },
-    data: {
-      role: nextRole,
-    },
+      data: { role: nextRole },
+    });
   });
 
   await publishWalletChange({

@@ -1,4 +1,27 @@
+import { OWNER_ROLE } from "@/lib/constants";
+import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+
+export async function assertAccountDeletable(userId: string) {
+  const ownerMemberships = await prisma.walletMembership.findMany({
+    where: { userId, role: OWNER_ROLE },
+    select: { walletId: true },
+  });
+  if (ownerMemberships.length === 0) return;
+
+  const sharedWallets = await prisma.wallet.findMany({
+    where: {
+      id: { in: ownerMemberships.map((membership) => membership.walletId) },
+      memberships: { some: { userId: { not: userId } } },
+    },
+    select: { id: true },
+  });
+  if (sharedWallets.length > 0) {
+    throw new DomainError(
+      "Appoint a co-owner as the new owner before deleting your account",
+    );
+  }
+}
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function deleteUserAccount(userId: string, email: string) {

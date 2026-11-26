@@ -4,17 +4,19 @@ import type { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 
 import {
-  FULL_MEMBER_ROLE,
   UNUSUAL_SPENDING_TYPE,
   DEFAULT_CURRENCY,
+  VIEWER_ROLE,
 } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { sumMoney, zeroMoney, type Money } from "@/lib/money";
+import { MEMBER_ROLES } from "@/lib/roles";
 
 const { Decimal } = Prisma;
 const FLOOR_MINIMUM = new Decimal(100);
 const INCOME_FLOOR_RATIO = new Decimal("0.005");
 const SPIKE_MULTIPLIER = new Decimal(2);
+const WRITING_ROLES = MEMBER_ROLES.filter((role) => role !== VIEWER_ROLE);
 
 export type SpendingCandidate = {
   amount: Money;
@@ -121,7 +123,7 @@ export async function evaluateUnusualSpending(
   const recipients = await deps.repo.walletMembership.findMany({
     where: {
       walletId: transaction.walletId,
-      role: FULL_MEMBER_ROLE,
+      role: { in: WRITING_ROLES },
     },
     select: { userId: true },
   });

@@ -7,7 +7,12 @@ import type {
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import {
+  actorFor,
+  assertCallerCanManage,
+  assertCallerCanWrite,
+  type Caller,
+} from "@/lib/caller";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
@@ -49,7 +54,7 @@ export async function createWalletCategory(
   caller: Caller,
   input: CreateCategorySchemaType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
   const parsed = CreateCategorySchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(
@@ -104,7 +109,7 @@ export async function updateWalletCategory(
   caller: Caller,
   input: UpdateCategorySchemaType,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = UpdateCategorySchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(
@@ -201,7 +206,7 @@ export async function updateWalletCategory(
 }
 
 export async function deleteWalletCategory(caller: Caller, id: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
 
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {

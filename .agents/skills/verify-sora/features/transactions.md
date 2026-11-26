@@ -41,6 +41,6 @@ Preconditions:
 - The column header buttons (`Category`, `Type`) share their names with the filter buttons above the table. The filter wins on `find role button click --name` because it comes first in the DOM; scope the click with a snapshot ref if the order changes.
 - Every transaction belongs to the active wallet. Split controls appear only when the wallet has more than one member.
 - The dialog's `Goal (optional)` select appears only on the expense dialog, and only when at least one goal exists.
-- `Delete` is only shown on rows the member can edit (full members only).
+- `Delete` is shown on the caller's own rows and on every row for owners and co-owners. Viewers see no row actions.
 - The table does not poll. `POLL_INTERVAL` is 0 and `staleTime` is 30 s; new rows arrive through SSE invalidation of the transactions query key. If a row does not appear, wait briefly or reload rather than waiting a fixed 30 s.
 - Web writes use a typed mutation client with a generated idempotency key, optimistic stats update and rollback, and an IndexedDB queue for offline replay. An online write still surfaces the server error as a toast.

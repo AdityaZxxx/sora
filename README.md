@@ -6,7 +6,7 @@ Sora is a free finance app for individuals, couples, and households. Each househ
 
 A **household** is the space where money records live. It can have one member or several, and every money record belongs to exactly one household. A one-member household is a first-class case, so the app addresses a solo user as a person rather than as a group.
 
-Members have equal rights. Any full member can add, edit, and delete transactions, invite people, and remove people; a view-only member can read the ledger. There is no owner role. People join through a revocable invite link or QR code, and transactions a departing member added stay in the ledger with their name attached. Amounts are stored as fixed-point decimals and shown in the household's single currency, chosen at onboarding.
+A wallet has four roles: owner, co-owner, member and viewer. Members add transactions and edit their own entries; owners and co-owners also manage budgets, goals, settings, invites and removals; only the owner changes roles and transfers ownership. Viewers read the ledger without writing. People join through a revocable invite link or QR code, and transactions a departing member added stay in the ledger with their name attached. Amounts are stored as fixed-point decimals and shown in the household's single currency, chosen at onboarding.
 
 Sora is a ledger, not a bank. A **settlement** records that one member paid another what they owed; no funds move through the app. Recurring items produce an **Upcoming bills** list that a member confirms into a real transaction, so nothing posts automatically.
 

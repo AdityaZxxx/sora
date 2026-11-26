@@ -4,9 +4,9 @@ A goal is a named household savings target with an optional deadline. It holds n
 
 ## Sub-features
 
-- `goals-create` a full member can create a goal with a name, a target, and an optional deadline.
-- `goals-edit` a full member can rename a goal, change its target, or set or clear its deadline.
-- `goals-delete` a full member can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
+- `goals-create` an owner or co-owner can create a goal with a name, a target, and an optional deadline.
+- `goals-edit` an owner or co-owner can rename a goal, change its target, or set or clear its deadline.
+- `goals-delete` an owner or co-owner can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
 - `goals-progress` the card shows the percentage and the contributed and target amounts.
 - `goals-reached-notify` reaching the target fires a one-shot `goal_reached` notification to all members when a transaction crosses the line.
 - `goal-tag-transaction` a transaction can be tagged with a goal when adding it.

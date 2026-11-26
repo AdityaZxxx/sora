@@ -1,5 +1,5 @@
 import { withWalletRoute } from "@/lib/api-route";
-import { assertCallerFullMember } from "@/lib/caller";
+import { assertCallerCanWrite } from "@/lib/caller";
 import { moneyText } from "@/lib/money";
 import prisma from "@/lib/prisma";
 
@@ -80,13 +80,13 @@ async function writeArrayProperty(
 export async function GET() {
   return withWalletRoute(async (result) => {
     try {
-      assertCallerFullMember(
+      assertCallerCanWrite(
         result.caller,
-        "Only full members can export wallet data",
+        "Only members with edit access can export wallet data",
       );
     } catch {
       return Response.json(
-        { message: "Only full members can export wallet data" },
+        { message: "Only members with edit access can export wallet data" },
         { status: 403 },
       );
     }

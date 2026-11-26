@@ -1,6 +1,6 @@
 # Households are joined via revocable shareable links, not email invites
 
-An invite is a link, also rendered as a QR code, that can be sent over any channel such as WhatsApp. The link is revocable and rotatable by any member, and accepting it requires signing in through it. Email invites were rejected because they need third-party email infrastructure and per-invite email volume on a free product.
+An invite is a link, also rendered as a QR code, that can be sent over any channel such as WhatsApp. The link is created, rotated and revoked only by an owner or co-owner, and accepting it requires signing in through it. Invitees join as members. Email invites were rejected because they need third-party email infrastructure and per-invite email volume on a free product.
 
 ## Considered Options
 

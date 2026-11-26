@@ -4,14 +4,14 @@ A budget is a per-category monthly limit with two modes. A soft budget warns whe
 
 ## Sub-features
 
-- `budget-soft-create` a full member can create a soft budget; the card shows `0%` used after creation.
+- `budget-soft-create` an owner or co-owner can create a soft budget; the card shows `0%` used after creation.
 - `budget-soft-progress` the card shows how much of the month's expenses have been spent in the category.
 - `budget-soft-warning` a soft budget notifies the other members at 80% and again at 100%, at most one notification per transaction.
-- `budget-hard-create` a full member can create a hard budget; a hard limit is enforced at the transaction seam.
+- `budget-hard-create` an owner or co-owner can create a hard budget; a hard limit is enforced at the transaction seam.
 - `budget-hard-reject` a transaction over the limit is refused with a derived message; no row is created.
-- `budget-edit` a full member can raise or lower the limit or switch mode.
-- `budget-delete` a full member can delete the budget; spent-vs-limit is no longer tracked; historical transactions stay.
-- `budget-member-edits` a full member can manage all budgets in the household; a view-only member can only see them.
+- `budget-edit` an owner or co-owner can raise or lower the limit or switch mode.
+- `budget-delete` an owner or co-owner can delete the budget; spent-vs-limit is no longer tracked; historical transactions stay.
+- `budget-member-edits` an owner or co-owner can manage all budgets in the household; a viewer can only see them.
 - `budget-wallet-scope` a transaction in another wallet does not count toward this wallet's budget.
 - `budget-settlements-excluded` a settlement does not count toward any budget.
 
@@ -39,7 +39,7 @@ Preconditions:
 
 ## Gotchas
 
-- The manage card cannot create a budget for the `Settlement` category; the seeded UI excludes it. Only a full member can create, edit, or delete a budget; a view-only member sees them.
+- The manage card cannot create a budget for the `Settlement` category; the seeded UI excludes it. Only an owner or co-owner can create, edit, or delete a budget; a viewer sees them.
 - The progress bar renders for every budget. Percentage text is `Math.round(percent)`, so an over-budget card reads more than 100% even though the bar is clipped.
 - A budget measure always uses the current UTC month; there is no per-budget month visibility switch.
 - A budget overspend only notifies the other members once per transaction, at the highest threshold crossed; the actor is not the only audience.

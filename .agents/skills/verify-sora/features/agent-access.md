@@ -1,16 +1,16 @@
 # Agent access
 
-Agent access is the household's switch for programmatic use. When it is on, a full member can mint an API token and let an assistant or a script work on the ledger through the MCP endpoint.
+Agent access is the household's switch for programmatic use. When it is on, a member with edit access can mint an API token and let an assistant or a script work on the ledger through the MCP endpoint.
 
 ## Sub-features
 
 - `agent-access-switch` turns programmatic access on and off for the household.
 - `agent-access-tokens` lists the household's active tokens.
 - `agent-access-show-once` shows the token's plaintext exactly once.
-- `agent-access-revoke` kills a token; `agent-access-revoke-own` for a view-only member.
+- `agent-access-revoke` kills a token; `agent-access-revoke-own` for a viewer.
 - `agent-access-scope` decides whether a token can read (7 tools) or read and write (an extra 11 tools).
 - `agent-access-kill-switch` revokes every token when the switch is turned off.
-- `agent-access-role-gate` a view-only member can hold read-only tokens only.
+- `agent-access-role-gate` a viewer can hold read-only tokens only.
 
 ## How to get to it (user POV)
 
@@ -43,5 +43,5 @@ Preconditions:
 - The switch is named `Allow AI assistants and API access` and has the `switch` role.
 - The `Create token` button opens the dialog and the dialog's submit button has the same name. Open the dialog first, then click `Create token` again.
 - A read-only token sees 7 tools (`get_overview`, `list_transactions`, `get_balances`, `list_budgets`, `list_goals`, `list_categories`, `list_members`); calling `add_transaction` with it fails. A read-write token adds `add_transaction`, `delete_transaction`, `record_settlement`, `create_goal`, `update_goal`, `delete_goal`, `set_budget`, `delete_budget`, `create_category`, `update_category`, `delete_category`.
-- A view-only member cannot create a read-write token: the `Read and write` option is not rendered in the dialog, and cannot toggle the switch. The server also enforces both rules.
-- A view-only member clicking `Revoke` on another member's token sees the list unchanged: the server rejects with `View-only members can only revoke their own tokens`.
+- A viewer cannot create a read-write token: the `Read and write` option is not rendered in the dialog, and cannot toggle the switch. The server also enforces both rules.
+- A viewer clicking `Revoke` on another member's token sees the list unchanged: the server rejects with `Only an owner or co-owner can revoke another member's token`.

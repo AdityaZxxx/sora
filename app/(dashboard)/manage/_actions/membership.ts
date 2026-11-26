@@ -11,7 +11,6 @@ import { redirect } from "next/navigation";
 import { type ActionResult, withWalletAction } from "@/lib/action-result";
 import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { actorFor } from "@/lib/caller";
-import { VIEW_ONLY_ROLE } from "@/lib/constants";
 import {
   formText,
   fromActionResult,
@@ -104,9 +103,7 @@ export async function setMemberRole(
         caller.walletId,
         form.userId,
         "member_role",
-        nextRole === VIEW_ONLY_ROLE
-          ? `${caller.actorName} set your access to view-only in this wallet.`
-          : `${caller.actorName} gave you full edit access in this wallet.`,
+        `${caller.actorName} set your role to ${nextRole} in this wallet.`,
       );
       revalidateWallet(caller.walletId, [
         CACHE_RESOURCE.members,

@@ -4,7 +4,7 @@ The app previously scoped every record to the signed-in user. Sora is a couples/
 
 The repo is treated as fresh (zero existing users), so the schema moves to household scope directly with no data migration. A signed-in user starts solo use by submitting the first-run "Get started" form. That submission creates a personal Household. A GET of the wizard is read-only and never creates one. An invite link adds the second member to the inviter's household.
 
-Members are equal: any member can edit or delete any transaction, invite others, or remove others. When a member leaves, their transactions stay in the ledger, attributed to them.
+Members have a role ladder: owner, co-owner, member and viewer. The wallet creator is owner, only the owner changes roles, and owners and co-owners invite and remove non-owners. Members write their own entries, owners and co-owners may edit any entry, and viewers only read. When a member leaves, their transactions stay in the ledger, attributed to them.
 
 ## Considered Options
 

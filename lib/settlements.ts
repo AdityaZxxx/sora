@@ -1,6 +1,6 @@
 import { after } from "next/server";
 
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
+import { actorFor, assertCallerCanWrite, type Caller } from "@/lib/caller";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -42,7 +42,7 @@ async function runSettlement(
   input: RecordSettlementInput,
   startedAt: number,
 ) {
-  assertCallerFullMember(caller);
+  assertCallerCanWrite(caller);
   const { walletId, userId } = caller;
   const parsedBody = RecordSettlementSchema.safeParse({
     memberId: input.memberId,

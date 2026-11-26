@@ -69,6 +69,8 @@ model WalletMembership {
   joinedAt    DateTime  @default(now())
   // Opt-in to the daily email digest of unread wallet notifications.
   emailDigest Boolean   @default(false)
+  // One owner per wallet is enforced by a partial unique index in migration
+  // 20261125170000_add_wallet_roles, which Prisma schema cannot express.
   role        String    @default("member")
 
   @@id([walletId, userId])

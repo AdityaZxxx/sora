@@ -8,7 +8,7 @@ Authorization is membership, not ownership of a row. Resolve the caller's Wallet
 
 Attribution and visibility are different questions. A transaction records the member who added it (`addedById`), and that member can leave the wallet without their transactions disappearing. So "who added it" never answers "who can see it", and only the wallet does.
 
-Full members can edit or delete any transaction, invite others, and remove others; view-only members can do none of those. A diff that adds an owner check is a finding.
+The four roles are owner, co-owner, member and viewer. Members write transactions, categories and settlements; owners and co-owners also manage budgets, goals, settings, invites and removals; only the owner changes roles and transfers ownership. Viewers only read. A write that is unavailable to the caller is rejected in the `lib/` seam, not only hidden in the UI.
 
 A reviewer should be able to point at the `walletId` filter in every query the diff touches. A query that filters by `addedById` where the intent was "in this wallet" is a bug even when it returns the right rows today.
 

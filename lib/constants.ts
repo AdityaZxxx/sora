@@ -13,8 +13,10 @@ export const SSE_HEARTBEAT_INTERVAL = 20_000;
 
 export const ACTIVE_WALLET_COOKIE = "sora_active_wallet";
 
-export const FULL_MEMBER_ROLE = "member";
-export const VIEW_ONLY_ROLE = "view_only";
+export const OWNER_ROLE = "owner";
+export const CO_OWNER_ROLE = "co_owner";
+export const MEMBER_ROLE = "member";
+export const VIEWER_ROLE = "viewer";
 
 export const DEFAULT_WALLET_NAME = "My wallet";
 export const DEFAULT_CURRENCY = "USD";

@@ -575,9 +575,11 @@ function AddedByCell({ transaction }: { transaction: TransactionHistoryRow }) {
 
 function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { canEdit } = useCallerRole();
+  const { canEdit, canManage } = useCallerRole();
+  const { data: session } = useSession();
 
-  if (!canEdit) return null;
+  const isOwnEntry = transaction.addedById === session?.user.id;
+  if (!canManage && !(canEdit && isOwnEntry)) return null;
 
   return (
     <>

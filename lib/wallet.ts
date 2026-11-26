@@ -9,8 +9,12 @@ import {
   memberWalletsTag,
   revalidateMemberWallets,
 } from "@/lib/cache";
-import { actorFor, assertCallerFullMember, type Caller } from "@/lib/caller";
-import { ACTIVE_WALLET_COOKIE, READ_WRITE_SCOPE } from "@/lib/constants";
+import { actorFor, assertCallerCanManage, type Caller } from "@/lib/caller";
+import {
+  ACTIVE_WALLET_COOKIE,
+  OWNER_ROLE,
+  READ_WRITE_SCOPE,
+} from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
@@ -79,6 +83,7 @@ export async function createPersonalWallet(userId: string) {
       data: {
         walletId: wallet.id,
         userId,
+        role: OWNER_ROLE,
       },
       include: {
         wallet: true,
@@ -113,7 +118,7 @@ export const requireWallet = cache(async () => {
 });
 
 export async function renameWallet(caller: Caller, name: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = WalletNameSchema.safeParse(name);
   if (!parsed.success) {
     throw new DomainError(
@@ -136,7 +141,7 @@ export async function renameWallet(caller: Caller, name: string) {
 }
 
 export async function updateWalletCurrency(caller: Caller, currency: string) {
-  assertCallerFullMember(caller);
+  assertCallerCanManage(caller);
   const parsed = UpdateUserCurrencySchema.safeParse({ currency });
   if (!parsed.success) {
     throw new DomainError(
@@ -288,6 +293,7 @@ export async function createAdditionalWallet(userId: string, name: string) {
       data: {
         walletId: wallet.id,
         userId,
+        role: OWNER_ROLE,
       },
     });
     return wallet;
