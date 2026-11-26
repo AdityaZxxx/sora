@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -185,16 +186,16 @@ export default function AgentAccessSection() {
                 key={wallet.id}
                 className="flex items-center gap-2 text-sm"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={walletIds.includes(wallet.id)}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     setWalletIds((current) =>
-                      event.target.checked
+                      checked
                         ? [...current, wallet.id]
                         : current.filter((id) => id !== wallet.id),
                     )
                   }
+                  aria-label={wallet.name ?? "Personal wallet"}
                 />
                 {wallet.name ?? "Personal wallet"}
               </label>
