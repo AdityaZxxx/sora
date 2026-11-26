@@ -93,8 +93,6 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
 
       <div className="container py-8">
         <div className="space-y-8">
-          <WalletSection canEdit={canManage} />
-
           <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
             {canManage ? (
               <section className="h-full">
@@ -123,6 +121,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 Only an owner or co-owner can manage invite links here.
               </p>
             )}
+            <WalletSection canEdit={canManage} />
           </div>
 
           <MembersSection />
