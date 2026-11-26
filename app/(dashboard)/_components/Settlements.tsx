@@ -37,7 +37,7 @@ export default function Settlements({ currency }: { currency: string | null }) {
   if (settlements.length === 0) return null;
 
   return (
-    <Card className="section transition-all hover:shadow-md">
+    <Card className="transition-all hover:shadow-md">
       <CardHeader>
         <CardTitle className="text-lg">Settlements</CardTitle>
         <CardDescription>
@@ -59,9 +59,11 @@ export default function Settlements({ currency }: { currency: string | null }) {
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
-                    {settlement.isParty
-                      ? `${settlement.payerName} paid ${settlement.receiverName}`
-                      : "A settlement was recorded"}
+                    {!settlement.isParty
+                      ? "A settlement was recorded"
+                      : settlement.isPayer
+                        ? `You paid ${settlement.receiverName}`
+                        : `${settlement.payerName} paid you`}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(settlement.date).toLocaleDateString()}

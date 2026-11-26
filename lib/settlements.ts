@@ -29,6 +29,8 @@ export type SettlementRow = {
   payerName: string | null;
   receiverName: string | null;
   isParty: boolean;
+  isPayer: boolean;
+  isReceiver: boolean;
 };
 
 export async function listSettlements(
@@ -59,6 +61,8 @@ export async function listSettlements(
       payerName: isParty ? settlement.payer.name : null,
       receiverName: isParty ? settlement.receiver.name : null,
       isParty,
+      isPayer: settlement.payerId === callerId,
+      isReceiver: settlement.receiverId === callerId,
     };
   });
 }
