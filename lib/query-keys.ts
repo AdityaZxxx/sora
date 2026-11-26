@@ -12,6 +12,7 @@ export const queryKeys = {
   goals: ["goals"] satisfies QueryKey,
   wallet: ["wallet"] satisfies QueryKey,
   walletMembers: ["walletMembers"] satisfies QueryKey,
+  formerMembers: ["formerMembers"] satisfies QueryKey,
   wallets: ["wallets"] satisfies QueryKey,
   insights: ["insights"] satisfies QueryKey,
   inviteLinks: ["inviteLinks"] satisfies QueryKey,

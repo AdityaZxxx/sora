@@ -6,6 +6,8 @@ These are the judgement calls this repo makes. Mechanical rules (where a file li
 
 Authorization is membership, not ownership of a row. Resolve the caller's Wallet first, then scope every read and write by `walletId`. A personal wallet has one member, so its money is private by construction; a shared wallet holds only shared money.
 
+A user has one marked personal wallet and any number of shared wallets. Active membership means a membership row with `leftAt` null; leaving sets that timestamp but keeps history readable. Every read and write resolves the active wallet from those active rows.
+
 Attribution and visibility are different questions. A transaction records the member who added it (`addedById`), and that member can leave the wallet without their transactions disappearing. So "who added it" never answers "who can see it", and only the wallet does.
 
 The four roles are owner, co-owner, member and viewer. Members write transactions, categories and settlements; owners and co-owners also manage budgets, goals, settings, invites and removals; only the owner changes roles and transfers ownership. Viewers only read. A write that is unavailable to the caller is rejected in the `lib/` seam, not only hidden in the UI.

@@ -67,10 +67,13 @@ model WalletMembership {
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
   // Opt-in to the daily email digest of unread wallet notifications.
   emailDigest Boolean   @default(false)
-  // One owner per wallet is enforced by a partial unique index in migration
-  // 20261125170000_add_wallet_roles, which Prisma schema cannot express.
+  // One personal wallet per user and one active owner per wallet are enforced
+  // by partial unique indexes in migration 20261126110000_add_membership_history,
+  // which Prisma schema cannot express.
+  isPersonal  Boolean   @default(false)
   role        String    @default("member")
 
   @@id([walletId, userId])

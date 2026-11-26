@@ -68,6 +68,7 @@ async function runSettlement(
           walletId,
           userId: memberId,
         },
+        leftAt: null,
       },
       include: {
         user: {
@@ -83,7 +84,7 @@ async function runSettlement(
     }),
   ]);
 
-  if (!membership) {
+  if (!membership || membership.leftAt) {
     throw new DomainError("Member not found");
   }
 
@@ -128,6 +129,7 @@ async function runSettlement(
     const otherMembers = await prisma.walletMembership.findMany({
       where: {
         walletId,
+        leftAt: null,
         userId: {
           not: userId,
         },

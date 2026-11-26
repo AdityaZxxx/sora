@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 
+import { hasOpenBalance } from "@/lib/balances";
 import {
   CACHE_RESOURCE,
   walletTag,
@@ -33,6 +34,7 @@ export async function listMembers(walletId: string) {
   return prisma.walletMembership.findMany({
     where: {
       walletId,
+      leftAt: null,
     },
     include: {
       user: {
@@ -50,6 +52,32 @@ export async function listMembers(walletId: string) {
   });
 }
 
+export async function listFormerMembers(walletId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.members));
+
+  return prisma.walletMembership.findMany({
+    where: {
+      walletId,
+      leftAt: { not: null },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+    orderBy: {
+      leftAt: "desc",
+    },
+  });
+}
+
 // seam-parse-exempt: inputs are session values, never user input.
 export async function leaveWallet(caller: Caller) {
   if (caller.role === OWNER_ROLE) {
@@ -57,15 +85,22 @@ export async function leaveWallet(caller: Caller) {
       "Appoint a co-owner as the new owner before leaving this wallet",
     );
   }
+  if (await hasOpenBalance(caller.walletId, caller.userId)) {
+    throw new DomainError(
+      "Settle your balance in this wallet before leaving it",
+    );
+  }
+
   const actor = actorFor(caller);
   await prisma.$transaction(async (tx) => {
-    await tx.walletMembership.delete({
+    await tx.walletMembership.update({
       where: {
         walletId_userId: {
           walletId: caller.walletId,
           userId: caller.userId,
         },
       },
+      data: { leftAt: new Date(), isPersonal: false },
     });
 
     await tx.apiToken.updateMany({
@@ -80,6 +115,7 @@ export async function leaveWallet(caller: Caller) {
     const remaining = await tx.walletMembership.count({
       where: {
         walletId: caller.walletId,
+        leftAt: null,
       },
     });
 
@@ -165,8 +201,13 @@ export async function removeMember(
     },
   });
 
-  if (!removed) {
+  if (!removed || removed.leftAt) {
     throw new DomainError("Member not found");
+  }
+  if (await hasOpenBalance(caller.walletId, userId)) {
+    throw new DomainError(
+      "Settle this member's balance in the wallet before removing them",
+    );
   }
   if (removed.role === OWNER_ROLE) {
     throw new DomainError("The owner cannot be removed by another member");
@@ -176,11 +217,13 @@ export async function removeMember(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.walletMembership.deleteMany({
+    await tx.walletMembership.updateMany({
       where: {
         walletId: caller.walletId,
         userId,
+        leftAt: null,
       },
+      data: { leftAt: new Date(), isPersonal: false },
     });
 
     await tx.apiToken.updateMany({
@@ -195,6 +238,7 @@ export async function removeMember(
     const remaining = await tx.walletMembership.count({
       where: {
         walletId: caller.walletId,
+        leftAt: null,
       },
     });
 
@@ -241,6 +285,7 @@ export async function setMemberRole(
         walletId: caller.walletId,
         userId,
       },
+      leftAt: null,
     },
   });
 

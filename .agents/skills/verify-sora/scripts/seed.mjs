@@ -146,6 +146,7 @@ async function main() {
         walletId,
         userId: averyId,
         role: "owner",
+        isPersonal: true,
         joinedAt: new Date(now.getTime() - 2 * 86_400_000),
       },
       {

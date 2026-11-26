@@ -8,6 +8,7 @@ import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   createInviteLink as createInviteLinkSeam,
   revokeInviteLink as revokeInviteLinkSeam,
+  rotateInviteLink as rotateInviteLinkSeam,
 } from "@/lib/invites";
 
 export async function createInviteLink(): Promise<ActionResult<InviteLink>> {
@@ -15,6 +16,21 @@ export async function createInviteLink(): Promise<ActionResult<InviteLink>> {
     "Unable to create the invite link. Try again.",
     async ({ wallet, session, membership }) => {
       const created = await createInviteLinkSeam(
+        wallet.id,
+        session.user.id,
+        membership.role,
+      );
+      revalidateWallet(wallet.id, [CACHE_RESOURCE.invites]);
+      return created;
+    },
+  );
+}
+
+export async function rotateInviteLink(): Promise<ActionResult<InviteLink>> {
+  return withWalletAction(
+    "Unable to rotate the invite link. Try again.",
+    async ({ wallet, session, membership }) => {
+      const created = await rotateInviteLinkSeam(
         wallet.id,
         session.user.id,
         membership.role,

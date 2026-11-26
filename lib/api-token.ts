@@ -87,6 +87,7 @@ export async function requireToken(scope: TokenScope): Promise<TokenAuth> {
         walletId: token.walletId,
         userId: token.userId,
       },
+      leftAt: null,
     },
   });
 

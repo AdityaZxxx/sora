@@ -35,7 +35,7 @@ Preconditions:
 
 - **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Your space`, `Invite link`, `Appearance`, `Agent access`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`, `Your data`, `Delete account`. Only owners and co-owners can manage the `Invite link` card.
 - **Appearance.** The `Appearance` card sits beside `Invite link` on desktop and directly below it on mobile. Its `Light theme`, `Dark theme`, and `System theme` tabs show matching tooltips. Selecting a tab applies and stores that theme; light and dark remain selected after a reload, while system follows the device's color-scheme preference. The navbar and mobile navigation sheet have no theme control.
-- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. The owner sees the role combobox `Access for <name>` with Owner, Co-owner, Member and Viewer; other roles see the role as a label.
+- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. Past members appear under `Past members` after someone leaves. The owner sees the role combobox `Access for <name>` with Owner, Co-owner, Member and Viewer; other roles see the role as a label.
 - **Rename the space.** Run `control-sora browser find role button click --name "Rename"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
 - **Currency.** The `Currency settings` card shows a combobox (`🇺🇸 United States Dollar`). Picking another currency calls the update action immediately; no separate save step exists.
 - **Digest toggle.** Assert the digest switch reflects the current state; toggling flips and persists.

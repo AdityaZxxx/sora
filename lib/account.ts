@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 
 export async function assertAccountDeletable(userId: string) {
   const ownerMemberships = await prisma.walletMembership.findMany({
-    where: { userId, role: OWNER_ROLE },
+    where: { userId, role: OWNER_ROLE, leftAt: null },
     select: { walletId: true },
   });
   if (ownerMemberships.length === 0) return;
@@ -12,7 +12,9 @@ export async function assertAccountDeletable(userId: string) {
   const sharedWallets = await prisma.wallet.findMany({
     where: {
       id: { in: ownerMemberships.map((membership) => membership.walletId) },
-      memberships: { some: { userId: { not: userId } } },
+      memberships: {
+        some: { userId: { not: userId }, leftAt: null },
+      },
     },
     select: { id: true },
   });
@@ -30,7 +32,7 @@ export async function deleteUserAccount(userId: string, email: string) {
     const soleMemberWallets = await tx.wallet.findMany({
       where: {
         AND: [
-          { memberships: { some: { userId } } },
+          { memberships: { some: { userId, leftAt: null } } },
           { memberships: { every: { userId } } },
         ],
       },

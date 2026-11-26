@@ -31,7 +31,11 @@ import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 
-import { createInviteLink, revokeInviteLink } from "../_actions/invite";
+import {
+  createInviteLink,
+  revokeInviteLink,
+  rotateInviteLink,
+} from "../_actions/invite";
 
 const QRCodeSVG = dynamic(
   () => import("qrcode.react").then((mod) => mod.QRCodeSVG),
@@ -101,6 +105,27 @@ const InviteLinkDialog = ({ trigger }: Props) => {
         {
           id: "invite-link",
         },
+      );
+    },
+  });
+
+  const rotateMutation = useMutation({
+    mutationFn: async () => {
+      return unwrapAction(await rotateInviteLink());
+    },
+    onSuccess: async () => {
+      toast.success("Invite link rotated. The old link no longer works.", {
+        id: "invite-link",
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
+    },
+    onError: (error) => {
+      toast.error(
+        actionErrorMessage(
+          error,
+          "Unable to rotate the invite link. Try again.",
+        ),
+        { id: "invite-link" },
       );
     },
   });
@@ -224,6 +249,17 @@ const InviteLinkDialog = ({ trigger }: Props) => {
           <DialogClose render={<Button type="button" variant="outline" />}>
             Cancel
           </DialogClose>
+          <Button
+            onClick={() => rotateMutation.mutate()}
+            disabled={rotateMutation.isPending || inviteLinks.length === 0}
+            variant="outline"
+            className="gap-2"
+          >
+            {rotateMutation.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : null}
+            Rotate link
+          </Button>
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}

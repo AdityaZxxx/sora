@@ -373,6 +373,7 @@ async function createTransactionWithDeps(
     prisma.walletMembership.findMany({
       where: {
         walletId,
+        leftAt: null,
       },
       select: {
         userId: true,
