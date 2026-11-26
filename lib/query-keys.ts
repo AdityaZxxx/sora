@@ -6,6 +6,7 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 export const queryKeys = {
   apiTokens: ["apiTokens"] satisfies QueryKey,
   balances: ["balances"] satisfies QueryKey,
+  settlements: ["settlements"] satisfies QueryKey,
   budgets: ["budgets"] satisfies QueryKey,
   categories: (type?: string | null): QueryKey =>
     type ? ["categories", type] : ["categories"],

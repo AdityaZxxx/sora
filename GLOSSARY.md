@@ -65,11 +65,11 @@ A household savings target with an optional deadline. Contributions to a goal ar
 _Avoid_: savings target
 
 **Settlement**:
-A transaction that records one member paying what they owed another member, zeroing their balance. No money ever moves inside the app.
+A first class record of money one member paid another outside Sora, with a payer, receiver, amount and date. It reduces what they owe each other but is not a transaction and never enters wallet totals. Only the two involved members see its amount.
 _Avoid_: payment, transfer
 
 **Settlement counterparty**:
-The Member on the other side of a Settlement from the member who recorded it.
+The other party in a Settlement. Either member may record one for a payment they personally made or received.
 _Avoid_: payee, recipient
 
 **Active wallet**:

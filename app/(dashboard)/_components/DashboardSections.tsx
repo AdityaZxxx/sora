@@ -12,6 +12,7 @@ import Goals from "./Goals";
 import History from "./History";
 import Insights from "./Insights";
 import SafeToSpend from "./SafeToSpend";
+import Settlements from "./Settlements";
 import SharedSpendingCard from "./SharedSpendingCard";
 import SimplifyDebts from "./SimplifyDebts";
 import UpcomingBills from "./UpcomingBills";
@@ -90,6 +91,7 @@ const DashboardSections = async ({ context }: Props) => {
           <SimplifyDebts currency={currency} />
         </Suspense>
       )}
+      <Settlements currency={currency} />
       <Suspense
         fallback={
           <Skeleton className="section h-80 w-full" aria-hidden="true" />

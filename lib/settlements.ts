@@ -1,5 +1,7 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { after } from "next/server";
 
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import { actorFor, assertCallerCanWrite, type Caller } from "@/lib/caller";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -7,16 +9,59 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishWalletChange } from "@/lib/realtime";
+import { notifyWalletChange } from "@/lib/realtime";
 import { RecordSettlementSchema } from "@/schemas/settlement";
 
 export type RecordSettlementInput = {
   memberId: string;
   amount: number;
+  direction?: "paid" | "received";
   date?: Date;
   note?: string | null;
   addedVia?: "agent" | null;
 };
+
+export type SettlementRow = {
+  id: string;
+  date: Date;
+  amount: number | null;
+  note: string | null;
+  payerName: string | null;
+  receiverName: string | null;
+  isParty: boolean;
+};
+
+export async function listSettlements(
+  walletId: string,
+  callerId: string,
+): Promise<SettlementRow[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.settlements));
+
+  const settlements = await prisma.settlement.findMany({
+    where: { walletId },
+    include: {
+      payer: { select: { name: true } },
+      receiver: { select: { name: true } },
+    },
+    orderBy: { date: "desc" },
+  });
+
+  return settlements.map((settlement) => {
+    const isParty =
+      settlement.payerId === callerId || settlement.receiverId === callerId;
+    return {
+      id: settlement.id,
+      date: settlement.date,
+      amount: isParty ? settlement.amount.toNumber() : null,
+      note: isParty ? settlement.note : null,
+      payerName: isParty ? settlement.payer.name : null,
+      receiverName: isParty ? settlement.receiver.name : null,
+      isParty,
+    };
+  });
+}
 
 export async function recordSettlement(
   caller: Caller,
@@ -47,6 +92,7 @@ async function runSettlement(
   const parsedBody = RecordSettlementSchema.safeParse({
     memberId: input.memberId,
     amount: input.amount,
+    direction: input.direction ?? "paid",
     date: input.date,
     note: input.note ?? undefined,
   });
@@ -56,10 +102,13 @@ async function runSettlement(
     );
   }
 
-  const { memberId, amount, date, note } = parsedBody.data;
+  const { memberId, amount, direction, date, note } = parsedBody.data;
   if (memberId === userId) {
     throw new DomainError("Cannot record a settlement with yourself");
   }
+
+  const payerId = direction === "paid" ? userId : memberId;
+  const receiverId = direction === "paid" ? memberId : userId;
 
   const [membership, wallet] = await Promise.all([
     prisma.walletMembership.findUnique({
@@ -92,14 +141,14 @@ async function runSettlement(
     wallet?.currency ?? DEFAULT_CURRENCY,
   ).format;
   const amountText = formatAmount(amount);
-  const payerName = caller.actorName;
 
+  let revalidateSettlements: (() => void) | undefined;
   const settlement = await prisma.$transaction(async (tx) => {
     const created = await tx.settlement.create({
       data: {
         walletId,
-        payerId: userId,
-        receiverId: memberId,
+        payerId,
+        receiverId,
         amount,
         date: date ?? new Date(),
         note: note ?? null,
@@ -107,16 +156,17 @@ async function runSettlement(
       },
     });
 
-    await publishWalletChange({
+    revalidateSettlements = await notifyWalletChange({
       walletId,
       actor: actorFor(caller),
       resource: "settlements",
-      message: `recorded a settlement of ${amountText} with ${membership.user.name}`,
+      message: "recorded a settlement",
       executor: tx,
     });
 
     return created;
   });
+  revalidateSettlements?.();
 
   log("info", "settlement.recorded", {
     walletId,
@@ -126,32 +176,28 @@ async function runSettlement(
   });
 
   after(async () => {
-    const otherMembers = await prisma.walletMembership.findMany({
-      where: {
+    const actor = actorFor(caller);
+    const otherName = membership.user.name;
+    await Promise.all([
+      notify(
+        actor,
         walletId,
-        leftAt: null,
-        userId: {
-          not: userId,
-        },
-      },
-      select: {
-        userId: true,
-      },
-    });
-
-    await Promise.all(
-      otherMembers.map((other) =>
-        notify(
-          actorFor(caller),
-          walletId,
-          other.userId,
-          "settlement",
-          other.userId === memberId
-            ? `${payerName} recorded a settlement of ${amountText} with you.`
-            : `${payerName} recorded a settlement of ${amountText} with ${membership.user.name}.`,
-        ),
+        payerId,
+        "settlement",
+        payerId === userId
+          ? `You recorded a settlement of ${amountText} with ${otherName}.`
+          : `${caller.actorName} recorded a settlement of ${amountText} with you.`,
       ),
-    );
+      notify(
+        actor,
+        walletId,
+        receiverId,
+        "settlement",
+        receiverId === userId
+          ? `You recorded a settlement of ${amountText} with ${otherName}.`
+          : `${caller.actorName} recorded a settlement of ${amountText} with you.`,
+      ),
+    ]);
   });
 
   return settlement;

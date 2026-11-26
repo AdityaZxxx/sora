@@ -14,9 +14,11 @@ export async function RecordSettlement(form: RecordSettlementSchemaType) {
       await recordSettlement(caller, {
         memberId: form.memberId,
         amount: form.amount,
+        direction: form.direction,
       });
       revalidateWallet(caller.walletId, [
         CACHE_RESOURCE.balances,
+        CACHE_RESOURCE.settlements,
         CACHE_RESOURCE.transactions,
       ]);
       const balances = await getMemberBalances(caller.walletId, caller.userId);

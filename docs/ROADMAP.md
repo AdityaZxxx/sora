@@ -7,7 +7,7 @@ Product language lives in [GLOSSARY.md](../GLOSSARY.md); hard-to-reverse decisio
 - CI (build + typecheck on push and PR) so every commit stays green
 - Rebrand metadata, manifest, and README to Sora
 - M1 Shared ledger: Household + Membership schema with household scope on all data, lazy personal Household per new user, invite link + QR + revoke, equal member permissions, attribution kept on leave, UI re-scoped to the household, onboarding with invite CTA, polling refetch (~30s + on focus)
-- M2 Splits: shared vs personal transactions, per-pair net balance, settlement recorded as a transaction
+- M2 Splits: per-pair net balance and settlements recorded as first class records with private amounts
 - M3 Goals: household target, optional deadline, contribution transactions
 - M4 Budgets + notifications: monthly per-category Budget (soft or hard per budget), in-app notification bell + optional email digest
 - M5 Solo first-class (ADR 0005): keep the wallet switcher visible with a labelled personal wallet, no shared/personal toggle, solo-aware copy in wizard, dashboard, and empty states

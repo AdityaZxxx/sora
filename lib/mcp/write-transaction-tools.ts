@@ -114,21 +114,25 @@ export function registerTransactionWriteTools(
     {
       title: "Record settlement",
       description:
-        "Record a Settlement: the caller paid the other Member back what the caller owed them. Use it when get_balances shows the caller owes that Member. No money moves inside the app.",
+        "Record a Settlement the caller personally paid or received. The caller is always one of the two parties. No money moves inside the app.",
       inputSchema: {
         memberId: settlementInput.memberId.describe(
-          "Id of the Member the caller paid back. Use get_balances to see them.",
+          "Id of the other Member in the settlement. Use get_balances to see them.",
         ),
         amount: settlementInput.amount.describe(
-          "Amount paid back, in the Wallet's currency.",
+          "Amount that moved outside the app, in the Wallet's currency.",
+        ),
+        direction: settlementInput.direction.describe(
+          "paid when the caller paid the other Member, received when the caller was paid.",
         ),
       },
     },
-    async ({ memberId, amount }) =>
+    async ({ memberId, amount, direction }) =>
       runWriteTool(async () => {
         const settlement = await recordSettlement(context, {
           memberId,
           amount,
+          direction,
           addedVia: "agent",
         });
 
@@ -137,6 +141,7 @@ export function registerTransactionWriteTools(
           currency: context.currency,
           date: settlement.date.toISOString(),
           amount: settlement.amount.toNumber(),
+          payerId: settlement.payerId,
           receiverId: settlement.receiverId,
           memberId: context.userId,
         };

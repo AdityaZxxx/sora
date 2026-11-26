@@ -69,8 +69,12 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
     ],
   },
   settlements: {
-    serverTags: ["balances", "transactions"],
-    clientKeys: [queryKeys.balances, queryKeys.simplifiedDebts],
+    serverTags: ["balances", "settlements", "transactions"],
+    clientKeys: [
+      queryKeys.balances,
+      queryKeys.settlements,
+      queryKeys.simplifiedDebts,
+    ],
   },
   budgets: {
     serverTags: ["budgets"],
