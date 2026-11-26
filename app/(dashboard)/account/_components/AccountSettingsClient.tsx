@@ -21,7 +21,7 @@ export default function AccountSettingsClient() {
           </div>
         </div>
       </header>
-      <main className="container space-y-8 py-8">
+      <main className="container space-y-6 py-8">
         <ProfileSection />
         <AccountSection />
         <AppearanceSection />

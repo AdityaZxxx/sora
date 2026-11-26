@@ -92,7 +92,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
       </header>
 
       <div className="container py-8">
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
             {canManage ? (
               <section className="h-full">
