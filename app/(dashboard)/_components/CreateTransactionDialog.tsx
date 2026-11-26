@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/select";
 import { getMutationClient } from "@/hooks/mutation-client";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
@@ -63,7 +62,6 @@ import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import { buildShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
-import { walletLabel } from "@/lib/wallet-label";
 
 import {
   createTransactionForm,
@@ -112,10 +110,6 @@ const CreateTransactionDialog = ({
   const dialogType = initialValues?.type ?? type;
   const [initialDate] = useState(() => new Date());
   const hydrated = useHydrated();
-  const activeWalletQuery = useActiveWallet();
-  const activeWalletName = activeWalletQuery.active
-    ? walletLabel(activeWalletQuery.active)
-    : "this wallet";
   const queryClient = useQueryClient();
   const mutationClient = getMutationClient();
   const formAction = transactionId
@@ -444,8 +438,7 @@ const CreateTransactionDialog = ({
                   aria-invalid={Boolean(state.fieldErrors.category)}
                 />
                 <FieldDescription className="text-xs sm:text-sm">
-                  Categories in {activeWalletName}. Only owners and co-owners
-                  can rename or delete a category.
+                  Category used in transaction
                 </FieldDescription>
                 {state.fieldErrors.category ? (
                   <FieldError id="category-error">

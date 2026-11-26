@@ -256,8 +256,8 @@ const CategoryFormDialog = ({
               />
               <FieldDescription>
                 {isEditing
-                  ? "Transactions and budgets using this category are updated too."
-                  : "This is how your category will appear in the app."}
+                  ? "Transactions and budgets using this category are updated too. Only owners and co-owners can rename or delete a category."
+                  : "This is how your category will appear in the app. Any member can add a category, but only owners and co-owners can rename or delete one."}
               </FieldDescription>
               {state.fieldErrors.name ? (
                 <FieldError id={`${idPrefix}name-error`}>
