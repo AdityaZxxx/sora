@@ -9,6 +9,7 @@ The transactions page is the household ledger. It lists income and expense rows,
 - `transactions-filter-type` narrows to income or expense.
 - `transactions-export` downloads every transaction in the date range as CSV, ignoring active filters and pagination, with headers Date, Category, Description, Type, Amount, Currency.
 - `transactions-add` opens a dialog on the dashboard to create a new transaction with optional split shares.
+- `transactions-edit` updates an entry, with row actions shown only to the author, owners and co-owners
 - `transactions-delete` deletes a transaction after a confirmation.
 - `transactions-paging` lets the member pick rows per page and page through.
 - `transactions-clipboard` nothing; visible columns are per-page pickers.
@@ -44,3 +45,9 @@ Preconditions:
 - `Delete` is shown on the caller's own rows and on every row for owners and co-owners. Viewers see no row actions.
 - The table does not poll. `POLL_INTERVAL` is 0 and `staleTime` is 30 s; new rows arrive through SSE invalidation of the transactions query key. If a row does not appear, wait briefly or reload rather than waiting a fixed 30 s.
 - Web writes use a typed mutation client with a generated idempotency key, optimistic stats update and rollback, and an IndexedDB queue for offline replay. An online write still surfaces the server error as a toast.
+
+## Editing a transaction
+
+- A member can edit an entry they added; owners and co-owners can edit any entry in the wallet. Viewers see no Edit control.
+- Open the row actions menu on a non-split entry, choose Edit, change the amount or description, and save. The dashboard totals and the history chart follow the new amount.
+- Split expenses are rejected with `Split expenses cannot be edited until share editing is available`. Editing through `update_transaction` with the MCP token obeys the same roles.

@@ -19,3 +19,15 @@ export const CreateTransactionSchema = z.object({
   ...transactionFields(true),
   date: z.date(),
 });
+
+export const UpdateTransactionSchema = CreateTransactionSchema.omit({
+  shares: true,
+  goalId: true,
+  recurringItemId: true,
+}).extend({
+  id: z.string().min(1),
+});
+
+export type UpdateTransactionSchemaType = z.infer<
+  typeof UpdateTransactionSchema
+>;

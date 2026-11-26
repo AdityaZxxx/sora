@@ -65,7 +65,10 @@ import { buildShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
 import { walletLabel } from "@/lib/wallet-label";
 
-import { createTransactionForm } from "../_actions/transaction";
+import {
+  createTransactionForm,
+  updateTransactionForm,
+} from "../_actions/transaction";
 import CategoryPicker from "./CategoryPicker";
 
 const OFFLINE_ERROR =
@@ -84,6 +87,7 @@ interface Props {
     date?: Date;
   };
   recurringItemId?: string;
+  transactionId?: string;
 }
 
 type CreateTransactionFormValues = {
@@ -102,6 +106,7 @@ const CreateTransactionDialog = ({
   memberCount,
   initialValues,
   recurringItemId,
+  transactionId,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const dialogType = initialValues?.type ?? type;
@@ -113,8 +118,11 @@ const CreateTransactionDialog = ({
     : "this wallet";
   const queryClient = useQueryClient();
   const mutationClient = getMutationClient();
+  const formAction = transactionId
+    ? updateTransactionForm
+    : createTransactionForm;
   const [plainState, plainAction] = useActionState(
-    createTransactionForm,
+    formAction,
     initialFormActionState,
   );
 
@@ -165,7 +173,8 @@ const CreateTransactionDialog = ({
   const members = membersQuery.data ?? [];
   const { data: session } = useSession();
 
-  const showSplitOptions = dialogType === "expense" && memberCount > 1;
+  const showSplitOptions =
+    !transactionId && dialogType === "expense" && memberCount > 1;
   const sharePlan = buildShares(
     splitMode,
     splitMode === "percent" ? splitPercents : splitAmounts,
@@ -215,12 +224,19 @@ const CreateTransactionDialog = ({
   ): Promise<FormActionState> => {
     const input = buildInput();
     const online = navigator.onLine;
-    const context = online
-      ? await applyTransactionOptimistic(queryClient, input)
-      : undefined;
+    const context =
+      online && !transactionId
+        ? await applyTransactionOptimistic(queryClient, input)
+        : undefined;
     let result: FormActionState;
 
-    if (online) {
+    if (transactionId && !online) {
+      result = formError(
+        "Editing requires a connection. Try again when online.",
+      );
+    } else if (online && transactionId) {
+      result = await updateTransactionForm(previous, formData);
+    } else if (online) {
       result = await createTransactionForm(previous, formData);
     } else {
       const idempotencyKey = globalThis.crypto.randomUUID();
@@ -261,6 +277,10 @@ const CreateTransactionDialog = ({
 
   const hiddenFields = (
     <>
+      {transactionId ? (
+        <input type="hidden" name="id" value={transactionId} />
+      ) : null}
+      <input type="hidden" name="amount" value={values.amount} />
       <input type="hidden" name="category" value={values.category} />
       <input type="hidden" name="date" value={values.date.toISOString()} />
       <input type="hidden" name="type" value={values.type} />
@@ -283,9 +303,13 @@ const CreateTransactionDialog = ({
       plain={
         <>
           <h2 className="font-medium">
-            Add a <span className="capitalize">{dialogType}</span> transaction
+            {transactionId ? "Edit" : "Add"} a{" "}
+            <span className="capitalize">{dialogType}</span> transaction
           </h2>
           <input type="hidden" name="type" value={dialogType} />
+          {transactionId ? (
+            <input type="hidden" name="id" value={transactionId} />
+          ) : null}
           <Field>
             <FieldLabel htmlFor="plain-transaction-description">
               Description
@@ -322,11 +346,13 @@ const CreateTransactionDialog = ({
               id="plain-transaction-date"
               name="date"
               type="date"
-              defaultValue={initialDate.toISOString().slice(0, 10)}
+              defaultValue={(initialValues?.date ?? initialDate)
+                .toISOString()
+                .slice(0, 10)}
             />
           </Field>
           <FormActionErrors state={plainState} />
-          <FormSubmitButton>Add</FormSubmitButton>
+          <FormSubmitButton>{transactionId ? "Save" : "Add"}</FormSubmitButton>
         </>
       }
     >
@@ -335,7 +361,7 @@ const CreateTransactionDialog = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-xl sm:text-xl">
-              Add a{" "}
+              {transactionId ? "Edit" : "Add"} a{" "}
               <span
                 className={cn(
                   "m-1",
@@ -381,7 +407,6 @@ const CreateTransactionDialog = ({
               <NumericFormat
                 customInput={Input}
                 id="amount"
-                name="amount"
                 placeholder="0.00"
                 value={values.amount}
                 onValueChange={(next) =>
@@ -620,9 +645,11 @@ const CreateTransactionDialog = ({
               <FormSubmitButton
                 className="w-auto"
                 disabled={splitInvalid}
-                pendingLabel="Adding transaction…"
+                pendingLabel={
+                  transactionId ? "Saving transaction…" : "Adding transaction…"
+                }
               >
-                Add
+                {transactionId ? "Save" : "Add"}
               </FormSubmitButton>
             </DialogFooter>
           </form>

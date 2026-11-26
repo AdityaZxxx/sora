@@ -10,9 +10,13 @@ import {
 } from "@/lib/form-action";
 import {
   createTransaction,
+  updateTransaction,
   type CreateTransactionInput,
 } from "@/lib/transactions";
-import { CreateTransactionSchema } from "@/schemas/transaction";
+import {
+  CreateTransactionSchema,
+  UpdateTransactionSchema,
+} from "@/schemas/transaction";
 
 export type CreateTransactionActionInput = Omit<
   CreateTransactionInput,
@@ -78,6 +82,40 @@ export async function createTransactionForm(
           idempotencyKey:
             formOptionalText(formData, "idempotencyKey") ??
             globalThis.crypto.randomUUID(),
+        });
+      }),
+  });
+}
+
+const UPDATE_ERROR =
+  "Unable to update the transaction. Check the amount, category and date, then try again.";
+
+function updateFields(formData: FormData) {
+  return {
+    id: formText(formData, "id"),
+    ...transactionFields(formData),
+  };
+}
+
+export async function updateTransactionForm(
+  _previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  return submitFormAction({
+    formData,
+    fields: updateFields,
+    schema: UpdateTransactionSchema,
+    fallback: UPDATE_ERROR,
+    success: "Transaction updated",
+    run: (input) =>
+      withWalletAction(UPDATE_ERROR, async ({ caller }) => {
+        await updateTransaction(caller, {
+          id: input.id,
+          amount: input.amount,
+          category: input.category,
+          description: input.description,
+          date: input.date,
+          type: input.type,
         });
       }),
   });
