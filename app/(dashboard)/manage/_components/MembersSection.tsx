@@ -1,5 +1,5 @@
 "use client";
-import type { listFormerMembers, listMembers } from "@/lib/members";
+import type { listMembers } from "@/lib/members";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCallerRole } from "@/hooks/use-members";
+import { useCallerRole, useFormerMembers } from "@/hooks/use-members";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import {
@@ -55,15 +55,7 @@ const MembersSection = () => {
 
   const queryClient = useQueryClient();
 
-  const formerMembersQuery = useQuery({
-    queryKey: queryKeys.formerMembers,
-    queryFn: () =>
-      fetchReadJson<Awaited<ReturnType<typeof listFormerMembers>>>(
-        "/api/former-members",
-        "Unable to load past members. Refresh the page and try again.",
-      ),
-    staleTime: QUERY_STALE_TIME,
-  });
+  const formerMembersQuery = useFormerMembers();
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.walletMembers,

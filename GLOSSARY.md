@@ -21,7 +21,7 @@ A user who belongs to a wallet. Every member has one role: owner, co-owner, memb
 _Avoid_: partner
 
 **Role**:
-A wallet membership's level of access. Owner manages roles and transfers ownership. Co-owner invites, removes non-owners and changes settings. Member writes transactions, categories and settlements, and edits only their own entries. Viewer reads without writing.
+A wallet membership's level of access. Owner manages roles and transfers ownership. Co-owner invites, removes non-owners and changes settings. Member writes transactions, creates categories and records settlements, and edits only their own transaction entries. Only owners and co-owners rename or delete categories. Viewer reads without writing.
 
 **Owner**:
 The single member who manages roles in a shared wallet. The wallet creator becomes owner, and ownership transfers before the owner leaves.
@@ -54,7 +54,7 @@ A transaction visible only to the member who added it; excluded from household t
 _Avoid_: private expense
 
 **Category**:
-A label for transactions (for example Groceries), owned by a household, with an icon and an income or expense type.
+A label for transactions (for example Groceries) owned by exactly one wallet, with an icon and an income or expense type. Every category records the member who created it, and that attribution survives when the creator leaves. Any member may create a category; only owners and co-owners may rename or delete one.
 
 **Budget**:
 A monthly spending limit on one category within a household. A budget is either soft (warns at the limit) or hard (blocks transactions over the limit).

@@ -41,11 +41,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCallerRole } from "@/hooks/use-members";
+import {
+  useCallerRole,
+  useFormerMembers,
+  useMembers,
+} from "@/hooks/use-members";
+import { useWallets } from "@/hooks/use-wallets";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
+import { walletLabel } from "@/lib/wallet-label";
 
 import CreateCategoryDialog from "../../_components/CreateCategoryDialog";
 import DeleteCategoryDialog from "../../_components/DeletecategoryDialog";
@@ -60,7 +66,21 @@ import WalletSection from "./WalletSection";
 
 const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
   const { canEdit, canManage } = useCallerRole();
+  const walletsQuery = useWallets();
+  const owningWallet = walletsQuery.data?.wallets.find(
+    (item) => item.id === wallet.id,
+  );
+  const walletName = owningWallet ? walletLabel(owningWallet) : "Wallet";
+  const membersQuery = useMembers();
+  const formerMembersQuery = useFormerMembers();
 
+  const creatorNames = new Map<string, string>();
+  for (const member of membersQuery.data ?? []) {
+    creatorNames.set(member.userId, member.user.name);
+  }
+  for (const member of formerMembersQuery.data ?? []) {
+    creatorNames.set(member.userId, member.user.name);
+  }
   return (
     <div className="min-h-screen bg-background">
       <header className="container pt-6">
@@ -147,16 +167,25 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
             <h2 className="text-xl font-semibold tracking-tight">
               Transaction categories
             </h2>
+            {!canEdit && (
+              <p className="text-sm text-muted-foreground">
+                Viewers can see categories but cannot add new ones.
+              </p>
+            )}
             <div className="grid gap-6 md:grid-cols-2">
               <CategoryList
                 type="income"
                 canEdit={canEdit}
                 canManage={canManage}
+                creatorNames={creatorNames}
+                walletName={walletName}
               />
               <CategoryList
                 type="expense"
                 canEdit={canEdit}
                 canManage={canManage}
+                creatorNames={creatorNames}
+                walletName={walletName}
               />
             </div>
           </section>
@@ -182,10 +211,14 @@ function CategoryList({
   type,
   canEdit,
   canManage,
+  creatorNames,
+  walletName,
 }: {
   type: TransactionType;
   canEdit: boolean;
   canManage: boolean;
+  creatorNames: Map<string, string>;
+  walletName: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const {
@@ -264,6 +297,12 @@ function CategoryList({
                     key={category.name}
                     category={category}
                     canManage={canManage}
+                    creatorName={
+                      (category.createdById
+                        ? creatorNames.get(category.createdById)
+                        : null) ?? category.createdByName
+                    }
+                    walletName={walletName}
                   />
                 ))}
               </div>
@@ -335,9 +374,13 @@ function ErrorState({
 function CategoryCard({
   category,
   canManage,
+  creatorName,
+  walletName,
 }: {
   category: Category;
   canManage: boolean;
+  creatorName: string | null;
+  walletName: string;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -352,10 +395,17 @@ function CategoryCard({
             iconColor={category.iconColor}
             className="size-6 text-xl"
           />
-          <span className="truncate font-medium">{category.name}</span>
+          <div className="min-w-0">
+            <span className="block truncate font-medium">{category.name}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {creatorName
+                ? `${walletName} · Added by ${creatorName}`
+                : walletName}
+            </span>
+          </div>
         </div>
 
-        {canManage && (
+        {canManage ? (
           <Tooltip>
             <DropdownMenu>
               <TooltipTrigger
@@ -397,6 +447,10 @@ function CategoryCard({
             </DropdownMenu>
             <TooltipContent>Actions</TooltipContent>
           </Tooltip>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            Only owners and co-owners can rename or delete categories
+          </span>
         )}
       </div>
       {canManage && (

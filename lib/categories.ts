@@ -43,6 +43,8 @@ export async function getCategories(
       iconKind: true,
       iconColor: true,
       type: true,
+      createdById: true,
+      createdByName: true,
     },
     orderBy: {
       name: "asc",
@@ -72,6 +74,8 @@ export async function createWalletCategory(
       iconKind,
       iconColor,
       type,
+      createdById: caller.userId,
+      createdByName: caller.actorName,
     },
   });
 

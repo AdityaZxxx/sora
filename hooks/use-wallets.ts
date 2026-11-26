@@ -26,3 +26,11 @@ export function useWallets() {
     refetchOnWindowFocus: true,
   });
 }
+
+export function useActiveWallet() {
+  const query = useWallets();
+  const active = query.data?.wallets.find(
+    (wallet) => wallet.id === query.data?.active.id,
+  );
+  return { ...query, active };
+}

@@ -1,9 +1,9 @@
-import type { listMembers } from "@/lib/members";
+import type { listFormerMembers, listMembers } from "@/lib/members";
 
 import { useQuery } from "@tanstack/react-query";
 
 import { useSession } from "@/lib/auth-client";
-import { POLL_INTERVAL } from "@/lib/constants";
+import { POLL_INTERVAL, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -25,6 +25,18 @@ export function useMembers() {
     staleTime: POLL_INTERVAL,
     refetchInterval: POLL_INTERVAL,
     refetchOnWindowFocus: true,
+  });
+}
+
+export function useFormerMembers() {
+  return useQuery({
+    queryKey: queryKeys.formerMembers,
+    queryFn: () =>
+      fetchReadJson<Awaited<ReturnType<typeof listFormerMembers>>>(
+        "/api/former-members",
+        "Unable to load past members. Refresh the page and try again.",
+      ),
+    staleTime: QUERY_STALE_TIME,
   });
 }
 
