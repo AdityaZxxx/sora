@@ -19,9 +19,10 @@ import {
   ChevronsRight,
   DownloadIcon,
   MoreHorizontal,
+  Pencil,
   TrashIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import CategoryIcon from "@/components/CategoryIcon";
 import { DataTableColumnHeader } from "@/components/datatable/ColumnHeader";
@@ -64,6 +65,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCallerRole } from "@/hooks/use-members";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { useSession } from "@/lib/auth-client";
 import {
   QUERY_STALE_TIME,
@@ -78,6 +80,7 @@ import {
 } from "@/lib/transactions";
 import { cn } from "@/lib/utils";
 
+import CreateTransactionDialog from "../../_components/CreateTransactionDialog";
 import DeleteTransactionDialog from "./DeleteTransactionDialog";
 import {
   escapeCell,
@@ -575,7 +578,10 @@ function AddedByCell({ transaction }: { transaction: TransactionHistoryRow }) {
 
 function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const editTriggerRef = useRef<HTMLButtonElement>(null);
   const { canEdit, canManage } = useCallerRole();
+  const activeWalletQuery = useActiveWallet();
+  const currency = activeWalletQuery.active?.currency ?? "USD";
   const { data: session } = useSession();
 
   const isOwnEntry = transaction.addedById === session?.user.id;
@@ -583,6 +589,27 @@ function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
 
   return (
     <>
+      <CreateTransactionDialog
+        transactionId={transaction.id}
+        type={transaction.type as "income" | "expense"}
+        currency={currency}
+        memberCount={canManage ? 2 : 1}
+        initialValues={{
+          description: transaction.description,
+          category: transaction.category,
+          amount: transaction.amount,
+          type: transaction.type as "income" | "expense",
+          date: transaction.date,
+        }}
+        trigger={
+          <button
+            ref={editTriggerRef}
+            type="button"
+            aria-label="Edit transaction"
+            hidden
+          />
+        }
+      />
       <DeleteTransactionDialog
         setOpen={setShowDeleteDialog}
         open={showDeleteDialog}
@@ -611,6 +638,13 @@ function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="flex items-center gap-2"
+              onClick={() => editTriggerRef.current?.click()}
+            >
+              <Pencil className="h-4 w-4 text-muted-foreground" />
+              Edit
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="flex items-center gap-2"
               onClick={() => {

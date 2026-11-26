@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { parseDate, todayAtUtcMidnight } from "@/lib/dates";
 import { recordSettlement } from "@/lib/settlements";
-import { createTransaction, deleteTransaction } from "@/lib/transactions";
+import {
+  createTransaction,
+  deleteTransaction,
+  updateTransaction,
+} from "@/lib/transactions";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { settlementFields } from "@/schemas/settlement";
 import { transactionFields } from "@/schemas/transaction";
@@ -74,6 +78,53 @@ export function registerTransactionWriteTools(
           shares,
           recurringItemId,
           addedVia: "agent",
+        });
+
+        return {
+          id: transaction.id,
+          currency: context.currency,
+          date: transaction.date.toISOString(),
+          description: transaction.description,
+          amount: transaction.amount.toNumber(),
+          type: transaction.type,
+          category: transaction.category,
+          memberId: context.userId,
+        };
+      }),
+  );
+
+  server.registerTool(
+    "update_transaction",
+    {
+      title: "Update transaction",
+      description:
+        "Update a Transaction in the Wallet. You may edit only your own entries unless you are an owner or co-owner. Transactions with split shares cannot be edited yet. Amount, date, type and category changes move the wallet rollups in the same write.",
+      inputSchema: {
+        id: DeleteIdSchema.shape.id.describe(
+          "Id of the Transaction to update. Use list_transactions to find it.",
+        ),
+        amount: transactionInput.amount.describe(
+          "New amount, in the Wallet's currency.",
+        ),
+        description: transactionInput.description.describe(
+          "New description, up to 200 characters.",
+        ),
+        date: z.string().describe("New date as YYYY-MM-DD."),
+        category: transactionInput.category.describe(
+          "Name of a Category in the Wallet.",
+        ),
+        type: transactionInput.type.describe("Expense or income."),
+      },
+    },
+    async ({ id, amount, description, date, category, type }) =>
+      runWriteTool(async () => {
+        const transaction = await updateTransaction(context, {
+          id,
+          amount,
+          description,
+          date: parseDate(date),
+          category,
+          type,
         });
 
         return {

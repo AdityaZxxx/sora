@@ -51,12 +51,14 @@ export type GetSharedSpendingResponseType = Awaited<
 export async function getMonthSpentByCategory(
   walletId: string,
   date: Date,
+  excludeTransactionId?: string,
 ): Promise<Map<string, Prisma.Decimal>> {
   const { from, to } = utcMonthRangeFor(date);
   const rows = await prisma.transaction.groupBy({
     by: ["category"],
     where: {
       walletId,
+      ...(excludeTransactionId && { id: { not: excludeTransactionId } }),
       type: "expense" as const,
       date: {
         gte: from,
@@ -271,10 +273,19 @@ export type BudgetGateInput = {
   type: string;
   amount: number;
   date: Date;
+  excludeTransactionId?: string;
 };
 
 export async function assertBudgetAllows(input: BudgetGateInput) {
-  const { walletId, currency, category, type, amount, date } = input;
+  const {
+    walletId,
+    currency,
+    category,
+    type,
+    amount,
+    date,
+    excludeTransactionId,
+  } = input;
   if (type !== "expense") {
     return null;
   }
@@ -292,7 +303,11 @@ export async function assertBudgetAllows(input: BudgetGateInput) {
   }
 
   const formatAmount = getFormatterForCurrency(currency).format;
-  const spentByCategory = await getMonthSpentByCategory(walletId, date);
+  const spentByCategory = await getMonthSpentByCategory(
+    walletId,
+    date,
+    excludeTransactionId,
+  );
   const spentBefore = spentByCategory.get(category) ?? new Prisma.Decimal(0);
   const spentAfter = spentBefore.plus(amount);
   const budgetAmount = budget.amount;

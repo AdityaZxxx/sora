@@ -32,7 +32,11 @@ import {
   type PostCommitEffect,
 } from "@/lib/transaction-post-commit";
 import { DeleteIdSchema } from "@/schemas/delete";
-import { CreateTransactionSchema } from "@/schemas/transaction";
+import {
+  CreateTransactionSchema,
+  UpdateTransactionSchema,
+  type UpdateTransactionSchemaType,
+} from "@/schemas/transaction";
 
 type TransactionCursor = { date: string; id: string };
 
@@ -588,4 +592,118 @@ export async function deleteTransaction(caller: Caller, id: string) {
       executor: tx,
     });
   });
+}
+
+export type UpdateTransactionInput = UpdateTransactionSchemaType;
+
+// seam-parse-exempt: the id comes from the caller's own scoped row, which is
+// re-read and permission checked before any write.
+export async function updateTransaction(
+  caller: Caller,
+  input: UpdateTransactionInput,
+) {
+  const { walletId } = caller;
+  const parsedId = DeleteIdSchema.safeParse({ id: input.id });
+  if (!parsedId.success) {
+    throw new DomainError("Transaction not found");
+  }
+  const id = parsedId.data.id;
+
+  const existing = await prisma.transaction.findUnique({
+    where: { walletId, id },
+  });
+  if (!existing) {
+    throw new DomainError("Transaction not found");
+  }
+  assertCallerCanEditEntry(caller, existing.addedById);
+
+  const shareCount = await prisma.transactionShare.count({
+    where: { transactionId: id, transaction: { walletId } },
+  });
+  if (shareCount > 0) {
+    throw new DomainError(
+      "Split expenses cannot be edited until share editing is available",
+    );
+  }
+
+  const categoryRow = await requireCategory(
+    walletId,
+    input.category,
+    input.type,
+  );
+  const parsed = UpdateTransactionSchema.safeParse({
+    ...input,
+    category: categoryRow.name,
+  });
+  if (!parsed.success) {
+    throw new DomainError(
+      parsed.error.issues[0]?.message ?? "Invalid transaction input",
+    );
+  }
+
+  const { amount, date, description, type } = parsed.data;
+  const moneyAmount = toMoney(amount);
+  const wallet = await prisma.wallet.findUnique({
+    where: { id: walletId },
+    select: { currency: true },
+  });
+  const formatAmount = getFormatterForCurrency(
+    wallet?.currency ?? DEFAULT_CURRENCY,
+  ).format;
+
+  await assertBudgetAllows({
+    walletId,
+    currency: wallet?.currency ?? DEFAULT_CURRENCY,
+    category: categoryRow.name,
+    type,
+    amount,
+    date,
+    excludeTransactionId: id,
+  });
+
+  const moneyChanged =
+    !existing.amount.eq(moneyAmount) ||
+    existing.type !== type ||
+    existing.date.getTime() !== date.getTime();
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (moneyChanged) {
+      await decrementRollups(tx, {
+        walletId,
+        date: existing.date,
+        type: existing.type,
+        amount: existing.amount,
+      });
+      await incrementRollups(tx, {
+        walletId,
+        date,
+        type,
+        amount: moneyAmount,
+      });
+    }
+
+    const row = await tx.transaction.update({
+      where: { id, walletId },
+      data: {
+        amount,
+        date,
+        description: description || "",
+        type,
+        category: categoryRow.name,
+        ...categoryIconSnapshot(categoryRow),
+      },
+    });
+
+    await publishWalletChange({
+      walletId,
+      actor: actorFor(caller),
+      resource: "transactions",
+      message: `updated ${description || categoryRow.name}, ${formatAmount(amount)}`,
+      executor: tx,
+    });
+
+    return row;
+  });
+
+  return updated;
 }
