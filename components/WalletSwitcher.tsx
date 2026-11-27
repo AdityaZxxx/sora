@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useWallets } from "@/hooks/use-wallets";
 import { cn } from "@/lib/utils";
 import { walletLabel } from "@/lib/wallet-label";
@@ -47,12 +48,14 @@ export default function WalletSwitcher({
   const [, startSwitchTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
+  const hydrated = useHydrated();
 
   const walletsQuery = useWallets();
 
   const wallets = walletsQuery.data?.wallets ?? [];
   const activeId = walletsQuery.data?.active.id;
   const active = wallets.find((wallet) => wallet.id === activeId);
+  const activeLabel = hydrated && active ? walletLabel(active) : "Wallet";
   const { mutate: switchTo, isPending: isSwitching } = useMutation({
     mutationFn: switchWallet,
     onSuccess: () => {
@@ -112,9 +115,9 @@ export default function WalletSwitcher({
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
                 <span className="truncate text-sm leading-5 font-medium">
-                  {active ? walletLabel(active) : "Wallet"}
+                  {activeLabel}
                 </span>
-                {active && (
+                {hydrated && active && (
                   <span className="text-xs leading-4 text-muted-foreground">
                     {active.memberCount}{" "}
                     {active.memberCount === 1 ? "member" : "members"}
@@ -126,9 +129,7 @@ export default function WalletSwitcher({
           ) : (
             <>
               <House className="h-4 w-4" />
-              <span className="max-w-32 truncate">
-                {active ? walletLabel(active) : "Wallet"}
-              </span>
+              <span className="max-w-32 truncate">{activeLabel}</span>
               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
             </>
           )}
