@@ -19,12 +19,14 @@ model User {
   id            String    @id
   name          String
   email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  emailVerified    Boolean     @default(false)
+  image            String?
+  hasCustomAvatar  Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  avatar           UserAvatar?
 
   memberships        WalletMembership[]
   addedTransactions  Transaction[]
@@ -35,6 +37,14 @@ model User {
   transactionShares  TransactionShare[]
   createdCategories  Category[] @relation("CategoryCreator")
   apiTokens          ApiToken[]
+}
+
+model UserAvatar {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data        Bytes
+  contentType String
+  updatedAt   DateTime @updatedAt
 }
 
 model Wallet {

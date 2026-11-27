@@ -8,6 +8,14 @@ Sora is a free finance app for individuals and for couples and households. This 
 A sign-in identity (email/password or Google). A user exists independently of any wallet.
 _Avoid_: member, partner
 
+**Display name**:
+The name a user chooses for Sora to address them by. It belongs to the user, not to any wallet, and is shown wherever the user is attributed.
+_Avoid_: username, handle
+
+**Avatar**:
+The single profile image shown for a user. A user has at most one avatar, chosen by the user, which replaces any image supplied by their sign-in provider.
+_Avoid_: profile picture, photo, user image
+
 **Wallet**:
 The unit of ownership for every money record. A wallet has either one member, in which case the product calls it a personal wallet, or several members, in which case it is a shared household. Every transaction, category, budget, goal, currency setting, recurring item and settlement belongs to exactly one wallet. There is no cross-wallet aggregation.
 _Avoid_: account, budget space
