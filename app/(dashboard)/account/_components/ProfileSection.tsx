@@ -125,40 +125,41 @@ export default function ProfileSection() {
             </Avatar>
             <div className="min-w-0 flex-1 space-y-1.5">
               {editingName ? (
-                <form action={nameAction} className="space-y-2">
-                  <label
-                    htmlFor="profile-name"
-                    className="text-xs text-muted-foreground"
-                  >
+                <form action={nameAction} className="space-y-1.5">
+                  <label htmlFor="profile-name" className="sr-only">
                     Name
                   </label>
-                  <Input
-                    id="profile-name"
-                    name="name"
-                    value={draftName}
-                    onChange={(event) => setDraftName(event.target.value)}
-                    maxLength={50}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="profile-name"
+                      name="name"
+                      value={draftName}
+                      onChange={(event) => setDraftName(event.target.value)}
+                      maxLength={50}
+                      className="min-w-0 flex-1"
+                    />
+                    <FormSubmitButton size="sm" className="shrink-0">
+                      Save
+                    </FormSubmitButton>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => setEditingName(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                   {nameState.status === "error" &&
                   nameState.fieldErrors.name ? (
                     <p role="alert" className="text-sm text-destructive">
                       {nameState.fieldErrors.name}
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
-                    <FormSubmitButton size="sm">Save</FormSubmitButton>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingName(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
                 </form>
               ) : (
-                <div className="flex items-center gap-1">
+                <div className="flex min-h-9 items-center gap-1">
                   <p className="truncate font-medium">{name || "Your name"}</p>
                   <Tooltip>
                     <TooltipTrigger
