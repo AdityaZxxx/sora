@@ -29,10 +29,9 @@ Preconditions:
 - The seeded wallet is in place (`control-sora reset`): one owner and one member; agent access is on with two tokens.
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
-- **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Your space`, `Invite link`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`. Only owners and co-owners can manage the `Invite link` card.
-- **Appearance.** The `Appearance` card sits beside `Invite link` on desktop and directly below it on mobile. Its `Light theme`, `Dark theme`, and `System theme` tabs show matching tooltips. Selecting a tab applies and stores that theme; light and dark remain selected after a reload, while system follows the device's color-scheme preference. The navbar and mobile navigation sheet have no theme control.
-- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. Past members appear under `Past members` after someone leaves. The owner sees the role combobox `Access for <name>` with Owner, Co-owner, Member and Viewer; other roles see the role as a label.
-- **Rename the space.** Run `control-sora browser find role button click --name "Rename"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
+- **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Invite link`, `Your space`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`. Only owners and co-owners can manage the `Invite link` card.
+- **Appearance.** - **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. Past members appear under `Past members` after someone leaves. The owner sees the role combobox `Access for <name>` with Owner, Co-owner, Member and Viewer; other roles see the role as a label.
+- **Rename the space.** Run `control-sora browser find role button click --name "Rename space"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
 - **Currency.** The `Currency settings` card shows a combobox (`🇺🇸 United States Dollar`). Picking another currency calls the update action immediately; no separate save step exists.
 - **Digest toggle.** Assert the digest switch reflects the current state; toggling flips and persists.
 - **Proof.** `control-sora browser screenshot <artifact-dir>/manage/page.png` and `browser snapshot -i`.
@@ -44,4 +43,4 @@ Preconditions:
 - The invite link's QR code uses an inlined SVG and does not appear in the DOM's responsive snapshot; use the `Copy invite link` button to copy it.
 - `Transaction categories` cards show the owning wallet and the creator name. Members see an explanation instead of rename and delete controls; owners and co-owners see the actions menu.
 - An owner or co-owner can remove non-owners; the owner cannot be removed by another member. A viewer sees no `Remove` control.
-- The `Leave wallet` button appears for non-owner members when at least one other member exists. The owner sees a prompt to promote a co-owner instead.
+- The `Leave wallet` button appears for non-owner members when at least one other member exists. The owner sees a Leave wallet button that opens a transfer dialog.

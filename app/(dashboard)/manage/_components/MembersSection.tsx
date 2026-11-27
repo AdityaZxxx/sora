@@ -3,6 +3,7 @@ import type { listMembers } from "@/lib/members";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -52,9 +53,13 @@ import {
 } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
-import { MEMBER_ROLES, parseMemberRole } from "@/lib/roles";
+import { MEMBER_ROLES, parseMemberRole, roleLabel } from "@/lib/roles";
 
-import { setEmailDigest, setMemberRole } from "../_actions/membership";
+import {
+  leaveWalletAction,
+  setEmailDigest,
+  setMemberRole,
+} from "../_actions/membership";
 import LeaveWalletDialog from "./LeaveWalletDialog";
 import RemoveMemberDialog from "./RemoveMemberDialog";
 
@@ -64,6 +69,7 @@ const MembersSection = () => {
   const { data: session } = useSession();
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const formerMembersQuery = useFormerMembers();
 
@@ -125,6 +131,15 @@ const MembersSection = () => {
     },
   });
 
+  const { mutate: leave } = useMutation({
+    mutationFn: async () => unwrapAction(await leaveWalletAction()),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      router.push("/");
+    },
+    onError: () => toast.error("Unable to leave the wallet. Try again."),
+  });
+
   const { mutate: changeRole } = useMutation({
     mutationFn: async (input: Parameters<typeof setMemberRole>[0]) => {
       return unwrapAction(await setMemberRole(input));
@@ -137,11 +152,15 @@ const MembersSection = () => {
         queryKeys.walletMembers,
       );
       queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
-        current?.map((member) =>
-          member.userId === input.userId
-            ? { ...member, role: input.role }
-            : member,
-        ),
+        current?.map((member) => {
+          if (member.userId === input.userId) {
+            return { ...member, role: input.role };
+          }
+          if (input.role === OWNER_ROLE && member.userId === session?.user.id) {
+            return { ...member, role: CO_OWNER_ROLE };
+          }
+          return member;
+        }),
       );
       return { previous };
     },
@@ -256,10 +275,10 @@ const MembersSection = () => {
                               });
                             }}
                             items={{
-                              [OWNER_ROLE]: "Owner",
-                              [CO_OWNER_ROLE]: "Co-owner",
-                              [MEMBER_ROLE]: "Member",
-                              [VIEWER_ROLE]: "Viewer",
+                              [OWNER_ROLE]: roleLabel(OWNER_ROLE),
+                              [CO_OWNER_ROLE]: roleLabel(CO_OWNER_ROLE),
+                              [MEMBER_ROLE]: roleLabel(MEMBER_ROLE),
+                              [VIEWER_ROLE]: roleLabel(VIEWER_ROLE),
                             }}
                           >
                             <SelectTrigger
@@ -275,18 +294,20 @@ const MembersSection = () => {
                                 </SelectItem>
                               )}
                               <SelectItem value={CO_OWNER_ROLE}>
-                                Co-owner
+                                {roleLabel(CO_OWNER_ROLE)}
                               </SelectItem>
                               <SelectItem value={MEMBER_ROLE}>
-                                Member
+                                {roleLabel(MEMBER_ROLE)}
                               </SelectItem>
                               <SelectItem value={VIEWER_ROLE}>
-                                Viewer
+                                {roleLabel(VIEWER_ROLE)}
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant="secondary">{member.role}</Badge>
+                          <Badge variant="secondary">
+                            {roleLabel(parseMemberRole(member.role))}
+                          </Badge>
                         )}
                         {canManage &&
                           member.role !== OWNER_ROLE &&
@@ -388,11 +409,10 @@ const MembersSection = () => {
             <Button
               onClick={() => {
                 if (!transferTarget) return;
-                changeRole({
-                  userId: transferTarget.userId,
-                  role: OWNER_ROLE,
-                });
-                setTransferTarget(null);
+                changeRole(
+                  { userId: transferTarget.userId, role: OWNER_ROLE },
+                  { onSuccess: () => setTransferTarget(null) },
+                );
               }}
             >
               Transfer ownership
@@ -426,11 +446,15 @@ const MembersSection = () => {
                     variant="outline"
                     className="w-full justify-between"
                     onClick={() => {
-                      changeRole({
-                        userId: member.userId,
-                        role: OWNER_ROLE,
-                      });
-                      setOwnerLeaveOpen(false);
+                      changeRole(
+                        { userId: member.userId, role: OWNER_ROLE },
+                        {
+                          onSuccess: () => {
+                            setOwnerLeaveOpen(false);
+                            leave();
+                          },
+                        },
+                      );
                     }}
                   >
                     <span>Make {member.user.name} owner</span>

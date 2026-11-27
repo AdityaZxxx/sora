@@ -91,9 +91,7 @@ const DashboardSections = async ({ context }: Props) => {
           <SimplifyDebts currency={currency} />
         </Suspense>
       )}
-      <div className="mt-6">
-        <Settlements currency={currency} />
-      </div>
+      <Settlements currency={currency} />
       <Suspense
         fallback={
           <Skeleton className="section h-80 w-full" aria-hidden="true" />

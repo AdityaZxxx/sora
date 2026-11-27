@@ -139,7 +139,12 @@ const NotificationBell = () => {
             }
           >
             <Bell />
-            {unreadCount > 0 && (
+            <span className="sr-only">
+              {hydrated && shownUnreadCount > 0
+                ? `${shownUnreadCount} unread`
+                : ""}
+            </span>
+            {shownUnreadCount > 0 && (
               <span
                 className={cn(
                   "absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",

@@ -36,6 +36,17 @@ const LEAVE_ERROR =
   "Unable to leave this wallet. Refresh the page and try again.";
 const REMOVE_ERROR = "Unable to remove this member. Try again.";
 
+export async function leaveWalletAction(): Promise<ActionResult> {
+  return withWalletAction(LEAVE_ERROR, async ({ caller }) => {
+    await leaveWalletSeam(caller);
+    revalidateWallet(caller.walletId, [
+      CACHE_RESOURCE.members,
+      CACHE_RESOURCE.wallet,
+      CACHE_RESOURCE.balances,
+    ]);
+  });
+}
+
 export async function leaveWalletForm(
   _previous: FormActionState,
   _formData: FormData,

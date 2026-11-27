@@ -32,7 +32,7 @@ Preconditions:
 
 - **Open the dashboard.** Run `control-sora browser open "$U/"`. The `Balances` card reads `You owe $870.25`.
 - **Record a settlement.** Run `control-sora browser find role button click --name "Record settlement"`. The `Direction` selector defaults to `I paid them`. Keep it, choose Avery Quinn in the `Member` combobox, fill `Amount` `100`, click `Record`. The toast reads `Settlement recorded`.
-- **See the change.** Reload the dashboard; the card reads `You owe $770.25`. The `Settlements` card shows `Avery Quinn paid Blake Rivera` and `$100` for Blake. `control-sora mcp list_settlements '{}'` with the Avery token shows the same amount.
+- **See the change.** Reload the dashboard; the card reads `You owe $770.25`. The `Settlements` card shows `Avery Quinn paid you` and `$100` for Blake. `control-sora mcp list_settlements '{}'` with the Avery token shows the same amount.
 - **Third party.** Create an invite link, sign up `casey@sora.test` through it, and join. Casey's dashboard shows `A settlement was recorded` with no amount or names. `fetch("/api/notifications")` returns no settlement row for Casey. Open `new EventSource("/api/events")` in Casey's page while Avery records another settlement: the payload is `{"resource":"settlements","message":"Avery Quinn recorded a settlement", ...}` with no amount.
 - **MCP.** Run `control-sora mcp get_balances '{}'` with the Avery token. The result is `{currency, balances: [{memberId, memberName, balance, status}]}`. The row for `Blake Rivera` has `balance` `"-870.25"` as a fixed-2-decimal string and `status` `they_owe_you` before the settlement.
 - **Clean up.** Run `control-sora reset` to restore the seeded ledger, then sign in again.

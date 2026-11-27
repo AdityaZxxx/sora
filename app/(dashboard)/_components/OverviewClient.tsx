@@ -40,7 +40,7 @@ const OverviewClient = ({
     dateRange.to.getTime() === initialDateRange.to.getTime();
 
   return (
-    <section className="section flex flex-col gap-4">
+    <section className="section flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-2 py-6">
         <h2 className="text-xl font-bold">Overview</h2>
         <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ const OverviewClient = ({
         </div>
       </div>
 
-      <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-col gap-6">
         <StatsCards
           walletId={walletId}
           currency={currency}

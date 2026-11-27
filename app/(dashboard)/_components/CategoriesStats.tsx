@@ -74,7 +74,7 @@ const CategoriesStats = ({
   const expenseStats = { data: expenseData, total: totalExpense };
 
   return (
-    <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-2">
       <CategoriesCard
         formatter={formatter}
         type="income"
@@ -110,7 +110,7 @@ function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
         )}
         {data.length > 0 && (
           <ScrollArea className="h-full px-4">
-            <div className="flex flex-col gap-4 p-1">
+            <div className="flex flex-col gap-6 p-1">
               {data.map((item) => {
                 const amount = item._sum.amount || 0;
                 const percentage = total > 0 ? (amount * 100) / total : 0;

@@ -262,6 +262,7 @@ function CategoryList({
                 type={type}
                 successCallback={() => refetch()}
                 trigger={<AddIconButton label={`Create ${type} category`} />}
+                showEditabilityNote
               />
             )}
           </div>
@@ -445,6 +446,7 @@ function CategoryCard({
             category={category}
             open={editOpen}
             onOpenChange={setEditOpen}
+            showEditabilityNote
           />
           <DeleteCategoryDialog
             category={category}
