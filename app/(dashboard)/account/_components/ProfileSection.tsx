@@ -210,7 +210,7 @@ export default function ProfileSection() {
               <FormActionErrors state={removeState} />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
