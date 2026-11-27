@@ -107,7 +107,11 @@ const Goals = ({
                         </span>
                       )}
                     </span>
-                    {canEdit && <GoalActions goal={goal} currency={currency} />}
+                    {canEdit && (
+                      <div className="flex shrink-0 items-center justify-end">
+                        <GoalActions goal={goal} currency={currency} />
+                      </div>
+                    )}
                   </div>
                   <Progress
                     value={progress}
