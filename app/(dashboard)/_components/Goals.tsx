@@ -42,14 +42,17 @@ import EditGoalDialog from "./EditGoalDialog";
 const Goals = ({
   currency,
   canEdit = true,
+  initialGoals,
 }: {
   currency: string | null;
   canEdit?: boolean;
+  initialGoals?: GoalWithProgress[];
 }) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const { data: goals = [] } = useSuspenseQuery({
     queryKey: queryKeys.goals,
+    initialData: initialGoals,
     queryFn: () =>
       fetchReadJson<GoalWithProgress[]>(
         "/api/goals",
