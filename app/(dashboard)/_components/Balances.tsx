@@ -22,13 +22,15 @@ import RecordSettlementDialog from "./RecordSettlementDialog";
 interface Props {
   currency: string | null;
   canEdit?: boolean;
+  initialBalances?: MemberBalance[];
 }
 
-const Balances = ({ currency, canEdit = true }: Props) => {
+const Balances = ({ currency, canEdit = true, initialBalances }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
 
   const { data: balances = [] } = useSuspenseQuery<MemberBalance[]>({
     queryKey: queryKeys.balances,
+    initialData: initialBalances,
     queryFn: () =>
       fetchReadJson("/api/balances", "Failed to fetch balances", {
         schema: MemberBalancesSchema,

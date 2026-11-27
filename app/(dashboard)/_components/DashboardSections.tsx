@@ -73,13 +73,21 @@ const DashboardSections = async ({ context }: Props) => {
           <Suspense
             fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
           >
-            <Balances currency={currency} canEdit={canEdit} />
+            <Balances
+              currency={currency}
+              canEdit={canEdit}
+              initialBalances={payload.balances}
+            />
           </Suspense>
         )}
         <Suspense
           fallback={<Skeleton className="h-56 w-full" aria-hidden="true" />}
         >
-          <Goals currency={currency} canEdit={canManage} />
+          <Goals
+            currency={currency}
+            canEdit={canManage}
+            initialGoals={payload.goals}
+          />
         </Suspense>
       </div>
       {memberCount > 2 && (
