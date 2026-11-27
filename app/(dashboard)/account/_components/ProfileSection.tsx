@@ -180,13 +180,13 @@ export default function ProfileSection() {
                 >
                   Email
                 </label>
-                <Input
+                <output
                   id="profile-email"
-                  value={session?.user.email ?? ""}
-                  readOnly
                   aria-describedby="profile-email-hint"
-                  className="read-only:cursor-default read-only:bg-muted/30 read-only:text-muted-foreground"
-                />
+                  className="flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-muted/30 px-2.5 text-sm text-muted-foreground shadow-xs dark:bg-input/30"
+                >
+                  {session?.user.email ?? ""}
+                </output>
                 <p
                   id="profile-email-hint"
                   className="text-xs text-muted-foreground"
