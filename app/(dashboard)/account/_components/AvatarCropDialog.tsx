@@ -115,7 +115,10 @@ export default function AvatarCropDialog({ source, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        viewportClassName="overscroll-contain"
+      >
         <DialogHeader>
           <DialogTitle>Choose your avatar</DialogTitle>
           <DialogDescription>

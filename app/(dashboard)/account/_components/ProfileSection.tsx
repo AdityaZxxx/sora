@@ -110,34 +110,104 @@ export default function ProfileSection() {
           <CardTitle className="text-lg">Profile</CardTitle>
           <CardDescription>How Sora knows you</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5 text-sm">
-          <div className="flex items-center gap-4">
+        <CardContent className="space-y-4 text-sm">
+          <div className="flex items-start gap-4">
             <Avatar size="lg" className="size-14">
               <AvatarImage src={image} alt={`${name}'s avatar`} />
               <AvatarFallback>{initials(name)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera className="size-4" />
-                Change avatar
-              </Button>
-              {hasUploadedAvatar ? (
-                <form action={removeAction}>
-                  <FormSubmitButton
-                    variant="ghost"
-                    size="sm"
-                    pendingLabel="Removing"
+            <div className="min-w-0 flex-1 space-y-1.5">
+              {editingName ? (
+                <form action={nameAction} className="space-y-2">
+                  <label
+                    htmlFor="profile-name"
+                    className="text-xs text-muted-foreground"
                   >
-                    <Trash2 className="size-4" />
-                    Remove
-                  </FormSubmitButton>
+                    Name
+                  </label>
+                  <Input
+                    id="profile-name"
+                    name="name"
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    maxLength={50}
+                  />
+                  {nameState.status === "error" &&
+                  nameState.fieldErrors.name ? (
+                    <p role="alert" className="text-sm text-destructive">
+                      {nameState.fieldErrors.name}
+                    </p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <FormSubmitButton size="sm">Save</FormSubmitButton>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingName(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </form>
-              ) : null}
+              ) : (
+                <div className="flex items-center gap-1">
+                  <p className="truncate font-medium">{name || "Your name"}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Edit name"
+                    onClick={() => {
+                      setDraftName(name);
+                      setEditingName(true);
+                    }}
+                  >
+                    <Pencil
+                      className="size-4"
+                      strokeWidth={2}
+                      absoluteStrokeWidth
+                      data-icon="inline-start"
+                    />
+                  </Button>
+                </div>
+              )}
+              <p className="truncate text-muted-foreground">
+                {session?.user.email}
+              </p>
+              <FormActionErrors state={removeState} />
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera
+                className="size-4"
+                strokeWidth={2}
+                absoluteStrokeWidth
+                data-icon="inline-start"
+              />
+              Change avatar
+            </Button>
+            {hasUploadedAvatar ? (
+              <form action={removeAction}>
+                <FormSubmitButton
+                  variant="ghost"
+                  size="sm"
+                  pendingLabel="Removing"
+                >
+                  <Trash2
+                    className="size-4"
+                    strokeWidth={2}
+                    absoluteStrokeWidth
+                    data-icon="inline-start"
+                  />
+                  Remove
+                </FormSubmitButton>
+              </form>
+            ) : null}
             <input
               ref={fileInputRef}
               type="file"
@@ -146,53 +216,6 @@ export default function ProfileSection() {
               onChange={onFileChange}
             />
           </div>
-
-          {editingName ? (
-            <form action={nameAction} className="space-y-2">
-              <label
-                htmlFor="profile-name"
-                className="text-xs text-muted-foreground"
-              >
-                Name
-              </label>
-              <Input
-                id="profile-name"
-                name="name"
-                value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
-                maxLength={50}
-              />
-              <FormActionErrors state={nameState} />
-              <div className="flex gap-2">
-                <FormSubmitButton size="sm">Save</FormSubmitButton>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingName(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="font-medium">{name || "Your name"}</p>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Edit name"
-                onClick={() => {
-                  setDraftName(name);
-                  setEditingName(true);
-                }}
-              >
-                <Pencil className="size-4" />
-              </Button>
-            </div>
-          )}
-          <FormActionErrors state={removeState} />
-          <p className="text-muted-foreground">{session?.user.email}</p>
         </CardContent>
       </Card>
       <Card>
