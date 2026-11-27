@@ -4,7 +4,7 @@ Account Settings holds user scope concerns: profile, authentication, appearance,
 
 ## Sub-features
 
-- `account-profile` shows the signed-in user's avatar, display name and email. The name is editable inline, and the user can upload a square avatar or remove one they uploaded.
+- `account-profile` shows the signed-in user's avatar, display name and a read-only email field with a hint that email cannot be changed. The name is editable inline, and the user can upload a square avatar or remove one they uploaded.
 - `account-authentication` shows the current sign-in and offers sign out.
 - `account-appearance` chooses light, dark or system theme.
 - `account-agent-access` covers token creation, wallet scope and effective access; see [Agent access](./agent-access.md).

@@ -111,10 +111,12 @@ export default function ProfileSection() {
           <CardDescription>How Sora knows you</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
-          <div className="flex items-start gap-4">
-            <Avatar size="lg" className="size-14">
+          <div className="flex items-center gap-4">
+            <Avatar className="size-18">
               <AvatarImage src={image} alt={`${name}'s avatar`} />
-              <AvatarFallback>{initials(name)}</AvatarFallback>
+              <AvatarFallback className="text-base">
+                {initials(name)}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 space-y-1.5">
               {editingName ? (
@@ -171,9 +173,27 @@ export default function ProfileSection() {
                   </Button>
                 </div>
               )}
-              <p className="truncate text-muted-foreground">
-                {session?.user.email}
-              </p>
+              <div className="space-y-1">
+                <label
+                  htmlFor="profile-email"
+                  className="text-xs text-muted-foreground"
+                >
+                  Email
+                </label>
+                <Input
+                  id="profile-email"
+                  value={session?.user.email ?? ""}
+                  readOnly
+                  aria-describedby="profile-email-hint"
+                  className="read-only:cursor-default read-only:bg-muted/30 read-only:text-muted-foreground"
+                />
+                <p
+                  id="profile-email-hint"
+                  className="text-xs text-muted-foreground"
+                >
+                  Your email address cannot be changed.
+                </p>
+              </div>
               <FormActionErrors state={removeState} />
             </div>
           </div>
