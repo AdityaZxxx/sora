@@ -36,6 +36,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useCallerRole } from "@/hooks/use-members";
+import { categoryPermissionNote } from "@/lib/category-copy";
 import { defaultCategoryIcon, withIconKindDefault } from "@/lib/category-icons";
 import { initialFormActionState } from "@/lib/form-action";
 import { queryKeys } from "@/lib/query-keys";
@@ -69,7 +71,6 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
   successCallback?: (category: Category) => void;
   defaultName?: string;
-  showEditabilityNote?: boolean;
 }
 
 type CategoryValues = {
@@ -98,8 +99,9 @@ const CategoryFormDialog = ({
   onOpenChange,
   successCallback,
   defaultName,
-  showEditabilityNote = false,
 }: Props) => {
+  const { role } = useCallerRole();
+  const permissionNote = categoryPermissionNote(role);
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
@@ -260,9 +262,7 @@ const CategoryFormDialog = ({
                 {isEditing
                   ? "Transactions and budgets using this category are updated too."
                   : "This is how your category will appear in the app."}
-                {showEditabilityNote
-                  ? " Only owners and co-owners can rename or delete a category."
-                  : ""}
+                {permissionNote ? ` ${permissionNote}` : null}
               </FieldDescription>
               {state.fieldErrors.name ? (
                 <FieldError id={`${idPrefix}name-error`}>

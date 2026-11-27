@@ -53,6 +53,7 @@ export function useCallerRole() {
 
   return {
     role,
+    userId: session?.user.id,
     canEdit: role ? roleCanWrite(role) : false,
     canManage: role ? roleCanManage(role) : false,
     isOwner: role ? roleIsOwner(role) : false,
