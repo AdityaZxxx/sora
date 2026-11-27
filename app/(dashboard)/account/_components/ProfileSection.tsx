@@ -16,6 +16,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSignOut } from "@/components/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 import { AVATAR_CONTENT_TYPES, AVATAR_MAX_BYTES } from "@/lib/avatar-rules";
@@ -155,22 +160,29 @@ export default function ProfileSection() {
               ) : (
                 <div className="flex items-center gap-1">
                   <p className="truncate font-medium">{name || "Your name"}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Edit name"
-                    onClick={() => {
-                      setDraftName(name);
-                      setEditingName(true);
-                    }}
-                  >
-                    <Pencil
-                      className="size-4"
-                      strokeWidth={2}
-                      absoluteStrokeWidth
-                      data-icon="inline-start"
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Edit name"
+                          onClick={() => {
+                            setDraftName(name);
+                            setEditingName(true);
+                          }}
+                        >
+                          <Pencil
+                            className="size-4"
+                            strokeWidth={2}
+                            absoluteStrokeWidth
+                            data-icon="inline-start"
+                          />
+                        </Button>
+                      }
                     />
-                  </Button>
+                    <TooltipContent>Edit name</TooltipContent>
+                  </Tooltip>
                 </div>
               )}
               <div className="space-y-1">
