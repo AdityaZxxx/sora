@@ -11,6 +11,35 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  user: {
+    additionalFields: {
+      hasCustomAvatar: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+        returned: true,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      update: {
+        before: async (data, context) => {
+          if (!data.image || context?.path !== "/callback/:id") return;
+          const email = data.email;
+          if (typeof email !== "string") return;
+          const user = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() },
+            select: { image: true, hasCustomAvatar: true },
+          });
+          if (user?.hasCustomAvatar) {
+            return { data: { image: user.image } };
+          }
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
