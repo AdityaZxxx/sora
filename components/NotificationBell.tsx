@@ -159,7 +159,7 @@ const NotificationBell = () => {
             align="end"
             className="w-[22rem] max-w-[calc(100vw-2rem)]"
           >
-            <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="flex items-center justify-between px-2.5 py-1.5">
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="p-0">
                   Notifications
@@ -176,11 +176,11 @@ const NotificationBell = () => {
             </div>
             <DropdownMenuSeparator />
             {notifications.length === 0 ? (
-              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-2.5 py-6 text-center text-sm text-muted-foreground">
                 No notifications yet
               </p>
             ) : (
-              <ScrollArea viewportClassName="max-h-80 pr-3">
+              <ScrollArea viewportClassName="max-h-80">
                 {notifications.map((notification) => {
                   const isWarning = notification.type === UNUSUAL_SPENDING_TYPE;
                   const isUnread = !notification.readAt;
@@ -189,7 +189,7 @@ const NotificationBell = () => {
                     { addSuffix: true },
                   );
                   const rowClass = cn(
-                    "flex items-start gap-2 px-2 py-2 whitespace-normal",
+                    "flex items-start gap-2 px-2.5 py-2 whitespace-normal",
                     isUnread &&
                       (isWarning ? "bg-amber-500/10" : "bg-accent/50"),
                   );
