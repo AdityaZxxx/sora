@@ -24,6 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -32,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 const NotificationBell = () => {
   const queryClient = useQueryClient();
+  const hydrated = useHydrated();
   const seenIdsRef = useRef<Set<string> | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
@@ -70,6 +72,7 @@ const NotificationBell = () => {
   const unreadCount = notifications.filter(
     (notification) => !notification.readAt,
   ).length;
+  const shownUnreadCount = hydrated ? unreadCount : 0;
   const hasUnreadWarning = notifications.some(
     (notification) =>
       !notification.readAt && notification.type === UNUSUAL_SPENDING_TYPE,
@@ -129,29 +132,34 @@ const NotificationBell = () => {
                     variant="ghost"
                     size="icon"
                     className="relative"
-                    aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+                    aria-label="Notifications"
                   />
                 }
               />
             }
           >
             <Bell />
-            {unreadCount > 0 && (
+            <span className="sr-only">
+              {hydrated && shownUnreadCount > 0
+                ? `${shownUnreadCount} unread`
+                : ""}
+            </span>
+            {shownUnreadCount > 0 && (
               <span
                 className={cn(
                   "absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
                   hasUnreadWarning ? "bg-amber-500" : "bg-destructive",
                 )}
               >
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {shownUnreadCount > 9 ? "9+" : shownUnreadCount}
               </span>
             )}
           </TooltipTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-[min(20rem,calc(100vw-2rem))]"
+            className="w-[22rem] max-w-[calc(100vw-2rem)]"
           >
-            <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="flex items-center justify-between px-2.5 py-1.5">
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="p-0">
                   Notifications
@@ -168,7 +176,7 @@ const NotificationBell = () => {
             </div>
             <DropdownMenuSeparator />
             {notifications.length === 0 ? (
-              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-2.5 py-6 text-center text-sm text-muted-foreground">
                 No notifications yet
               </p>
             ) : (
@@ -181,7 +189,7 @@ const NotificationBell = () => {
                     { addSuffix: true },
                   );
                   const rowClass = cn(
-                    "flex items-start gap-2 px-2 py-2",
+                    "flex items-start gap-2 px-2.5 py-2 whitespace-normal",
                     isUnread &&
                       (isWarning ? "bg-amber-500/10" : "bg-accent/50"),
                   );
@@ -195,7 +203,12 @@ const NotificationBell = () => {
                   ) : null;
                   const content = (
                     <>
-                      <p className={cn("text-sm", isUnread && "font-medium")}>
+                      <p
+                        className={cn(
+                          "text-sm break-words",
+                          isUnread && "font-medium",
+                        )}
+                      >
                         {notification.message}
                       </p>
                       <time

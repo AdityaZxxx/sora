@@ -92,9 +92,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
       </header>
 
       <div className="container py-8">
-        <div className="space-y-8">
-          <WalletSection canEdit={canManage} />
-
+        <div className="space-y-6">
           <div className={cn("grid gap-6", canEdit && "md:grid-cols-2")}>
             {canManage ? (
               <section className="h-full">
@@ -123,6 +121,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 Only an owner or co-owner can manage invite links here.
               </p>
             )}
+            <WalletSection canEdit={canManage} />
           </div>
 
           <MembersSection />
@@ -263,6 +262,7 @@ function CategoryList({
                 type={type}
                 successCallback={() => refetch()}
                 trigger={<AddIconButton label={`Create ${type} category`} />}
+                showEditabilityNote
               />
             )}
           </div>
@@ -275,7 +275,7 @@ function CategoryList({
             <EmptyState type={type} />
           ) : (
             <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div className="space-y-3">
                 {(expanded
                   ? categories
                   : categories.slice(0, COLLAPSED_CATEGORIES)
@@ -446,6 +446,7 @@ function CategoryCard({
             category={category}
             open={editOpen}
             onOpenChange={setEditOpen}
+            showEditabilityNote
           />
           <DeleteCategoryDialog
             category={category}

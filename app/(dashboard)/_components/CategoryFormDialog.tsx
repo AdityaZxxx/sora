@@ -69,6 +69,7 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
   successCallback?: (category: Category) => void;
   defaultName?: string;
+  showEditabilityNote?: boolean;
 }
 
 type CategoryValues = {
@@ -97,6 +98,7 @@ const CategoryFormDialog = ({
   onOpenChange,
   successCallback,
   defaultName,
+  showEditabilityNote = false,
 }: Props) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
@@ -258,6 +260,9 @@ const CategoryFormDialog = ({
                 {isEditing
                   ? "Transactions and budgets using this category are updated too."
                   : "This is how your category will appear in the app."}
+                {showEditabilityNote
+                  ? " Only owners and co-owners can rename or delete a category."
+                  : ""}
               </FieldDescription>
               {state.fieldErrors.name ? (
                 <FieldError id={`${idPrefix}name-error`}>

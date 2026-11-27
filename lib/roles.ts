@@ -72,3 +72,10 @@ export function assertCanEditEntry(
     throw new DomainError("You can only change entries you added");
   }
 }
+
+export function roleLabel(role: MemberRole) {
+  if (role === OWNER_ROLE) return "Owner";
+  if (role === CO_OWNER_ROLE) return "Co-owner";
+  if (role === MEMBER_ROLE) return "Member";
+  return "Viewer";
+}

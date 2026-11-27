@@ -13,6 +13,7 @@ interface Props {
   defaultName?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  showEditabilityNote?: boolean;
 }
 
 const CreateCategoryDialog = ({
@@ -22,6 +23,7 @@ const CreateCategoryDialog = ({
   defaultName,
   open,
   onOpenChange,
+  showEditabilityNote,
 }: Props) => (
   <CategoryFormDialog
     type={type}
@@ -30,6 +32,7 @@ const CreateCategoryDialog = ({
     defaultName={defaultName}
     open={open}
     onOpenChange={onOpenChange}
+    showEditabilityNote={showEditabilityNote}
   />
 );
 

@@ -3,6 +3,8 @@ import type { listMembers } from "@/lib/members";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Mail, UserMinus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +18,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -42,9 +53,13 @@ import {
 } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
-import { MEMBER_ROLES, parseMemberRole } from "@/lib/roles";
+import { MEMBER_ROLES, parseMemberRole, roleLabel } from "@/lib/roles";
 
-import { setEmailDigest, setMemberRole } from "../_actions/membership";
+import {
+  leaveWalletAction,
+  setEmailDigest,
+  setMemberRole,
+} from "../_actions/membership";
 import LeaveWalletDialog from "./LeaveWalletDialog";
 import RemoveMemberDialog from "./RemoveMemberDialog";
 
@@ -54,6 +69,7 @@ const MembersSection = () => {
   const { data: session } = useSession();
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const formerMembersQuery = useFormerMembers();
 
@@ -68,6 +84,11 @@ const MembersSection = () => {
   });
 
   const { role: callerRole, canManage, isOwner } = useCallerRole();
+  const [transferTarget, setTransferTarget] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [ownerLeaveOpen, setOwnerLeaveOpen] = useState(false);
 
   const { mutate: toggleDigest, isPending: isTogglingDigest } = useMutation({
     mutationFn: async (input: Parameters<typeof setEmailDigest>[0]) => {
@@ -110,6 +131,15 @@ const MembersSection = () => {
     },
   });
 
+  const { mutate: leave } = useMutation({
+    mutationFn: async () => unwrapAction(await leaveWalletAction()),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      router.push("/");
+    },
+    onError: () => toast.error("Unable to leave the wallet. Try again."),
+  });
+
   const { mutate: changeRole } = useMutation({
     mutationFn: async (input: Parameters<typeof setMemberRole>[0]) => {
       return unwrapAction(await setMemberRole(input));
@@ -122,11 +152,15 @@ const MembersSection = () => {
         queryKeys.walletMembers,
       );
       queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
-        current?.map((member) =>
-          member.userId === input.userId
-            ? { ...member, role: input.role }
-            : member,
-        ),
+        current?.map((member) => {
+          if (member.userId === input.userId) {
+            return { ...member, role: input.role };
+          }
+          if (input.role === OWNER_ROLE && member.userId === session?.user.id) {
+            return { ...member, role: CO_OWNER_ROLE };
+          }
+          return member;
+        }),
       );
       return { previous };
     },
@@ -225,16 +259,26 @@ const MembersSection = () => {
                               ) {
                                 return;
                               }
+                              if (
+                                role === OWNER_ROLE &&
+                                member.role === CO_OWNER_ROLE
+                              ) {
+                                setTransferTarget({
+                                  userId: member.user.id,
+                                  name: member.user.name,
+                                });
+                                return;
+                              }
                               changeRole({
                                 userId: member.user.id,
                                 role: parseMemberRole(role),
                               });
                             }}
                             items={{
-                              [OWNER_ROLE]: "Owner",
-                              [CO_OWNER_ROLE]: "Co-owner",
-                              [MEMBER_ROLE]: "Member",
-                              [VIEWER_ROLE]: "Viewer",
+                              [OWNER_ROLE]: roleLabel(OWNER_ROLE),
+                              [CO_OWNER_ROLE]: roleLabel(CO_OWNER_ROLE),
+                              [MEMBER_ROLE]: roleLabel(MEMBER_ROLE),
+                              [VIEWER_ROLE]: roleLabel(VIEWER_ROLE),
                             }}
                           >
                             <SelectTrigger
@@ -250,18 +294,20 @@ const MembersSection = () => {
                                 </SelectItem>
                               )}
                               <SelectItem value={CO_OWNER_ROLE}>
-                                Co-owner
+                                {roleLabel(CO_OWNER_ROLE)}
                               </SelectItem>
                               <SelectItem value={MEMBER_ROLE}>
-                                Member
+                                {roleLabel(MEMBER_ROLE)}
                               </SelectItem>
                               <SelectItem value={VIEWER_ROLE}>
-                                Viewer
+                                {roleLabel(VIEWER_ROLE)}
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant="secondary">{member.role}</Badge>
+                          <Badge variant="secondary">
+                            {roleLabel(parseMemberRole(member.role))}
+                          </Badge>
                         )}
                         {canManage &&
                           member.role !== OWNER_ROLE &&
@@ -315,9 +361,14 @@ const MembersSection = () => {
         <CardFooter>
           {!isLoading &&
             (callerRole === OWNER_ROLE ? (
-              <p className="text-sm text-muted-foreground">
-                Promote a co-owner to owner before leaving this wallet.
-              </p>
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive hover:text-destructive sm:w-auto"
+                onClick={() => setOwnerLeaveOpen(true)}
+              >
+                <LogOut className="h-4 w-4" />
+                Leave wallet
+              </Button>
             ) : (
               <LeaveWalletDialog
                 memberCount={members.length}
@@ -336,6 +387,84 @@ const MembersSection = () => {
             ))}
         </CardFooter>
       </Card>
+
+      <Dialog
+        open={transferTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setTransferTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Make {transferTarget?.name} the owner?</DialogTitle>
+            <DialogDescription>
+              You will become a co-owner. The change takes effect immediately
+              and cannot be undone from this screen.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancel
+            </DialogClose>
+            <Button
+              onClick={() => {
+                if (!transferTarget) return;
+                changeRole(
+                  { userId: transferTarget.userId, role: OWNER_ROLE },
+                  { onSuccess: () => setTransferTarget(null) },
+                );
+              }}
+            >
+              Transfer ownership
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ownerLeaveOpen} onOpenChange={setOwnerLeaveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer ownership before leaving</DialogTitle>
+            <DialogDescription>
+              Choose a co-owner to become the new owner. You will become a
+              co-owner and can then leave.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {members.filter((member) => member.role === CO_OWNER_ROLE)
+              .length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Appoint a co-owner in the role list first, then come back here
+                to leave.
+              </p>
+            ) : (
+              members
+                .filter((member) => member.role === CO_OWNER_ROLE)
+                .map((member) => (
+                  <Button
+                    key={member.userId}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      changeRole(
+                        { userId: member.userId, role: OWNER_ROLE },
+                        {
+                          onSuccess: () => {
+                            setOwnerLeaveOpen(false);
+                            leave();
+                          },
+                        },
+                      );
+                    }}
+                  >
+                    <span>Make {member.user.name} owner</span>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

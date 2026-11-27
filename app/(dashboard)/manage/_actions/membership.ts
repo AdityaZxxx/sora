@@ -24,6 +24,7 @@ import {
   setMemberRole as setMemberRoleSeam,
 } from "@/lib/members";
 import { notify, notifyWalletExcept } from "@/lib/notifications";
+import { roleLabel } from "@/lib/roles";
 import {
   clearActiveWalletCookie,
   firstWalletIdForUser,
@@ -34,6 +35,17 @@ import { RemoveMemberSchema } from "@/schemas/membership";
 const LEAVE_ERROR =
   "Unable to leave this wallet. Refresh the page and try again.";
 const REMOVE_ERROR = "Unable to remove this member. Try again.";
+
+export async function leaveWalletAction(): Promise<ActionResult> {
+  return withWalletAction(LEAVE_ERROR, async ({ caller }) => {
+    await leaveWalletSeam(caller);
+    revalidateWallet(caller.walletId, [
+      CACHE_RESOURCE.members,
+      CACHE_RESOURCE.wallet,
+      CACHE_RESOURCE.balances,
+    ]);
+  });
+}
 
 export async function leaveWalletForm(
   _previous: FormActionState,
@@ -103,7 +115,7 @@ export async function setMemberRole(
         caller.walletId,
         form.userId,
         "member_role",
-        `${caller.actorName} set your role to ${nextRole} in this wallet.`,
+        `${caller.actorName} set your role to ${roleLabel(nextRole).toLowerCase()} in this wallet.`,
       );
       revalidateWallet(caller.walletId, [
         CACHE_RESOURCE.members,

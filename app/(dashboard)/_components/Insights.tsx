@@ -119,7 +119,7 @@ const Insights = ({ currency, memberCount }: Props) => {
         : "text-expense-foreground";
 
   return (
-    <div className="section grid gap-4 lg:grid-cols-3">
+    <div className="section grid gap-6 lg:grid-cols-3">
       <Card className="flex flex-col justify-center transition-all hover:shadow-md">
         <CardHeader>
           <CardTitle className="text-lg">Savings rate</CardTitle>

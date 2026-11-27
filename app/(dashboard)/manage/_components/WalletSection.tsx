@@ -24,6 +24,11 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useWallets } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { DEFAULT_WALLET_NAME } from "@/lib/constants";
@@ -71,7 +76,7 @@ const WalletSection = ({ canEdit }: { canEdit: boolean }) => {
 
   return (
     <section>
-      <Card className="transition-all hover:shadow-md">
+      <Card className="h-full transition-all hover:shadow-md">
         <CardHeader>
           <CardTitle className="text-lg">Your space</CardTitle>
           <CardDescription>
@@ -100,14 +105,24 @@ const WalletSection = ({ canEdit }: { canEdit: boolean }) => {
                   }
                 }}
               >
-                <DialogTrigger
-                  render={
-                    <Button variant="outline" size="sm" className="gap-2" />
-                  }
-                >
-                  <Pencil className="h-4 w-4" />
-                  Rename
-                </DialogTrigger>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <DialogTrigger
+                        render={
+                          <Button
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label="Rename space"
+                          />
+                        }
+                      />
+                    }
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Rename space</TooltipContent>
+                </Tooltip>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Rename your space</DialogTitle>

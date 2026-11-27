@@ -35,7 +35,7 @@ const DashboardSections = async ({ context }: Props) => {
       >
         <Insights currency={currency} memberCount={memberCount} />
       </Suspense>
-      <div className="section grid gap-4 lg:grid-cols-3">
+      <div className="section grid gap-6 lg:grid-cols-3">
         <Suspense
           fallback={<Skeleton className="h-52 w-full" aria-hidden="true" />}
         >
@@ -65,8 +65,8 @@ const DashboardSections = async ({ context }: Props) => {
       <div
         className={
           memberCount > 1
-            ? "section grid gap-4 lg:grid-cols-2"
-            : "section grid gap-4"
+            ? "section grid gap-6 lg:grid-cols-2"
+            : "section grid gap-6"
         }
       >
         {memberCount > 1 && (

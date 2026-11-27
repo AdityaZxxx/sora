@@ -16,7 +16,7 @@ export default function Loading() {
         </div>
       </header>
       <div className="container py-8">
-        <div className="space-y-8">
+        <div className="space-y-6">
           <SectionCard>
             <Skeleton className="h-5 w-44" />
             <Skeleton className="h-4 w-72" />

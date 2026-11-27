@@ -37,46 +37,50 @@ export default function Settlements({ currency }: { currency: string | null }) {
   if (settlements.length === 0) return null;
 
   return (
-    <Card className="section transition-all hover:shadow-md">
-      <CardHeader>
-        <CardTitle className="text-lg">Settlements</CardTitle>
-        <CardDescription>
-          Payments members made outside Sora. Only the two involved members see
-          the amount.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {settlements.map((settlement) => (
-            <div
-              key={settlement.id}
-              className="flex items-center justify-between gap-3 rounded-lg border p-3"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <Handshake
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {settlement.isParty
-                      ? `${settlement.payerName} paid ${settlement.receiverName}`
-                      : "A settlement was recorded"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(settlement.date).toLocaleDateString()}
-                  </p>
+    <section className="section">
+      <Card className="transition-all hover:shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg">Settlements</CardTitle>
+          <CardDescription>
+            Payments members made outside Sora. Only the two involved members
+            see the amount.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {settlements.map((settlement) => (
+              <div
+                key={settlement.id}
+                className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <Handshake
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {!settlement.isParty
+                        ? "A settlement was recorded"
+                        : settlement.isPayer
+                          ? `You paid ${settlement.receiverName}`
+                          : `${settlement.payerName} paid you`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(settlement.date).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
+                {settlement.isParty && settlement.amount !== null && (
+                  <span className="shrink-0 text-sm font-semibold tabular-nums">
+                    {formatter.format(settlement.amount)}
+                  </span>
+                )}
               </div>
-              {settlement.isParty && settlement.amount !== null && (
-                <span className="shrink-0 text-sm font-semibold tabular-nums">
-                  {formatter.format(settlement.amount)}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }

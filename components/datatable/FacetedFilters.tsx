@@ -90,7 +90,10 @@ export function DataTableFacetedFilter<TData extends RowData, TValue>({
           </>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-max max-w-72 min-w-56 p-0" align="start">
+      <PopoverContent
+        className="w-52 max-w-[calc(100vw-2rem)] p-0"
+        align="start"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             value={search}
