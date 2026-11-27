@@ -40,3 +40,15 @@ export function assertCallerIsOwner(caller: Caller, message?: string) {
 export function assertCallerCanEditEntry(caller: Caller, addedById: string) {
   assertRoleCanEditEntry(caller.role, addedById, caller.userId);
 }
+
+export function assertCallerCanEditCategory(
+  caller: Caller,
+  createdById: string | null,
+) {
+  assertRoleCanEditEntry(
+    caller.role,
+    createdById ?? "",
+    caller.userId,
+    "You can only rename or delete categories you added",
+  );
+}

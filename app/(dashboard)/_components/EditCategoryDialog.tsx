@@ -10,7 +10,6 @@ interface Props {
   trigger?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  showEditabilityNote?: boolean;
 }
 
 const EditCategoryDialog = ({
@@ -18,7 +17,6 @@ const EditCategoryDialog = ({
   trigger,
   open,
   onOpenChange,
-  showEditabilityNote,
 }: Props) => (
   <CategoryFormDialog
     category={category}
@@ -26,7 +24,6 @@ const EditCategoryDialog = ({
     trigger={trigger}
     open={open}
     onOpenChange={onOpenChange}
-    showEditabilityNote={showEditabilityNote}
   />
 );
 

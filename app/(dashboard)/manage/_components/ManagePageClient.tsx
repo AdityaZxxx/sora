@@ -1,4 +1,5 @@
 "use client";
+import type { MemberRole } from "@/lib/roles";
 import type { TransactionType } from "@/lib/types";
 import type { Category, Wallet } from "@prisma/client";
 
@@ -47,6 +48,7 @@ import {
   useMembers,
 } from "@/hooks/use-members";
 import { useWallets } from "@/hooks/use-wallets";
+import { categoryPermissionNote } from "@/lib/category-copy";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
@@ -62,7 +64,7 @@ import MembersSection from "./MembersSection";
 import WalletSection from "./WalletSection";
 
 const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
-  const { canEdit, canManage } = useCallerRole();
+  const { canEdit, canManage, role, userId: callerId } = useCallerRole();
   const walletsQuery = useWallets();
   const owningWallet = walletsQuery.data?.wallets.find(
     (item) => item.id === wallet.id,
@@ -157,7 +159,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
             </h2>
             {!canEdit && (
               <p className="text-sm text-muted-foreground">
-                Viewers can see categories but cannot add new ones.
+                You can view categories but cannot add new ones.
               </p>
             )}
             <div className="grid gap-6 md:grid-cols-2">
@@ -165,6 +167,8 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 type="income"
                 canEdit={canEdit}
                 canManage={canManage}
+                role={role}
+                callerId={callerId}
                 creatorNames={creatorNames}
                 walletName={walletName}
               />
@@ -172,6 +176,8 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 type="expense"
                 canEdit={canEdit}
                 canManage={canManage}
+                role={role}
+                callerId={callerId}
                 creatorNames={creatorNames}
                 walletName={walletName}
               />
@@ -197,15 +203,20 @@ function CategoryList({
   type,
   canEdit,
   canManage,
+  role,
+  callerId,
   creatorNames,
   walletName,
 }: {
   type: TransactionType;
   canEdit: boolean;
   canManage: boolean;
+  role?: MemberRole;
+  callerId?: string;
   creatorNames: Map<string, string>;
   walletName: string;
 }) {
+  const permissionNote = categoryPermissionNote(role);
   const [expanded, setExpanded] = useState(false);
   const {
     data: categories = [],
@@ -262,7 +273,6 @@ function CategoryList({
                 type={type}
                 successCallback={() => refetch()}
                 trigger={<AddIconButton label={`Create ${type} category`} />}
-                showEditabilityNote
               />
             )}
           </div>
@@ -283,7 +293,10 @@ function CategoryList({
                   <CategoryCard
                     key={category.name}
                     category={category}
+                    canWrite={canEdit}
                     canManage={canManage}
+                    permissionNote={permissionNote}
+                    callerId={callerId}
                     creatorName={
                       (category.createdById
                         ? creatorNames.get(category.createdById)
@@ -360,17 +373,26 @@ function ErrorState({
 
 function CategoryCard({
   category,
+  canWrite,
   canManage,
+  permissionNote,
+  callerId,
   creatorName,
   walletName,
 }: {
   category: Category;
+  canWrite: boolean;
   canManage: boolean;
+  permissionNote: string;
+  callerId?: string;
   creatorName: string | null;
   walletName: string;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const canEditCategory =
+    canWrite &&
+    (canManage || (callerId != null && category.createdById === callerId));
 
   return (
     <>
@@ -392,7 +414,7 @@ function CategoryCard({
           </div>
         </div>
 
-        {canManage ? (
+        {canEditCategory ? (
           <Tooltip>
             <DropdownMenu>
               <TooltipTrigger
@@ -436,17 +458,16 @@ function CategoryCard({
           </Tooltip>
         ) : (
           <span className="text-xs text-muted-foreground">
-            Only owners and co-owners can rename or delete categories
+            {permissionNote}
           </span>
         )}
       </div>
-      {canManage && (
+      {canEditCategory && (
         <>
           <EditCategoryDialog
             category={category}
             open={editOpen}
             onOpenChange={setEditOpen}
-            showEditabilityNote
           />
           <DeleteCategoryDialog
             category={category}

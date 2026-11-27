@@ -41,6 +41,7 @@ Preconditions:
 - The page orders cards top to bottom as listed above. Appearance, agent access and account deletion live on Account Settings.
 - The currency is editable here. Changing it applies immediately and changes household formatting everywhere.
 - The invite link's QR code uses an inlined SVG and does not appear in the DOM's responsive snapshot; use the `Copy invite link` button to copy it.
-- `Transaction categories` cards show the owning wallet and the creator name. Members see an explanation instead of rename and delete controls; owners and co-owners see the actions menu.
+- `Transaction categories` cards show the owning wallet and the creator name. Members see actions on categories they created and an explanation on other categories; owners and co-owners see actions on every category. A viewer sees no create buttons and the explanation `You can view categories but cannot rename or delete them`.
 - An owner or co-owner can remove non-owners; the owner cannot be removed by another member. A viewer sees no `Remove` control.
+- A category with no stored creator is editable only by an owner or co-owner.
 - The `Leave wallet` button appears for non-owner members when at least one other member exists. The owner sees a Leave wallet button that opens a transfer dialog.

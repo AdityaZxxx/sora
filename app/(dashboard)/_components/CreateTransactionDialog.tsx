@@ -48,8 +48,11 @@ import {
 } from "@/components/ui/select";
 import { getMutationClient } from "@/hooks/mutation-client";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useCallerRole } from "@/hooks/use-members";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
+import { categoryPermissionNote } from "@/lib/category-copy";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { Currencies } from "@/lib/currencies";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -62,6 +65,7 @@ import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
 import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import { buildShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
+import { walletLabel } from "@/lib/wallet-label";
 
 import {
   createTransactionForm,
@@ -110,6 +114,15 @@ const CreateTransactionDialog = ({
   const dialogType = initialValues?.type ?? type;
   const [initialDate] = useState(() => new Date());
   const hydrated = useHydrated();
+  const { role } = useCallerRole();
+  const activeWalletQuery = useActiveWallet();
+  const activeWalletName = activeWalletQuery.active
+    ? walletLabel(activeWalletQuery.active)
+    : "this wallet";
+  const permissionNote = categoryPermissionNote(role);
+  const categoryHelp = `Categories in ${activeWalletName}.${
+    permissionNote ? ` ${permissionNote}` : ""
+  }`;
   const queryClient = useQueryClient();
   const mutationClient = getMutationClient();
   const formAction = transactionId
@@ -438,7 +451,7 @@ const CreateTransactionDialog = ({
                   aria-invalid={Boolean(state.fieldErrors.category)}
                 />
                 <FieldDescription className="text-xs sm:text-sm">
-                  Category used in transaction
+                  Category used in transaction. {categoryHelp}
                 </FieldDescription>
                 {state.fieldErrors.category ? (
                   <FieldError id="category-error">

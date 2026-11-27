@@ -9,7 +9,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import {
   actorFor,
-  assertCallerCanManage,
+  assertCallerCanEditCategory,
   assertCallerCanWrite,
   type Caller,
 } from "@/lib/caller";
@@ -113,7 +113,6 @@ export async function updateWalletCategory(
   caller: Caller,
   input: UpdateCategorySchemaType,
 ) {
-  assertCallerCanManage(caller);
   const parsed = UpdateCategorySchema.safeParse(input);
   if (!parsed.success) {
     throw new DomainError(
@@ -136,6 +135,7 @@ export async function updateWalletCategory(
   if (!existing) {
     throw new DomainError("Category not found");
   }
+  assertCallerCanEditCategory(caller, existing.createdById);
 
   const renamed = name !== originalName;
   const iconChanged =
@@ -210,8 +210,6 @@ export async function updateWalletCategory(
 }
 
 export async function deleteWalletCategory(caller: Caller, id: string) {
-  assertCallerCanManage(caller);
-
   const parsedId = DeleteIdSchema.safeParse({ id });
   if (!parsedId.success) {
     throw new DomainError(
@@ -228,6 +226,7 @@ export async function deleteWalletCategory(caller: Caller, id: string) {
   if (!category) {
     throw new DomainError("Category not found");
   }
+  assertCallerCanEditCategory(caller, category.createdById);
 
   const deleted = await prisma.category.deleteMany({
     where: {

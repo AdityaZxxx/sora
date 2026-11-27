@@ -65,11 +65,12 @@ export function assertCanEditEntry(
   role: MemberRole,
   addedById: string,
   callerId: string,
+  message = "You can only change entries you added",
 ) {
   assertCanWrite(role);
   if (canManage(role)) return;
   if (addedById !== callerId) {
-    throw new DomainError("You can only change entries you added");
+    throw new DomainError(message);
   }
 }
 

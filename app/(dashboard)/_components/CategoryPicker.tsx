@@ -159,7 +159,7 @@ const CategoryPicker = ({
                 />
               ) : (
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                  Viewers cannot add categories
+                  You can view categories but cannot add new ones.
                 </p>
               )}
             </CommandList>

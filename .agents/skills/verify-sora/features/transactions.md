@@ -5,7 +5,7 @@ The transactions page is the household ledger. It lists income and expense rows,
 ## Sub-features
 
 - `transactions-list` shows one row per transaction with category, description, added-by, date, type, amount, and an optional `Via agent` badge.
-- `transactions-filter-category` narrows the table to a single category. The picker lists only the active wallet's categories and shows the owning wallet and editability note.
+- `transactions-filter-category` narrows the table to a single category. The picker lists only the active wallet's categories and shows the owning wallet and a role-specific note about who may rename or delete categories.
 - `transactions-filter-type` narrows to income or expense.
 - `transactions-export` downloads every transaction in the date range as CSV, ignoring active filters and pagination, with headers Date, Category, Description, Type, Amount, Currency.
 - `transactions-add` opens a dialog on the dashboard to create a new transaction with optional split shares.

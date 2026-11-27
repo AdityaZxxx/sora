@@ -25,7 +25,7 @@ A user who belongs to a wallet. Every member has one role: owner, co-owner, memb
 _Avoid_: partner
 
 **Role**:
-A wallet membership's level of access. Owner manages roles and transfers ownership. Co-owner invites, removes non-owners and changes settings. Member writes transactions, creates categories and records settlements, and edits only their own transaction entries. Only owners and co-owners rename or delete categories. Viewer reads without writing.
+A wallet membership's level of access. Owner manages roles and transfers ownership. Co-owner invites, removes non-owners and changes settings. Member writes transactions, creates categories, and records settlements, and edits only their own transaction entries and the categories they added. Owners and co-owners rename or delete any category. Viewer reads without writing.
 
 **Owner**:
 The single member who manages roles in a wallet. The wallet creator becomes owner, and ownership transfers to a co-owner before the owner leaves. No other member can remove the owner.
@@ -56,7 +56,7 @@ A single income or expense entry in a wallet ledger, attributed to the member wh
 _Avoid_: entry, payment
 
 **Category**:
-A label for transactions (for example Groceries) owned by exactly one wallet, with an icon and an income or expense type. Every category records the member who created it, and that attribution survives when the creator leaves. Any member may create a category; only owners and co-owners may rename or delete one.
+A label for transactions (for example Groceries) owned by exactly one wallet, with an icon and an income or expense type. Every category records the member who created it, and that attribution survives when the creator leaves. Any member may create a category and rename, re-icon or delete one they added; owners and co-owners may rename, re-icon or delete any category.
 
 **Budget**:
 A monthly spending limit on one category within a wallet. A budget is either soft (warns at the limit) or hard (blocks transactions over the limit), and is interpreted in that wallet's currency.
