@@ -454,7 +454,9 @@ async function createTransactionWithDeps(
         writeKey,
         next,
       );
-      if ("existing" in resolved) return resolved.existing;
+      if ("existing" in resolved) {
+        return { transaction: resolved.existing, created: false };
+      }
 
       const transaction = await tx.transaction.create({
         data: {
@@ -491,20 +493,12 @@ async function createTransactionWithDeps(
         type,
         amount: moneyAmount,
       });
-      await publishWalletChange({
-        walletId,
-        actor,
-        resource: "transactions",
-        message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
-        executor: tx,
-      });
-
-      return transaction;
+      return { transaction, created: true };
     });
 
-  let created: StoredTransaction;
+  let result: { transaction: StoredTransaction; created: boolean };
   try {
-    created = await attemptWrite(key);
+    result = await attemptWrite(key);
   } catch (cause) {
     if (
       key &&
@@ -514,13 +508,22 @@ async function createTransactionWithDeps(
       const existing = await prisma.transaction.findFirst({
         where: { id: key, walletId },
       });
-      created =
+      result =
         existing && isSameTransaction(existing, next)
-          ? existing
+          ? { transaction: existing, created: false }
           : await attemptWrite(undefined);
     } else {
       throw cause;
     }
+  }
+
+  if (result.created) {
+    await publishWalletChange({
+      walletId,
+      actor,
+      resource: "transactions",
+      message: `added ${description || categoryRow.name}, ${formatAmount(amount)}`,
+    });
   }
 
   const effects = buildPostCommitEffects({
@@ -541,7 +544,7 @@ async function createTransactionWithDeps(
     deps.publisher(effect);
   }
 
-  return created;
+  return result.transaction;
 }
 
 export async function deleteTransaction(caller: Caller, id: string) {
@@ -584,13 +587,13 @@ export async function deleteTransaction(caller: Caller, id: string) {
       type: transaction.type,
       amount: transaction.amount,
     });
-    await publishWalletChange({
-      walletId,
-      actor: actorFor(caller),
-      resource: "transactions",
-      message: `removed ${transaction.description || transaction.category}`,
-      executor: tx,
-    });
+  });
+
+  await publishWalletChange({
+    walletId,
+    actor: actorFor(caller),
+    resource: "transactions",
+    message: `removed ${transaction.description || transaction.category}`,
   });
 }
 
@@ -694,15 +697,14 @@ export async function updateTransaction(
       },
     });
 
-    await publishWalletChange({
-      walletId,
-      actor: actorFor(caller),
-      resource: "transactions",
-      message: `updated ${description || categoryRow.name}, ${formatAmount(amount)}`,
-      executor: tx,
-    });
-
     return row;
+  });
+
+  await publishWalletChange({
+    walletId,
+    actor: actorFor(caller),
+    resource: "transactions",
+    message: `updated ${description || categoryRow.name}, ${formatAmount(amount)}`,
   });
 
   return updated;

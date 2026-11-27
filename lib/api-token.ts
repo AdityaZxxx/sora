@@ -11,10 +11,12 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
-import { assertCallerCanWrite, type Caller } from "@/lib/caller";
+import { userApiTokensTag } from "@/lib/cache";
+import { assertCallerCanWrite, type Actor, type Caller } from "@/lib/caller";
 import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
+import { invalidateUserApiTokens, publishWalletChange } from "@/lib/realtime";
 import { assertCanManage, parseMemberRole } from "@/lib/roles";
 import {
   CreateApiTokenSchema,
@@ -237,6 +239,8 @@ export async function createApiToken(
     },
   });
 
+  invalidateUserApiTokens(userId);
+
   return { id: created.id, token };
 }
 
@@ -245,7 +249,7 @@ export async function listApiTokens(
 ): Promise<ApiTokenSummary[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(`user:${userId}:api-tokens`);
+  cacheTag(userApiTokensTag(userId));
 
   return await prisma.apiToken.findMany({
     where: { userId },
@@ -274,10 +278,12 @@ export async function revokeApiToken(
       "Token not found. It may have been revoked. Refresh and try again.",
     );
   }
+
+  invalidateUserApiTokens(userId);
 }
 
 export async function setAgentAccess(
-  userId: string,
+  actor: Actor,
   input: SetAgentAccessSchemaType,
 ) {
   const parsed = SetAgentAccessSchema.safeParse(input);
@@ -289,7 +295,7 @@ export async function setAgentAccess(
     where: {
       walletId_userId: {
         walletId: parsed.data.walletId,
-        userId,
+        userId: actor.actorId,
       },
       leftAt: null,
     },
@@ -315,4 +321,12 @@ export async function setAgentAccess(
       });
     }
   });
+
+  await publishWalletChange({
+    walletId: parsed.data.walletId,
+    actor,
+    resource: "wallet",
+    message: `turned agent access ${parsed.data.enabled ? "on" : "off"}`,
+  });
+  invalidateUserApiTokens(actor.actorId);
 }

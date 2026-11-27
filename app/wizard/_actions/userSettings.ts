@@ -5,7 +5,6 @@ import type { Wallet } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type ActionResult, withWalletAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { updateWalletCurrency } from "@/lib/wallet";
 
 export async function UpdateUserCurrency(
@@ -16,7 +15,6 @@ export async function UpdateUserCurrency(
     async ({ caller }) => {
       const updated = await updateWalletCurrency(caller, currency);
 
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.wallet]);
       revalidatePath("/", "layout");
 
       return updated;

@@ -34,7 +34,6 @@ export async function renameWallet(
     "Unable to rename this space. Check the name and try again.",
     async ({ caller }) => {
       const renamed = await renameWalletSeam(caller, name);
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.wallet]);
       revalidatePath("/", "layout");
       return renamed;
     },
@@ -47,10 +46,12 @@ export async function createWallet(name: string) {
     redirect("/sign-in");
   }
 
-  const wallet = await createAdditionalWallet(session.user.id, name);
+  const wallet = await createAdditionalWallet(
+    { actorId: session.user.id, actorName: session.user.name },
+    name,
+  );
 
   await setActiveWalletCookie(wallet.id);
-  revalidateWallet(wallet.id, [CACHE_RESOURCE.wallet]);
   revalidatePath("/", "layout");
   return wallet;
 }

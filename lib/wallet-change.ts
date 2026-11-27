@@ -18,6 +18,7 @@ export const WALLET_CHANGE_RESOURCES = [
   "members",
   "wallet",
   "notifications",
+  "invites",
 ] as const;
 
 export type WalletChangeResource = (typeof WALLET_CHANGE_RESOURCES)[number];
@@ -102,7 +103,7 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
     clientKeys: [queryKeys.recurringItems, queryKeys.overview.all],
   },
   members: {
-    serverTags: ["members"],
+    serverTags: ["members", "wallet", "balances"],
     clientKeys: [
       queryKeys.walletMembers,
       queryKeys.formerMembers,
@@ -119,6 +120,10 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
     serverTags: ["notifications"],
     clientKeys: [queryKeys.notifications],
   },
+  invites: {
+    serverTags: ["invites"],
+    clientKeys: [queryKeys.inviteLinks],
+  },
 };
 
 const SCOPED_EFFECTS: Record<WalletChangeScope, WalletChangeEffects> = {
@@ -131,7 +136,7 @@ const SCOPED_EFFECTS: Record<WalletChangeScope, WalletChangeEffects> = {
     clientKeys: EFFECTS.categories.clientKeys,
   },
   "member-joined": {
-    serverTags: ["members", "balances"],
+    serverTags: ["members", "wallet", "balances"],
     clientKeys: EFFECTS.members.clientKeys,
   },
 };

@@ -6,7 +6,6 @@ import {
   deleteWalletBudget,
   updateWalletBudget,
 } from "@/lib/budgets";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   formText,
   idField,
@@ -44,7 +43,6 @@ export async function createBudgetForm(
     run: (input) =>
       withWalletAction(CREATE_ERROR, async ({ caller }) => {
         const created = await createWalletBudget(caller, input);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
         return created;
       }),
   });
@@ -63,7 +61,6 @@ export async function updateBudgetForm(
     run: (input) =>
       withWalletAction(UPDATE_ERROR, async ({ caller }) => {
         const updated = await updateWalletBudget(caller, input);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
         return updated;
       }),
   });
@@ -82,7 +79,6 @@ export async function deleteBudgetForm(
     run: (input) =>
       withWalletAction(DELETE_ERROR, async ({ caller }) => {
         await deleteWalletBudget(caller, input.id);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.budgets]);
       }),
   });
 }

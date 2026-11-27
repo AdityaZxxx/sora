@@ -16,7 +16,7 @@ import {
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
-import { notifyWalletChange, publishWalletChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
@@ -143,8 +143,8 @@ export async function updateWalletCategory(
     iconKind !== existing.iconKind ||
     iconColor !== existing.iconColor;
 
-  const { category, revalidate } = await prisma.$transaction(async (tx) => {
-    const scope = renamed ? "category-renamed" : "category-icon-changed";
+  const scope = renamed ? "category-renamed" : "category-icon-changed";
+  const category = await prisma.$transaction(async (tx) => {
     const updatedCategory = await tx.category.update({
       where: {
         name_walletId_type: {
@@ -192,19 +192,16 @@ export async function updateWalletCategory(
       });
     }
 
-    const deferRevalidation = await notifyWalletChange({
-      walletId: caller.walletId,
-      actor: actorFor(caller),
-      resource: "categories",
-      message: `changed the ${updatedCategory.name} category`,
-      scope,
-      executor: tx,
-    });
-
-    return { category: updatedCategory, revalidate: deferRevalidation };
+    return updatedCategory;
   });
 
-  revalidate();
+  await publishWalletChange({
+    walletId: caller.walletId,
+    actor: actorFor(caller),
+    resource: "categories",
+    message: `changed the ${category.name} category`,
+    scope,
+  });
 
   return category;
 }

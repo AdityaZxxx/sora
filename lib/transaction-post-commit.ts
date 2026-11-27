@@ -2,7 +2,6 @@ import type { Actor } from "@/lib/caller";
 import type { TransactionType } from "@/lib/types";
 import type { Prisma } from "@prisma/client";
 
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { notifyIfGoalReached } from "@/lib/goals";
 import { toMoney } from "@/lib/money";
 import { notifyWalletExcept, notifyMembers } from "@/lib/notifications";
@@ -55,14 +54,12 @@ export function buildPostCommitEffects(
         "budget_threshold",
         thresholdMessage,
       );
-      revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
     });
   }
 
   const message = `${actorName} added a ${type} of ${formattedAmount} (${description || categoryName}).`;
   effects.push(async () => {
     await notifyWalletExcept(actor, walletId, userId, "transaction", message);
-    revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
   });
 
   if (goal) {
@@ -78,7 +75,7 @@ export function buildPostCommitEffects(
   }
 
   effects.push(async () => {
-    const result = await evaluateUnusualSpending(
+    await evaluateUnusualSpending(
       {
         amount: toMoney(amount),
         category: categoryName,
@@ -94,9 +91,6 @@ export function buildPostCommitEffects(
         notifier: notifyMembers,
       },
     );
-    if (result.notified > 0) {
-      revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
-    }
   });
 
   return effects;

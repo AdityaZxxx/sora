@@ -28,8 +28,16 @@ export function memberWalletsTag(userId: string) {
   return `member:${userId}:wallets`;
 }
 
+export function userApiTokensTag(userId: string) {
+  return `user:${userId}:api-tokens`;
+}
+
 export function revalidateMemberWallets(userId: string) {
   revalidateTag(memberWalletsTag(userId), { expire: 0 });
+}
+
+export function revalidateUserApiTokens(userId: string) {
+  revalidateTag(userApiTokensTag(userId), { expire: 0 });
 }
 
 export function revalidateWallet(

@@ -1,3 +1,4 @@
+import type { Actor } from "@/lib/caller";
 import type { InviteLink } from "@prisma/client";
 
 import { cacheLife, cacheTag } from "next/cache";
@@ -7,7 +8,6 @@ import {
   CACHE_RESOURCE,
   walletTag,
   revalidateMemberWallets,
-  revalidateWallet,
 } from "@/lib/cache";
 import { MEMBER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -17,30 +17,43 @@ import { publishWalletChange } from "@/lib/realtime";
 import { assertCanManage, type MemberRole } from "@/lib/roles";
 import { createPersonalWallet } from "@/lib/wallet";
 
+function notifyInviteChange(walletId: string, actor: Actor, message: string) {
+  return publishWalletChange({
+    walletId,
+    actor,
+    resource: "invites",
+    message,
+  });
+}
+
 // seam-parse-exempt: inputs are session values, never user input.
 export async function createInviteLink(
   walletId: string,
-  userId: string,
+  actor: Actor,
   role: MemberRole,
 ) {
   assertCanManage(role);
-  return await prisma.inviteLink.create({
+  const created = await prisma.inviteLink.create({
     data: {
       token: crypto.randomUUID(),
       walletId,
-      createdById: userId,
+      createdById: actor.actorId,
     },
   });
+
+  await notifyInviteChange(walletId, actor, "created an invite link");
+
+  return created;
 }
 
 // seam-parse-exempt: inputs are session values, never user input.
 export async function rotateInviteLink(
   walletId: string,
-  userId: string,
+  actor: Actor,
   role: MemberRole,
 ) {
   assertCanManage(role);
-  return await prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     await tx.inviteLink.updateMany({
       where: { walletId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -49,10 +62,14 @@ export async function rotateInviteLink(
       data: {
         token: crypto.randomUUID(),
         walletId,
-        createdById: userId,
+        createdById: actor.actorId,
       },
     });
   });
+
+  await notifyInviteChange(walletId, actor, "rotated the invite link");
+
+  return created;
 }
 
 const InviteIdSchema = z.object({
@@ -67,6 +84,7 @@ export async function revokeInviteLink(
   walletId: string,
   inviteLinkId: string,
   role: MemberRole,
+  actor: Actor,
 ) {
   assertCanManage(role);
 
@@ -89,6 +107,8 @@ export async function revokeInviteLink(
   if (result.count === 0) {
     throw new DomainError("Invite link not found");
   }
+
+  await notifyInviteChange(walletId, actor, "revoked the invite link");
 }
 
 export async function listInviteLinks(walletId: string): Promise<InviteLink[]> {
@@ -141,6 +161,7 @@ export async function joinWalletByInviteToken(
     },
   });
 
+  const actor = { actorId: userId, actorName: userName };
   let joined = false;
   if (existingMembership?.leftAt) {
     await prisma.walletMembership.update({
@@ -169,7 +190,6 @@ export async function joinWalletByInviteToken(
   }
 
   if (joined) {
-    const actor = { actorId: userId, actorName: userName };
     await publishWalletChange({
       walletId: inviteLink.walletId,
       actor,
@@ -207,10 +227,6 @@ export async function joinWalletByInviteToken(
       );
     }
     revalidateMemberWallets(userId);
-    revalidateWallet(inviteLink.walletId, [
-      CACHE_RESOURCE.members,
-      CACHE_RESOURCE.wallet,
-    ]);
   }
 
   const personal = await prisma.walletMembership.findFirst({
@@ -218,7 +234,7 @@ export async function joinWalletByInviteToken(
     select: { walletId: true },
   });
   if (!personal) {
-    await createPersonalWallet(userId, inviteLink.wallet.currency);
+    await createPersonalWallet(actor, inviteLink.wallet.currency);
   }
 
   return inviteLink.walletId;
