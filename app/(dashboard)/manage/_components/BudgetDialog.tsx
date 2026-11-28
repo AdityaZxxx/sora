@@ -38,8 +38,8 @@ import {
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useActiveWallet } from "@/hooks/use-wallets";
 import { type BudgetWithProgress } from "@/lib/budgets";
-import { Currencies } from "@/lib/currencies";
 import { initialFormActionState } from "@/lib/form-action";
+import { getNumberInputSeparators } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
 import { createBudgetForm, updateBudgetForm } from "../../_actions/budgets";
@@ -79,12 +79,8 @@ const BudgetDialog = ({
     initialFormActionState,
   );
 
-  const currency = Currencies.find((c) => c.value === wallet?.currency);
-  const numberParts = new Intl.NumberFormat(currency?.locale, {
-    style: "decimal",
-  }).formatToParts(1234.5);
-  const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
-  const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
+  const { group: thousandSeparator, decimal: decimalSeparator } =
+    getNumberInputSeparators(wallet?.currency);
 
   const resetDraft = () => {
     setCategory("");

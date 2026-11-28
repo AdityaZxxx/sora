@@ -29,8 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
-import { Currencies } from "@/lib/currencies";
-import { hasTwoDecimals } from "@/lib/helpers";
+import { getNumberInputSeparators, hasTwoDecimals } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
 
 import { RecordSettlement } from "../_actions/balance";
@@ -56,13 +55,8 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
   const { data: wallets } = useActiveWallet();
   const walletId = wallets?.active.id ?? "";
 
-  const currencyOption = Currencies.find((c) => c.value === currency);
-
-  const numberParts = new Intl.NumberFormat(currencyOption?.locale, {
-    style: "decimal",
-  }).formatToParts(1234.5);
-  const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
-  const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
+  const { group: thousandSeparator, decimal: decimalSeparator } =
+    getNumberInputSeparators(currency);
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (input: Parameters<typeof RecordSettlement>[0]) => {

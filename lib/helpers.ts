@@ -77,6 +77,17 @@ export function formatDateForDisplay(date: Date) {
   });
 }
 
+export function getNumberInputSeparators(currency: string | null | undefined) {
+  const parts = new Intl.NumberFormat(localeForCurrency(currency ?? "USD"), {
+    style: "decimal",
+  }).formatToParts(1234.5);
+
+  return {
+    group: parts.find((part) => part.type === "group")?.value ?? ",",
+    decimal: parts.find((part) => part.type === "decimal")?.value ?? ".",
+  };
+}
+
 export function getNumberFlowCurrencyProps(currency: string) {
   return {
     locales: localeForCurrency(currency),
