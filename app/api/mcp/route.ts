@@ -2,7 +2,6 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 
 import { rejection } from "@/lib/api-route";
 import { requireToken, TOKEN_WALLET_HEADER } from "@/lib/api-token";
-import { READ_ONLY_SCOPE } from "@/lib/constants";
 import { contextFromToken } from "@/lib/mcp/context";
 import { createMcpServer } from "@/lib/mcp/server";
 
@@ -21,7 +20,7 @@ export function OPTIONS() {
 
 export async function POST(request: Request) {
   const walletId = request.headers.get(TOKEN_WALLET_HEADER);
-  const auth = await requireToken(READ_ONLY_SCOPE, walletId);
+  const auth = await requireToken(walletId);
 
   if (!auth.ok) {
     return rejection(auth.error, auth.status, CORS_HEADERS);

@@ -1,4 +1,4 @@
-import type { TokenScope } from "@/lib/types";
+import type { Actor, Caller } from "@/lib/caller";
 import type {
   ApiToken,
   Prisma,
@@ -12,12 +12,11 @@ import { headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 
 import { userApiTokensTag } from "@/lib/cache";
-import { assertCallerCanWrite, type Actor, type Caller } from "@/lib/caller";
 import { READ_WRITE_SCOPE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { invalidateUserApiTokens, publishWalletChange } from "@/lib/realtime";
-import { assertCanManage, parseMemberRole } from "@/lib/roles";
+import { assertCanManage, parseMemberRole, parseTokenScope } from "@/lib/roles";
 import {
   CreateApiTokenSchema,
   RevokeApiTokenSchema,
@@ -50,7 +49,6 @@ export type TokenAuth =
   | { ok: false; status: number; error: string };
 
 export async function requireToken(
-  scope: TokenScope,
   requestedWalletId?: string | null,
 ): Promise<TokenAuth> {
   const authorization = (await headers()).get("authorization");
@@ -129,27 +127,9 @@ export async function requireToken(
     walletId: wallet.id,
     userId: token.userId,
     role: parseMemberRole(membership.role),
-    scope: token.scope as TokenScope,
+    scope: parseTokenScope(token.scope),
     actorName: token.user.name,
   };
-
-  if (scope === READ_WRITE_SCOPE) {
-    if (token.scope !== READ_WRITE_SCOPE) {
-      return { ok: false, status: 403, error: "This token is read-only" };
-    }
-    try {
-      assertCallerCanWrite(caller, "Viewers cannot use a read-write token");
-    } catch (cause) {
-      if (!(cause instanceof DomainError)) {
-        throw cause;
-      }
-      return {
-        ok: false,
-        status: 403,
-        error: "Viewers cannot use a read-write token",
-      };
-    }
-  }
 
   return { ok: true, wallet, user: token.user, membership, token, caller };
 }

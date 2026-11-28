@@ -2,7 +2,7 @@ import type { McpContext } from "./context";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { READ_WRITE_SCOPE } from "@/lib/constants";
+import { tokenAllowsWrite } from "@/lib/roles";
 
 import { registerReadTools } from "./read-tools";
 import { registerWriteTools } from "./write-tools";
@@ -17,7 +17,7 @@ export function createMcpServer(context: McpContext) {
 
   registerReadTools(server, context);
 
-  if (context.scope === READ_WRITE_SCOPE) {
+  if (tokenAllowsWrite(context.scope)) {
     registerWriteTools(server, context);
   }
 

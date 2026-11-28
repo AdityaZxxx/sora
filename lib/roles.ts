@@ -46,6 +46,10 @@ export function parseTokenScope(scope: string): TokenScope {
   return scope === READ_WRITE_SCOPE ? READ_WRITE_SCOPE : READ_ONLY_SCOPE;
 }
 
+export function tokenAllowsWrite(scope: TokenScope) {
+  return parseTokenScope(scope) === READ_WRITE_SCOPE;
+}
+
 export function canEditOwnedRecord(
   role: MemberRole,
   createdById: string | null,
