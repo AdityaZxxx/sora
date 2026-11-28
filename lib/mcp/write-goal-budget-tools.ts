@@ -15,7 +15,7 @@ import { budgetFields } from "@/schemas/budgets";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { goalFields } from "@/schemas/goals";
 
-import { runWriteTool } from "./tools";
+import { runTool } from "./tools";
 
 const DEADLINE_PATTERN = DATE_PATTERN;
 
@@ -38,10 +38,10 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         await deleteWalletGoal(context, id);
 
-        return { deleted: id, memberId: context.userId };
+        return { deleted: id };
       }),
   );
 
@@ -58,10 +58,10 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         await deleteWalletBudget(context, id);
 
-        return { deleted: id, memberId: context.userId };
+        return { deleted: id };
       }),
   );
 
@@ -84,7 +84,7 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ name, target, deadline }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const goal = await createWalletGoal(context, {
           name,
           target,
@@ -93,11 +93,9 @@ export function registerGoalBudgetWriteTools(
 
         return {
           id: goal.id,
-          currency: context.currency,
           name: goal.name,
           target: goal.target,
           deadline: goal.deadline?.toISOString() ?? null,
-          memberId: context.userId,
         };
       }),
   );
@@ -129,7 +127,7 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ id, name, target, deadline }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const update: UpdateGoalSchemaType = { id };
         if (name !== undefined) {
           update.name = name;
@@ -146,11 +144,9 @@ export function registerGoalBudgetWriteTools(
 
         return {
           id: goal.id,
-          currency: context.currency,
           name: goal.name,
           target: goal.target,
           deadline: goal.deadline?.toISOString() ?? null,
-          memberId: context.userId,
         };
       }),
   );
@@ -174,7 +170,7 @@ export function registerGoalBudgetWriteTools(
       },
     },
     async ({ category, amount, mode }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const budget = await setWalletBudget(context, {
           category,
           amount,
@@ -183,11 +179,9 @@ export function registerGoalBudgetWriteTools(
 
         return {
           id: budget.id,
-          currency: context.currency,
           category: budget.category,
           amount: budget.amount,
           mode: budget.mode,
-          memberId: context.userId,
         };
       }),
   );
