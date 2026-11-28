@@ -9,7 +9,7 @@ import {
 import { categoryFields, categoryLookupNameSchema } from "@/schemas/categories";
 import { DeleteIdSchema } from "@/schemas/delete";
 
-import { runWriteTool } from "./tools";
+import { runTool } from "./tools";
 
 export function registerCategoryWriteTools(
   server: McpServer,
@@ -40,7 +40,7 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ name, icon, iconKind, iconColor, type }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const category = await createWalletCategory(context, {
           name,
           icon,
@@ -56,7 +56,6 @@ export function registerCategoryWriteTools(
           iconKind: category.iconKind,
           iconColor: category.iconColor,
           type: category.type,
-          memberId: context.userId,
         };
       }),
   );
@@ -89,7 +88,7 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ originalName, name, icon, iconKind, iconColor, type }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const category = await updateWalletCategory(context, {
           originalName,
           name,
@@ -106,7 +105,6 @@ export function registerCategoryWriteTools(
           iconKind: category.iconKind,
           iconColor: category.iconColor,
           type: category.type,
-          memberId: context.userId,
         };
       }),
   );
@@ -124,7 +122,7 @@ export function registerCategoryWriteTools(
       },
     },
     async ({ id }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const category = await deleteWalletCategory(context, id);
 
         return {
@@ -134,7 +132,6 @@ export function registerCategoryWriteTools(
           iconKind: category.iconKind,
           iconColor: category.iconColor,
           type: category.type,
-          memberId: context.userId,
         };
       }),
   );

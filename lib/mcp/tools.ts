@@ -1,7 +1,9 @@
+import type { McpContext } from "./context";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { z } from "zod";
 
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 
 export type ToolPayload =
@@ -12,35 +14,52 @@ export type ToolPayload =
   | ToolPayload[]
   | { [key: string]: ToolPayload };
 
+type ToolKind = "read" | "write";
+type ToolRecord = { [key: string]: ToolPayload };
+
+function withEnvelope(
+  data: ToolRecord,
+  context: McpContext,
+  kind: ToolKind,
+): ToolRecord {
+  return {
+    ...data,
+    currency: context.currency ?? DEFAULT_CURRENCY,
+    ...(kind === "write" && { memberId: context.userId }),
+  };
+}
+
 // No tool declares an output schema, so the SDK never expects
 // structuredContent and the payload rides in the text block.
-export function toolResult(data: ToolPayload): CallToolResult {
+function toolResult(data: ToolRecord): CallToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
   };
 }
 
-export function toolError(message: string): CallToolResult {
+function toolError(message: string): CallToolResult {
   return {
     content: [{ type: "text", text: message }],
     isError: true,
   };
 }
 
-export async function runWriteTool(
-  action: () => ToolPayload | Promise<ToolPayload>,
-): Promise<CallToolResult> {
-  try {
-    return toolResult(await action());
-  } catch (cause) {
-    return toolError(toolErrorMessage(cause));
-  }
-}
-
-export function toolErrorMessage(cause: unknown): string {
+function toolErrorMessage(cause: unknown): string {
   return cause instanceof DomainError
     ? cause.message
     : "Something went wrong. Try again.";
+}
+
+export async function runTool(
+  context: McpContext,
+  kind: ToolKind,
+  handler: () => ToolRecord | Promise<ToolRecord>,
+): Promise<CallToolResult> {
+  try {
+    return toolResult(withEnvelope(await handler(), context, kind));
+  } catch (cause) {
+    return toolError(toolErrorMessage(cause));
+  }
 }
 
 export const dateRangeSchema = {

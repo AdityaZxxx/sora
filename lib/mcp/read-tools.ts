@@ -6,7 +6,6 @@ import { z } from "zod";
 import { getMemberBalances } from "@/lib/balances";
 import { getBudgetsWithProgress } from "@/lib/budgets";
 import { getCategories } from "@/lib/categories";
-import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
@@ -18,12 +17,7 @@ import {
   type GetTransactionsHistoryResponseType,
 } from "@/lib/transactions";
 
-import {
-  dateRangeSchema,
-  toolError,
-  toolErrorMessage,
-  toolResult,
-} from "./tools";
+import { dateRangeSchema, runTool } from "./tools";
 
 export function registerReadTools(server: McpServer, context: McpContext) {
   server.registerTool(
@@ -34,8 +28,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "Total income, expenses, and net balance for the Wallet over a date range. Counts every Transaction in the Wallet's ledger.",
       inputSchema: dateRangeSchema,
     },
-    async ({ from, to }) => {
-      try {
+    async ({ from, to }) =>
+      runTool(context, "read", async () => {
         const range = resolveDateRange(from, to);
         const stats = await getBalanceStats(
           context.walletId,
@@ -43,18 +37,14 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           range.to,
         );
 
-        return toolResult({
+        return {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
-          currency: context.currency,
           income: moneyText(stats.income),
           expenses: moneyText(stats.expense),
           net: moneyText(stats.net),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -70,10 +60,9 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           .describe("Only Transactions in this category."),
       },
     },
-    async ({ from, to, category }) => {
-      try {
+    async ({ from, to, category }) =>
+      runTool(context, "read", async () => {
         const range = resolveDateRange(from, to);
-        const currency = context.currency ?? DEFAULT_CURRENCY;
         const transactions: GetTransactionsHistoryResponseType["transactions"] =
           [];
         let cursor: string | null = null;
@@ -89,10 +78,9 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           cursor = page.nextCursor;
         } while (cursor);
 
-        return toolResult({
+        return {
           from: range.from.toISOString(),
           to: range.to.toISOString(),
-          currency,
           transactions: transactions.map((transaction) => ({
             id: transaction.id,
             date: transaction.date.toISOString(),
@@ -102,11 +90,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             category: transaction.category,
             addedBy: transaction.addedByName,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -117,15 +102,14 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "What each other Member owes the caller, or what the caller owes them, from the Wallet's Transactions and Settlements.",
       inputSchema: {},
     },
-    async () => {
-      try {
+    async () =>
+      runTool(context, "read", async () => {
         const balances = await getMemberBalances(
           context.walletId,
           context.userId,
         );
 
-        return toolResult({
-          currency: context.currency,
+        return {
           balances: balances.map((balance) => ({
             memberId: balance.userId,
             memberName: balance.name,
@@ -137,11 +121,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
                   ? "you_owe"
                   : "they_owe_you",
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -152,12 +133,11 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "The Wallet's monthly Budgets, with what has been spent against each one this month.",
       inputSchema: {},
     },
-    async () => {
-      try {
+    async () =>
+      runTool(context, "read", async () => {
         const budgets = await getBudgetsWithProgress(context.walletId);
 
-        return toolResult({
-          currency: context.currency,
+        return {
           budgets: budgets.map((budget) => ({
             id: budget.id,
             category: budget.category,
@@ -167,11 +147,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             remaining: moneyText(budget.remaining),
             percent: budget.percent,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -182,12 +159,11 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "The Wallet's Goals, with how much has been contributed towards each one.",
       inputSchema: {},
     },
-    async () => {
-      try {
+    async () =>
+      runTool(context, "read", async () => {
         const goals = await getGoalsWithProgress(context.walletId);
 
-        return toolResult({
-          currency: context.currency,
+        return {
           goals: goals.map((goal) => ({
             id: goal.id,
             name: goal.name,
@@ -195,11 +171,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             contributed: moneyText(goal.contributed),
             deadline: goal.deadline?.toISOString() ?? null,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -210,21 +183,18 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "Every member of the Wallet with their id, name and role. Use these ids for transactions, settlements and shares.",
       inputSchema: {},
     },
-    async () => {
-      try {
+    async () =>
+      runTool(context, "read", async () => {
         const memberships = await listMembers(context.walletId);
 
-        return toolResult({
+        return {
           members: memberships.map((membership) => ({
             id: membership.userId,
             name: membership.user.name,
             role: membership.role,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 
   server.registerTool(
@@ -240,11 +210,11 @@ export function registerReadTools(server: McpServer, context: McpContext) {
           .describe("Only Categories of this type."),
       },
     },
-    async ({ type }) => {
-      try {
+    async ({ type }) =>
+      runTool(context, "read", async () => {
         const categories = await getCategories(context.walletId, type);
 
-        return toolResult({
+        return {
           categories: categories.map((category) => ({
             id: category.id,
             name: category.name,
@@ -253,11 +223,8 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             iconColor: category.iconColor,
             type: category.type,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
   server.registerTool(
     "list_settlements",
@@ -267,13 +234,13 @@ export function registerReadTools(server: McpServer, context: McpContext) {
         "Settlements recorded in this Wallet. Only the two parties see amounts and names; other members see a masked entry.",
       inputSchema: {},
     },
-    async () => {
-      try {
+    async () =>
+      runTool(context, "read", async () => {
         const settlements = await listSettlements(
           context.walletId,
           context.userId,
         );
-        return toolResult({
+        return {
           settlements: settlements.map((settlement) => ({
             id: settlement.id,
             date: settlement.date.toISOString(),
@@ -282,10 +249,7 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             payerName: settlement.payerName,
             receiverName: settlement.receiverName,
           })),
-        });
-      } catch (error) {
-        return toolError(toolErrorMessage(error));
-      }
-    },
+        };
+      }),
   );
 }

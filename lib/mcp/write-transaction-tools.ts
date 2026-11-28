@@ -14,7 +14,7 @@ import { DeleteIdSchema } from "@/schemas/delete";
 import { settlementFields } from "@/schemas/settlement";
 import { transactionFields } from "@/schemas/transaction";
 
-import { runWriteTool } from "./tools";
+import { runTool } from "./tools";
 
 export function registerTransactionWriteTools(
   server: McpServer,
@@ -67,7 +67,7 @@ export function registerTransactionWriteTools(
       shares,
       recurringItemId,
     }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const transaction = await createTransaction(context, {
           amount,
           description,
@@ -82,13 +82,11 @@ export function registerTransactionWriteTools(
 
         return {
           id: transaction.id,
-          currency: context.currency,
           date: transaction.date.toISOString(),
           description: transaction.description,
           amount: transaction.amount.toNumber(),
           type: transaction.type,
           category: transaction.category,
-          memberId: context.userId,
         };
       }),
   );
@@ -117,7 +115,7 @@ export function registerTransactionWriteTools(
       },
     },
     async ({ id, amount, description, date, category, type }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const transaction = await updateTransaction(context, {
           id,
           amount,
@@ -129,13 +127,11 @@ export function registerTransactionWriteTools(
 
         return {
           id: transaction.id,
-          currency: context.currency,
           date: transaction.date.toISOString(),
           description: transaction.description,
           amount: transaction.amount.toNumber(),
           type: transaction.type,
           category: transaction.category,
-          memberId: context.userId,
         };
       }),
   );
@@ -153,10 +149,10 @@ export function registerTransactionWriteTools(
       },
     },
     async ({ id }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         await deleteTransaction(context, id);
 
-        return { deleted: id, memberId: context.userId };
+        return { deleted: id };
       }),
   );
 
@@ -179,7 +175,7 @@ export function registerTransactionWriteTools(
       },
     },
     async ({ memberId, amount, direction }) =>
-      runWriteTool(async () => {
+      runTool(context, "write", async () => {
         const settlement = await recordSettlement(context, {
           memberId,
           amount,
@@ -189,12 +185,10 @@ export function registerTransactionWriteTools(
 
         return {
           id: settlement.id,
-          currency: context.currency,
           date: settlement.date.toISOString(),
           amount: settlement.amount.toNumber(),
           payerId: settlement.payerId,
           receiverId: settlement.receiverId,
-          memberId: context.userId,
         };
       }),
   );
