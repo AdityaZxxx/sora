@@ -9,6 +9,7 @@ import {
   type Caller,
 } from "@/lib/caller";
 import { DomainError } from "@/lib/errors";
+import { moneyText } from "@/lib/money";
 import { notifyMembers } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
@@ -62,8 +63,10 @@ export async function getGoalsWithProgress(walletId: string) {
 
   return goals.map((goal) => ({
     ...goal,
-    target: goal.target.toNumber(),
-    contributed: contributedByGoalId.get(goal.id)?.toNumber() ?? 0,
+    target: moneyText(goal.target),
+    contributed: moneyText(
+      contributedByGoalId.get(goal.id) ?? new Prisma.Decimal(0),
+    ),
   }));
 }
 
@@ -112,7 +115,7 @@ export async function updateWalletGoal(
     message: `changed the ${goal.name} goal`,
   });
 
-  return { ...goal, target: goal.target.toNumber() };
+  return { ...goal, target: moneyText(goal.target) };
 }
 
 export type CreateGoalInput = {
@@ -146,7 +149,7 @@ export async function createWalletGoal(caller: Caller, input: CreateGoalInput) {
     message: `added the ${goal.name} goal`,
   });
 
-  return { ...goal, target: goal.target.toNumber() };
+  return { ...goal, target: moneyText(goal.target) };
 }
 
 export async function notifyIfGoalReached(input: {
@@ -226,5 +229,5 @@ export async function deleteWalletGoal(caller: Caller, id: string) {
     message: `removed the ${goal.name} goal`,
   });
 
-  return { ...goal, target: goal.target.toNumber() };
+  return { ...goal, target: moneyText(goal.target) };
 }

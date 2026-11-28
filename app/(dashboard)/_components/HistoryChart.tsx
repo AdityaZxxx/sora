@@ -7,12 +7,13 @@ import {
 } from "@/components/evilcharts/charts/echarts-bar-chart";
 import { MONEY_TOOLTIP_OPTIONS, moneyTooltip } from "@/components/money-chart";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { moneyNumber } from "@/lib/money";
 
 export type HistoryChartRow = {
   year: number;
   month: number;
-  expense: number;
-  income: number;
+  expense: string;
+  income: string;
   day?: number;
 };
 
@@ -69,6 +70,8 @@ export default function HistoryChart({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const rows = data.map((row) => ({
     ...row,
+    income: moneyNumber(row.income),
+    expense: moneyNumber(row.expense),
     key: bucketKey(row, timeframe),
   }));
 

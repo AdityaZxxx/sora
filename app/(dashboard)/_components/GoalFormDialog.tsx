@@ -40,6 +40,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { useActiveWallet } from "@/hooks/use-wallets";
 import { Currencies } from "@/lib/currencies";
 import { initialFormActionState } from "@/lib/form-action";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +60,7 @@ const EMPTY_FORM: GoalFormValues = {
 
 const fromGoal = (goal: GoalWithProgress): GoalFormValues => ({
   name: goal.name,
-  target: goal.target,
+  target: moneyNumber(goal.target),
   deadline: goal.deadline ? new Date(goal.deadline) : undefined,
 });
 

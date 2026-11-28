@@ -9,6 +9,7 @@ import { requireCategory } from "@/lib/categories";
 import { categoryIconSnapshot } from "@/lib/category-icons";
 import { addDays, clampToMonth, utcStartOfDay } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
+import { moneyText, type Money } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
 import { DeleteIdSchema } from "@/schemas/delete";
@@ -23,7 +24,7 @@ import {
 export type RecurringItemRow = {
   id: string;
   name: string;
-  amount: number;
+  amount: string;
   category: string;
   categoryIcon: string;
   categoryIconKind: string;
@@ -141,7 +142,7 @@ export function isRecurringItemDue(
 function toRow(item: {
   id: string;
   name: string;
-  amount: { toNumber(): number };
+  amount: Money;
   category: string;
   categoryIcon: string;
   categoryIconKind: string;
@@ -160,7 +161,7 @@ function toRow(item: {
   const today = utcStartOfDay(new Date());
   return {
     ...item,
-    amount: item.amount.toNumber(),
+    amount: moneyText(item.amount),
     dueDate,
     isDue: isRecurringItemDue(item),
     isOverdue: dueDate !== null && dueDate.getTime() < today.getTime(),

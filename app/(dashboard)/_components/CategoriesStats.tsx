@@ -14,13 +14,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 
 interface CategoriesCardProps {
   formatter: { format: (value: number) => string };
   type: TransactionType;
-  data: GetCategoriesStatsResponseType;
-  total: number;
+  data: GetCategoriesStatsResponseType["categories"];
+  total: string;
 }
 
 interface Props {
@@ -50,17 +51,12 @@ const CategoriesStats = ({ walletId, from, to, currency }: Props) => {
     return <Skeleton className="h-88 w-full" />;
   }
 
-  const incomeData = (stats ?? []).filter((d) => d.type === "income");
-  const expenseData = (stats ?? []).filter((d) => d.type === "expense");
+  const categories = stats?.categories ?? [];
+  const incomeData = categories.filter((d) => d.type === "income");
+  const expenseData = categories.filter((d) => d.type === "expense");
 
-  const totalIncome = incomeData.reduce(
-    (sum, d) => sum + (d._sum.amount || 0),
-    0,
-  );
-  const totalExpense = expenseData.reduce(
-    (sum, d) => sum + (d._sum.amount || 0),
-    0,
-  );
+  const totalIncome = stats?.totalIncome ?? "0";
+  const totalExpense = stats?.totalExpense ?? "0";
 
   const incomeStats = { data: incomeData, total: totalIncome };
   const expenseStats = { data: expenseData, total: totalExpense };
@@ -104,8 +100,11 @@ function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
           <ScrollArea className="h-full px-4">
             <div className="flex flex-col gap-6 p-1">
               {data.map((item) => {
-                const amount = item._sum.amount || 0;
-                const percentage = total > 0 ? (amount * 100) / total : 0;
+                const amount = item._sum.amount ?? "0";
+                const totalMoney = toMoney(total);
+                const percentage = totalMoney.gt(0)
+                  ? toMoney(amount).div(totalMoney).times(100).toNumber()
+                  : 0;
                 return (
                   <div
                     key={`${item.category}-${item.categoryIconKind}-${item.categoryIcon}-${item.categoryIconColor}`}
@@ -122,7 +121,7 @@ function CategoriesCard({ data, type, formatter, total }: CategoriesCardProps) {
                         {item.category}
                       </span>
                       <span className="text-sm font-semibold text-foreground tabular-nums">
-                        {formatter.format(amount)}
+                        {formatter.format(moneyNumber(amount))}
                       </span>
                     </div>
                     <Progress

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
+import { moneyText } from "@/lib/money";
 import prisma from "@/lib/prisma";
 
 const { Decimal } = Prisma;
@@ -155,7 +156,7 @@ export async function getMemberBalances(
       return {
         userId: otherId,
         name: membership.user.name,
-        balance: balance.toDecimalPlaces(2).toNumber(),
+        balance: moneyText(balance.toDecimalPlaces(2)),
       };
     });
 }
@@ -222,7 +223,7 @@ export async function getSimplifiedTransfers(
       fromName: debtor.name,
       toUserId: creditor.id,
       toName: creditor.name,
-      amount: rounded.toNumber(),
+      amount: moneyText(rounded),
     });
 
     creditor.amount = creditor.amount.minus(rounded);

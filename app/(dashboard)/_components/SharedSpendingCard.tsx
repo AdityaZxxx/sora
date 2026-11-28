@@ -11,6 +11,7 @@ import {
   getFormatterForCurrency,
   getNumberFlowCurrencyProps,
 } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -37,9 +38,9 @@ const SharedSpendingCard = ({ currency }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
 
-  const { thisMonth = 0, lastMonth = 0 } = spending;
-  const difference = thisMonth - lastMonth;
-  const isUp = difference >= 0;
+  const { thisMonth = "0", lastMonth = "0" } = spending;
+  const difference = toMoney(thisMonth).minus(lastMonth);
+  const isUp = difference.gte(0);
   const TrendIcon = isUp ? ArrowUpRight : ArrowDownRight;
 
   return (
@@ -55,7 +56,7 @@ const SharedSpendingCard = ({ currency }: Props) => {
                 Shared spending this month
               </p>
               <AnimatedNumber
-                value={thisMonth}
+                value={moneyNumber(thisMonth)}
                 {...currencyFlow}
                 className="text-xl font-bold text-foreground tabular-nums"
               />
@@ -69,8 +70,9 @@ const SharedSpendingCard = ({ currency }: Props) => {
           >
             <TrendIcon className="h-4 w-4" />
             <span className="tabular-nums">
-              {formatter.format(Math.abs(difference))} {isUp ? "more" : "less"}{" "}
-              than last month ({formatter.format(lastMonth)})
+              {formatter.format(moneyNumber(difference.abs()))}{" "}
+              {isUp ? "more" : "less"} than last month (
+              {formatter.format(moneyNumber(lastMonth))})
             </span>
           </div>
         </div>

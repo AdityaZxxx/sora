@@ -1,6 +1,6 @@
 (function () {
   var MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-  var SCHEMA = 1;
+  var SCHEMA = 2;
   var KEY_PREFIX = "sora:offline:snapshot:";
   var ACTIVE_KEY = "sora:offline:active";
 
@@ -32,10 +32,13 @@
         typeof value.savedAt !== "number" ||
         typeof value.currency !== "string" ||
         !value.stats ||
-        typeof value.stats.income !== "number" ||
-        typeof value.stats.expense !== "number" ||
-        typeof value.stats.net !== "number" ||
-        !Array.isArray(value.balances)
+        typeof value.stats.income !== "string" ||
+        typeof value.stats.expense !== "string" ||
+        typeof value.stats.net !== "string" ||
+        !Array.isArray(value.balances) ||
+        !value.balances.every(function (entry) {
+          return typeof entry.balance === "string";
+        })
       ) {
         discard();
         return null;
@@ -49,17 +52,18 @@
   }
 
   function formatMoney(currency, amount) {
+    var value = parseFloat(amount);
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
         currency: currency,
-        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+        minimumFractionDigits: value % 1 === 0 ? 0 : 2,
         maximumFractionDigits: 2,
-      }).format(amount);
+      }).format(value);
     } catch {
       return (
         new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
-          amount,
+          value,
         ) +
         " " +
         currency
@@ -78,13 +82,14 @@
     name.textContent = entry.name;
     var amount = document.createElement("strong");
 
-    if (entry.balance === 0) {
+    var balance = parseFloat(entry.balance);
+    if (balance === 0) {
       amount.textContent = "All settled up";
-    } else if (entry.balance > 0) {
-      amount.textContent = "You owe " + formatMoney(currency, entry.balance);
+    } else if (balance > 0) {
+      amount.textContent = "You owe " + formatMoney(currency, balance);
     } else {
       amount.textContent =
-        entry.name + " owes you " + formatMoney(currency, -entry.balance);
+        entry.name + " owes you " + formatMoney(currency, -balance);
     }
 
     item.appendChild(name);

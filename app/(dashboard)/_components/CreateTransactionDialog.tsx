@@ -60,6 +60,7 @@ import {
   initialFormActionState,
 } from "@/lib/form-action";
 import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber, moneyText, toMoney } from "@/lib/money";
 import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import { buildShares, type SplitMode } from "@/lib/split-shares";
 import { cn } from "@/lib/utils";
@@ -179,6 +180,10 @@ const CreateTransactionDialog = ({
     values.amount,
   );
   const previewShares = showSplitOptions ? sharePlan.shares : [];
+  const previewAssigned = previewShares.reduce(
+    (sum, share) => sum.plus(share.amount),
+    toMoney(0),
+  );
   const splitInvalid = showSplitOptions && !sharePlan.matchesAmount;
   const formatter = getFormatterForCurrency(currency);
 
@@ -197,7 +202,10 @@ const CreateTransactionDialog = ({
             splitMode === "percent" ? splitPercents : splitAmounts,
             members,
             values.amount,
-          ).shares,
+          ).shares.map((share) => ({
+            userId: share.userId,
+            amount: moneyNumber(share.amount),
+          })),
     recurringItemId,
   });
 
@@ -223,7 +231,10 @@ const CreateTransactionDialog = ({
     const online = navigator.onLine;
     const context =
       online && !transactionId
-        ? await applyTransactionOptimistic(queryClient, input)
+        ? await applyTransactionOptimistic(queryClient, {
+            ...input,
+            amount: moneyText(input.amount),
+          })
         : undefined;
     let result: FormActionState;
 
@@ -611,13 +622,7 @@ const CreateTransactionDialog = ({
                           : "text-muted-foreground",
                       )}
                     >
-                      Assigned{" "}
-                      {formatter.format(
-                        previewShares?.reduce(
-                          (sum, share) => sum + share.amount,
-                          0,
-                        ) ?? 0,
-                      )}{" "}
+                      Assigned {formatter.format(moneyNumber(previewAssigned))}{" "}
                       of {formatter.format(values.amount)}
                     </p>
                   </div>

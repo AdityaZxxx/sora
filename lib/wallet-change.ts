@@ -67,6 +67,7 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
       queryKeyPrefixes.insights,
       queryKeyPrefixes.sharedSpending,
       queryKeyPrefixes.simplifiedDebts,
+      queryKeyPrefixes.safeToSpend,
     ],
   },
   settlements: {
@@ -83,6 +84,7 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
       queryKeyPrefixes.budgets,
       queryKeyPrefixes.sharedSpending,
       queryKeyPrefixes.insights,
+      queryKeyPrefixes.safeToSpend,
     ],
   },
   goals: {
@@ -129,7 +131,11 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
 const SCOPED_EFFECTS: Record<WalletChangeScope, WalletChangeEffects> = {
   "category-renamed": {
     serverTags: ["categories", "transactions", "budgets", "recurring"],
-    clientKeys: [...EFFECTS.categories.clientKeys, queryKeyPrefixes.budgets],
+    clientKeys: [
+      ...EFFECTS.categories.clientKeys,
+      queryKeyPrefixes.budgets,
+      queryKeyPrefixes.safeToSpend,
+    ],
   },
   "category-icon-changed": {
     serverTags: [...EFFECTS.categories.serverTags, "transactions", "recurring"],

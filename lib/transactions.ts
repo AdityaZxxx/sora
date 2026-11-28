@@ -22,7 +22,7 @@ import {
 } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
-import { toMoney } from "@/lib/money";
+import { moneyText, toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
 import { decrementRollups, incrementRollups } from "@/lib/rollups";
@@ -147,7 +147,7 @@ export async function getTransactionsHistory(
   return {
     transactions: page.map(({ addedBy, amount, ...transaction }) => ({
       ...transaction,
-      amount: amount.toNumber(),
+      amount: moneyText(amount),
       addedByName: addedBy.name,
     })),
     nextCursor: hasMore && last ? encodeCursor(last.date, last.id) : null,
@@ -188,9 +188,9 @@ export async function getBalanceStats(walletId: string, from: Date, to: Date) {
     new Prisma.Decimal(0);
 
   return {
-    expense: expense.toNumber(),
-    income: income.toNumber(),
-    net: income.minus(expense).toNumber(),
+    expense: moneyText(expense),
+    income: moneyText(income),
+    net: moneyText(income.minus(expense)),
   };
 }
 
@@ -232,13 +232,28 @@ export async function getCategoriesStats(
     },
   });
 
-  return stats.map((row) => ({
-    ...row,
-    _sum: {
-      ...row._sum,
-      amount: row._sum.amount?.toNumber() ?? 0,
-    },
-  }));
+  let income = toMoney(0);
+  let expense = toMoney(0);
+  for (const row of stats) {
+    const amount = row._sum.amount ?? toMoney(0);
+    if (row.type === "income") {
+      income = income.plus(amount);
+    } else {
+      expense = expense.plus(amount);
+    }
+  }
+
+  return {
+    categories: stats.map((row) => ({
+      ...row,
+      _sum: {
+        ...row._sum,
+        amount: row._sum.amount ? moneyText(row._sum.amount) : "0.00",
+      },
+    })),
+    totalIncome: moneyText(income),
+    totalExpense: moneyText(expense),
+  };
 }
 
 export type GetCategoriesStatsResponseType = Awaited<

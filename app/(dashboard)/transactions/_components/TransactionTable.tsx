@@ -73,6 +73,7 @@ import {
 } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { formatDateForDisplay, getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { canEditOwnedRecord } from "@/lib/roles";
 import {
@@ -230,7 +231,7 @@ const buildColumns = (formatAmount: (value: number) => string) =>
           )}
         >
           {row.original.type === "expense" ? "-" : "+"}
-          {formatAmount(row.original.amount)}
+          {formatAmount(moneyNumber(row.original.amount))}
         </p>
       ),
     }),
@@ -608,7 +609,7 @@ function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
         initialValues={{
           description: transaction.description,
           category: transaction.category,
-          amount: transaction.amount,
+          amount: moneyNumber(transaction.amount),
           type: transaction.type as "income" | "expense",
           date: transaction.date,
         }}

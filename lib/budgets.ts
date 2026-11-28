@@ -7,6 +7,7 @@ import { requireCategory } from "@/lib/categories";
 import { previousMonthRange, utcMonthRangeFor } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyText, toMoney } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
 import { CreateBudgetSchema, UpdateBudgetSchema } from "@/schemas/budgets";
@@ -39,8 +40,12 @@ export async function getSharedSpending(walletId: string) {
   );
 
   return {
-    thisMonth: thisMonth._sum.amount?.toNumber() ?? 0,
-    lastMonth: lastMonth._sum.amount?.toNumber() ?? 0,
+    thisMonth: thisMonth._sum.amount
+      ? moneyText(thisMonth._sum.amount)
+      : "0.00",
+    lastMonth: lastMonth._sum.amount
+      ? moneyText(lastMonth._sum.amount)
+      : "0.00",
   };
 }
 
@@ -102,9 +107,9 @@ export async function getBudgetsWithProgress(walletId: string) {
     const remaining = budget.amount.minus(spent);
     return {
       ...budget,
-      amount: budget.amount.toNumber(),
-      spent: spent.toNumber(),
-      remaining: remaining.toDecimalPlaces(2).toNumber(),
+      amount: moneyText(budget.amount),
+      spent: moneyText(spent),
+      remaining: moneyText(remaining.toDecimalPlaces(2)),
       percent: budget.amount.isZero()
         ? 0
         : spent.div(budget.amount).times(100).toDecimalPlaces(2).toNumber(),
@@ -115,6 +120,20 @@ export async function getBudgetsWithProgress(walletId: string) {
 export type BudgetWithProgress = Awaited<
   ReturnType<typeof getBudgetsWithProgress>
 >[number];
+
+export async function getSafeToSpend(walletId: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(walletTag(walletId, CACHE_RESOURCE.budgets));
+
+  const budgets = await getBudgetsWithProgress(walletId);
+  const remaining = budgets.reduce(
+    (total, budget) =>
+      toMoney(budget.remaining).gt(0) ? total.plus(budget.remaining) : total,
+    toMoney(0),
+  );
+  return moneyText(remaining);
+}
 
 export type BudgetMode = "soft" | "hard";
 
@@ -161,7 +180,7 @@ export async function createWalletBudget(
     message: `added a ${expenseCategory.name} budget`,
   });
 
-  return { ...budget, amount: budget.amount.toNumber() };
+  return { ...budget, amount: moneyText(budget.amount) };
 }
 
 export async function updateWalletBudget(
@@ -200,7 +219,7 @@ export async function updateWalletBudget(
     message: `changed the ${expenseCategory.name} budget`,
   });
 
-  return { ...budget, amount: budget.amount.toNumber() };
+  return { ...budget, amount: moneyText(budget.amount) };
 }
 
 export async function setWalletBudget(
@@ -263,7 +282,7 @@ export async function deleteWalletBudget(caller: Caller, id: string) {
     message: `removed the ${budget.category} budget`,
   });
 
-  return { ...budget, amount: budget.amount.toNumber() };
+  return { ...budget, amount: moneyText(budget.amount) };
 }
 
 export type BudgetGateInput = {

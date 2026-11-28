@@ -15,6 +15,7 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema, type MemberBalance } from "@/schemas/balances";
 
@@ -83,17 +84,18 @@ const Balances = ({ currency, canEdit = true, initialBalances }: Props) => {
                 className="flex items-center justify-between gap-2 rounded-lg border p-4"
               >
                 <span className="text-sm font-medium">{balance.name}</span>
-                {balance.balance === 0 ? (
+                {toMoney(balance.balance).isZero() ? (
                   <span className="text-sm text-muted-foreground">
                     All settled up
                   </span>
-                ) : balance.balance > 0 ? (
+                ) : toMoney(balance.balance).gt(0) ? (
                   <span className="text-sm font-semibold text-expense-foreground tabular-nums">
-                    You owe {formatter.format(balance.balance)}
+                    You owe {formatter.format(moneyNumber(balance.balance))}
                   </span>
                 ) : (
                   <span className="text-sm font-semibold text-income-foreground tabular-nums">
-                    {balance.name} owes you {formatter.format(-balance.balance)}
+                    {balance.name} owes you{" "}
+                    {formatter.format(-moneyNumber(balance.balance))}
                   </span>
                 )}
               </div>

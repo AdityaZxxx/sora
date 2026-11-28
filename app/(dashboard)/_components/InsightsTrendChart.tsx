@@ -11,6 +11,7 @@ import { useEffect, useRef } from "react";
 
 import { MONEY_TOOLTIP_OPTIONS, moneyTooltip } from "@/components/money-chart";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { moneyNumber } from "@/lib/money";
 
 interface Props {
   months: MonthlyRollup;
@@ -56,6 +57,10 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
     if (!container) return;
 
     const labels = months.map((bucket) => shortMonth(bucket.month));
+    const values = months.map((bucket) => ({
+      income: moneyNumber(bucket.income),
+      expense: moneyNumber(bucket.expense),
+    }));
     const income = readToken("--income");
     const expense = readToken("--expense");
     const muted = readToken("--muted-foreground");
@@ -64,23 +69,24 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
       const items: TooltipParam[] = Array.isArray(raw) ? raw : [raw];
       const index = items[0]?.dataIndex;
       const bucket = index === undefined ? undefined : months[index];
-      if (!bucket) return "";
+      const value = index === undefined ? undefined : values[index];
+      if (!bucket || !value) return "";
 
       return moneyTooltip({
         header: fullMonth(bucket.year, bucket.month),
-        income: bucket.income,
-        expense: bucket.expense,
+        income: value.income,
+        expense: value.expense,
         rows: [
           {
             key: "income",
             label: "Income",
-            value: bucket.income,
+            value: value.income,
             color: income,
           },
           {
             key: "expense",
             label: "Expense",
-            value: bucket.expense,
+            value: value.expense,
             color: expense,
           },
         ],
@@ -138,7 +144,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
           lineStyle: { width: 2.5 },
           itemStyle: { color: income },
           areaStyle: income ? { color: income, opacity: 0.16 } : undefined,
-          data: months.map((bucket) => bucket.income),
+          data: values.map((value) => value.income),
           animationDuration: shouldReduceMotion ? 0 : 1100,
           animationDelay: shouldReduceMotion ? 0 : 150,
         },
@@ -152,7 +158,7 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
           lineStyle: { width: 2.5 },
           itemStyle: { color: expense },
           areaStyle: expense ? { color: expense, opacity: 0.16 } : undefined,
-          data: months.map((bucket) => bucket.expense),
+          data: values.map((value) => value.expense),
           animationDuration: shouldReduceMotion ? 0 : 1100,
           animationDelay: shouldReduceMotion ? 0 : 300,
         },
@@ -189,8 +195,8 @@ export default function InsightsTrendChart({ months, formatter }: Props) {
           {months.map((bucket) => (
             <tr key={`${bucket.year}-${bucket.month}`}>
               <th scope="row">{fullMonth(bucket.year, bucket.month)}</th>
-              <td>{formatter.format(bucket.income)}</td>
-              <td>{formatter.format(bucket.expense)}</td>
+              <td>{formatter.format(moneyNumber(bucket.income))}</td>
+              <td>{formatter.format(moneyNumber(bucket.expense))}</td>
             </tr>
           ))}
         </tbody>

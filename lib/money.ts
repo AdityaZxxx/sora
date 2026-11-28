@@ -8,6 +8,10 @@ export function toMoney(value: number | string | Money): Money {
   return new Decimal(value);
 }
 
+export function moneyNumber(value: number | string | Money): number {
+  return toMoney(value).toNumber();
+}
+
 export function zeroMoney(): Money {
   return new Decimal(0);
 }
@@ -20,6 +24,6 @@ export function moneyDifference(a: number | Money, b: number | Money): Money {
   return toMoney(a).minus(toMoney(b));
 }
 
-export function moneyText(value: number | Money): string {
-  return new Decimal(value).toFixed(2);
+export function moneyText(value: number | string | Money): string {
+  return toMoney(value).toFixed(2);
 }

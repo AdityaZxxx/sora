@@ -14,6 +14,7 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import {
   SimplifiedTransfersSchema,
@@ -74,7 +75,7 @@ const SimplifyDebts = ({ currency }: Props) => {
                     <span className="truncate">{transfer.toName}</span>
                   </span>
                   <span className="text-sm font-semibold tabular-nums">
-                    {formatter.format(transfer.amount)}
+                    {formatter.format(moneyNumber(transfer.amount))}
                   </span>
                 </div>
               ))}

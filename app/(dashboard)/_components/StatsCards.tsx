@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useBalanceStats } from "@/hooks/use-balance-stats";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 
 interface Props {
   walletId: string;
@@ -27,14 +28,14 @@ const StatsCards = ({ walletId, from, to, currency }: Props) => {
     return <Skeleton className="h-32 w-full" />;
   }
 
-  const { income = 0, expense = 0, net = 0 } = data ?? {};
+  const { income = "0", expense = "0", net = "0" } = data ?? {};
 
   return (
     <div className="space-y-4">
       <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           currencyFlow={currencyFlow}
-          value={income}
+          value={moneyNumber(income)}
           title="Income"
           trend="up"
           icon={
@@ -45,7 +46,7 @@ const StatsCards = ({ walletId, from, to, currency }: Props) => {
         />
         <StatCard
           currencyFlow={currencyFlow}
-          value={expense}
+          value={moneyNumber(expense)}
           title="Expense"
           trend="down"
           icon={
@@ -56,9 +57,9 @@ const StatsCards = ({ walletId, from, to, currency }: Props) => {
         />
         <StatCard
           currencyFlow={currencyFlow}
-          value={net}
+          value={moneyNumber(net)}
           title="Balance"
-          trend={net >= 0 ? "up" : "down"}
+          trend={toMoney(net).gte(0) ? "up" : "down"}
           icon={
             <div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
               <Wallet className="h-6 w-6 text-primary" />

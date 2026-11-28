@@ -7,6 +7,7 @@ import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
+import { moneyText } from "@/lib/money";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { publishWalletChange } from "@/lib/realtime";
@@ -24,7 +25,7 @@ export type RecordSettlementInput = {
 export type SettlementRow = {
   id: string;
   date: Date;
-  amount: number | null;
+  amount: string | null;
   note: string | null;
   payerName: string | null;
   receiverName: string | null;
@@ -55,7 +56,7 @@ export async function listSettlements(
     return {
       id: settlement.id,
       date: settlement.date,
-      amount: isParty ? settlement.amount.toNumber() : null,
+      amount: isParty ? moneyText(settlement.amount) : null,
       note: isParty ? settlement.note : null,
       payerName: isParty ? settlement.payer.name : null,
       receiverName: isParty ? settlement.receiver.name : null,

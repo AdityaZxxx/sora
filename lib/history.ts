@@ -4,13 +4,14 @@ import { getDaysInMonth } from "date-fns";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
+import { moneyText } from "@/lib/money";
 import prisma from "@/lib/prisma";
 
 type HistoryData = {
   year: number;
   month: number;
-  expense: number;
-  income: number;
+  expense: string;
+  income: string;
   day?: number;
 };
 
@@ -53,8 +54,8 @@ async function getYearHistoryData(walletId: string, year: number) {
     history.push({
       year,
       month: i,
-      expense: monthData?.expense?.toNumber() ?? 0,
-      income: monthData?.income?.toNumber() ?? 0,
+      expense: monthData?.expense ? moneyText(monthData.expense) : "0.00",
+      income: monthData?.income ? moneyText(monthData.income) : "0.00",
     });
   }
   return history;
@@ -81,8 +82,8 @@ async function getMonthHistoryData(
   for (let i = 1; i <= daysInMonth; i++) {
     const dayData = dataMap.get(i);
     history.push({
-      expense: dayData?.expense?.toNumber() ?? 0,
-      income: dayData?.income?.toNumber() ?? 0,
+      expense: dayData?.expense ? moneyText(dayData.expense) : "0.00",
+      income: dayData?.income ? moneyText(dayData.income) : "0.00",
       year,
       month,
       day: i,

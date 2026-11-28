@@ -3,6 +3,8 @@ import type { GetBalanceStatsResponseType } from "@/lib/transactions";
 import type { Period, Timeframe, TransactionType } from "@/lib/types";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
+import { moneyText, toMoney } from "@/lib/money";
+
 export const queryKeys = {
   apiTokens: ["apiTokens"] satisfies QueryKey,
   balances: (walletId: string): QueryKey => ["balances", walletId],
@@ -44,6 +46,7 @@ export const queryKeys = {
   },
   recurringItems: (walletId: string): QueryKey => ["recurringItems", walletId],
   sharedSpending: (walletId: string): QueryKey => ["shared-spending", walletId],
+  safeToSpend: (walletId: string): QueryKey => ["safe-to-spend", walletId],
   simplifiedDebts: (walletId: string): QueryKey => [
     "simplified-debts",
     walletId,
@@ -73,13 +76,14 @@ export const queryKeyPrefixes = {
   notifications: ["notifications"] satisfies QueryKey,
   recurringItems: ["recurringItems"] satisfies QueryKey,
   sharedSpending: ["shared-spending"] satisfies QueryKey,
+  safeToSpend: ["safe-to-spend"] satisfies QueryKey,
   simplifiedDebts: ["simplified-debts"] satisfies QueryKey,
   transactions: ["transactions"] satisfies QueryKey,
   overview: ["overview"] satisfies QueryKey,
 };
 
 type TransactionOptimisticInput = {
-  amount: number;
+  amount: string;
   date: Date;
   type: TransactionType;
 };
@@ -110,8 +114,8 @@ export async function applyTransactionOptimistic(
     const range = statsRange(key);
     if (
       !stats ||
-      typeof stats.income !== "number" ||
-      typeof stats.expense !== "number" ||
+      typeof stats.income !== "string" ||
+      typeof stats.expense !== "string" ||
       !range ||
       input.date < range.from ||
       input.date > range.to
@@ -121,8 +125,14 @@ export async function applyTransactionOptimistic(
     queryClient.setQueryData<GetBalanceStatsResponseType>(key, (current) => {
       if (!current) return current;
       return input.type === "income"
-        ? { ...current, income: current.income + input.amount }
-        : { ...current, expense: current.expense + input.amount };
+        ? {
+            ...current,
+            income: moneyText(toMoney(current.income).plus(input.amount)),
+          }
+        : {
+            ...current,
+            expense: moneyText(toMoney(current.expense).plus(input.amount)),
+          };
     });
   }
 
