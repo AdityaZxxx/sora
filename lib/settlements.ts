@@ -6,7 +6,6 @@ import { actorFor, assertCallerCanWrite, type Caller } from "@/lib/caller";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { getFormatterForCurrency } from "@/lib/helpers";
-import { log } from "@/lib/log";
 import { moneyText } from "@/lib/money";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
@@ -70,26 +69,10 @@ export async function recordSettlement(
   caller: Caller,
   input: RecordSettlementInput,
 ) {
-  const startedAt = Date.now();
-  try {
-    return await runSettlement(caller, input, startedAt);
-  } catch (cause) {
-    const outcome = cause instanceof DomainError ? "rejected" : "failed";
-    log(outcome === "rejected" ? "warn" : "error", "settlement.recorded", {
-      walletId: caller.walletId,
-      userId: caller.userId,
-      outcome,
-      durationMs: Date.now() - startedAt,
-    });
-    throw cause;
-  }
+  return runSettlement(caller, input);
 }
 
-async function runSettlement(
-  caller: Caller,
-  input: RecordSettlementInput,
-  startedAt: number,
-) {
+async function runSettlement(caller: Caller, input: RecordSettlementInput) {
   assertCallerCanWrite(caller);
   const { walletId, userId } = caller;
   const parsedBody = RecordSettlementSchema.safeParse({
@@ -164,13 +147,6 @@ async function runSettlement(
     actor: actorFor(caller),
     resource: "settlements",
     message: "recorded a settlement",
-  });
-
-  log("info", "settlement.recorded", {
-    walletId,
-    userId,
-    outcome: "ok",
-    durationMs: Date.now() - startedAt,
   });
 
   after(async () => {

@@ -4,9 +4,7 @@ import type { z } from "zod";
 import { resolveDateRange } from "@/lib/dates";
 import { DomainError } from "@/lib/errors";
 import { rejection, unauthorized } from "@/lib/http-error";
-import { logError, logInfo, logWarn } from "@/lib/log";
-import { rememberErrorRequestId, withRequestId } from "@/lib/request-id";
-import { requireWallet } from "@/lib/wallet";
+import { withWalletTransport } from "@/lib/wallet-transport";
 
 export { rejection, unauthorized } from "@/lib/http-error";
 
@@ -26,53 +24,24 @@ export function parseQueryParams<TSchema extends z.ZodType>(
 export async function withWalletRoute(
   handler: (context: WalletActionContext) => Promise<Response> | Response,
 ): Promise<Response> {
-  return withRequestId(async () => {
-    const startedAt = Date.now();
-    const result = await requireWallet();
-    if (!result) {
-      logWarn("route.unauthorized", {
-        outcome: "rejected",
-        durationMs: Date.now() - startedAt,
-      });
-      return unauthorized();
-    }
-
-    const walletId = result.wallet.id;
-    const userId = result.session.user.id;
-
-    try {
-      const response = await handler(result);
-      logInfo("route.completed", {
-        walletId,
-        userId,
-        outcome: "ok",
-        durationMs: Date.now() - startedAt,
-        status: response.status,
-      });
-      return response;
-    } catch (cause) {
-      const durationMs = Date.now() - startedAt;
-      if (cause instanceof DomainError) {
-        logWarn("route.rejected", {
-          walletId,
-          userId,
-          outcome: "rejected",
-          durationMs,
-          error: cause.message,
-        });
-        return rejection(cause.message, 400);
-      }
-      logError("route.failed", {
-        walletId,
-        userId,
-        outcome: "failed",
-        durationMs,
-        error: cause instanceof Error ? cause.message : String(cause),
-      });
-      rememberErrorRequestId(cause);
-      throw cause;
-    }
-  });
+  return withWalletTransport<Response, Response>(
+    {
+      events: {
+        unauthorized: "route.unauthorized",
+        completed: "route.completed",
+        rejected: "route.rejected",
+        failed: "route.failed",
+      },
+      unauthorized: () => unauthorized(),
+      success: (response) => response,
+      successLogFields: (response) => ({ status: response.status }),
+      domainError: (cause) => ({
+        message: cause.message,
+        result: rejection(cause.message, 400),
+      }),
+    },
+    handler,
+  );
 }
 
 export function dateRangeFromParams(searchParams: URLSearchParams) {
