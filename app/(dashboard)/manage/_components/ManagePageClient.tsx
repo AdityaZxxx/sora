@@ -170,6 +170,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 callerId={callerId}
                 creatorNames={creatorNames}
                 walletName={walletName}
+                walletId={wallet.id}
               />
               <CategoryList
                 type="expense"
@@ -178,6 +179,7 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
                 callerId={callerId}
                 creatorNames={creatorNames}
                 walletName={walletName}
+                walletId={wallet.id}
               />
             </div>
           </section>
@@ -204,6 +206,7 @@ function CategoryList({
   callerId,
   creatorNames,
   walletName,
+  walletId,
 }: {
   type: TransactionType;
   canEdit: boolean;
@@ -211,6 +214,7 @@ function CategoryList({
   callerId?: string;
   creatorNames: Map<string, string>;
   walletName: string;
+  walletId: string;
 }) {
   const permissionNote = categoryPermissionNote(role);
   const [expanded, setExpanded] = useState(false);
@@ -220,7 +224,7 @@ function CategoryList({
     isError,
     refetch,
   } = useQuery<Category[]>({
-    queryKey: queryKeys.categories(type),
+    queryKey: queryKeys.categories(walletId, type),
     queryFn: () =>
       fetchReadJson<Category[]>(
         "/api/categories",

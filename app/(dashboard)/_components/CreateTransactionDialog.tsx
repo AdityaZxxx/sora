@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { getMutationClient } from "@/hooks/mutation-client";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
@@ -111,6 +112,8 @@ const CreateTransactionDialog = ({
   const [initialDate] = useState(() => new Date());
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const mutationClient = getMutationClient();
   const formAction = transactionId
     ? updateTransactionForm
@@ -142,7 +145,7 @@ const CreateTransactionDialog = ({
   const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
 
   const goalsQuery = useQuery({
-    queryKey: queryKeys.goals,
+    queryKey: queryKeys.goals(walletId),
     queryFn: () =>
       fetchReadJson<GoalWithProgress[]>(
         "/api/goals",
@@ -154,7 +157,7 @@ const CreateTransactionDialog = ({
   const goals = goalsQuery.data ?? [];
 
   const membersQuery = useQuery({
-    queryKey: queryKeys.walletMembers,
+    queryKey: queryKeys.walletMembers(walletId),
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",

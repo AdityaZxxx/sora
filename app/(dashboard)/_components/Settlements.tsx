@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -20,8 +21,10 @@ import { queryKeys } from "@/lib/query-keys";
 
 export default function Settlements({ currency }: { currency: string | null }) {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const { data: settlements = [], isLoading } = useQuery<SettlementRow[]>({
-    queryKey: queryKeys.settlements,
+    queryKey: queryKeys.settlements(walletId),
     queryFn: () =>
       fetchReadJson<SettlementRow[]>(
         "/api/settlements",

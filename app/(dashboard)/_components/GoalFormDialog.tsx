@@ -37,6 +37,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { Currencies } from "@/lib/currencies";
 import { initialFormActionState } from "@/lib/form-action";
 import { queryKeys } from "@/lib/query-keys";
@@ -98,6 +99,8 @@ const GoalFormDialog = ({
   const copy = goal ? COPY.edit : COPY.create;
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const [values, setValues] = useState(() =>
     goal ? fromGoal(goal) : EMPTY_FORM,
   );
@@ -128,7 +131,7 @@ const GoalFormDialog = ({
     }
 
     toast.success(result.message, { id: "goal-form" });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.goals });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.goals(walletId) });
     if (!goal) {
       resetDraft();
     }

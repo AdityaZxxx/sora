@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { queryKeys } from "@/lib/query-keys";
 
 import { leaveWalletForm } from "../_actions/membership";
@@ -15,6 +16,8 @@ interface Props {
 
 const LeaveWalletDialog = ({ trigger, memberCount }: Props) => {
   const router = useRouter();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const isOnlyMember = memberCount === 1;
   return (
     <ConfirmDialog
@@ -35,7 +38,11 @@ const LeaveWalletDialog = ({ trigger, memberCount }: Props) => {
       }
       toastId="leave-wallet"
       formAction={leaveWalletForm}
-      queryKeys={[queryKeys.wallet, queryKeys.wallets, queryKeys.walletMembers]}
+      queryKeys={[
+        queryKeys.wallet(walletId),
+        queryKeys.wallets,
+        queryKeys.walletMembers(walletId),
+      ]}
       onSuccess={() => router.refresh()}
     />
   );

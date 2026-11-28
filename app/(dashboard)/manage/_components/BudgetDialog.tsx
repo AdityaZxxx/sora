@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { type BudgetWithProgress } from "@/lib/budgets";
 import { Currencies } from "@/lib/currencies";
 import { initialFormActionState } from "@/lib/form-action";
@@ -69,6 +70,8 @@ const BudgetDialog = ({
   );
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallet?.id ?? wallets?.active.id ?? "";
   const isEditing = Boolean(budget);
   const serverAction = budget ? updateBudgetForm : createBudgetForm;
   const [plainState, plainAction] = useActionState(
@@ -100,7 +103,9 @@ const BudgetDialog = ({
     }
 
     toast.success(result.message, { id: "budget-dialog" });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.budgets(walletId),
+    });
     if (!isEditing) {
       resetDraft();
     }

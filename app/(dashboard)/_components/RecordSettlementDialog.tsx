@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { Currencies } from "@/lib/currencies";
 import { hasTwoDecimals } from "@/lib/helpers";
@@ -52,6 +53,8 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
   const [direction, setDirection] = useState<"paid" | "received">("paid");
 
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const currencyOption = Currencies.find((c) => c.value === currency);
 
@@ -69,9 +72,9 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
       toast.success("Settlement recorded", {
         id: "record-settlement",
       });
-      queryClient.setQueryData(queryKeys.balances, balances);
+      queryClient.setQueryData(queryKeys.balances(walletId), balances);
       queryClient.invalidateQueries({
-        queryKey: queryKeys.balances,
+        queryKey: queryKeys.balances(walletId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.transactions.all,
@@ -80,10 +83,10 @@ const RecordSettlementDialog = ({ trigger, members, currency }: Props) => {
         queryKey: queryKeys.overview.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.simplifiedDebts,
+        queryKey: queryKeys.simplifiedDebts(walletId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.settlements,
+        queryKey: queryKeys.settlements(walletId),
       });
       setMemberId("");
       setAmount(0);

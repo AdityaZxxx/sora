@@ -26,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -55,9 +56,11 @@ const InviteLinkDialog = ({ trigger }: Props) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const { data: inviteLinks = [], isLoading } = useQuery<InviteLink[]>({
-    queryKey: queryKeys.inviteLinks,
+    queryKey: queryKeys.inviteLinks(walletId),
     queryFn: () =>
       fetchReadJson<InviteLink[]>(
         "/api/invite-links",
@@ -73,7 +76,9 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onSuccess: async () => {
       toast.success("Invite link created", { id: "invite-link" });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.inviteLinks(walletId),
+      });
     },
     onError: (error) => {
       toast.error(
@@ -94,7 +99,9 @@ const InviteLinkDialog = ({ trigger }: Props) => {
     },
     onSuccess: async () => {
       toast.success("Invite link revoked", { id: "invite-link" });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.inviteLinks(walletId),
+      });
     },
     onError: (error) => {
       toast.error(
@@ -117,7 +124,9 @@ const InviteLinkDialog = ({ trigger }: Props) => {
       toast.success("Invite link rotated. The old link no longer works.", {
         id: "invite-link",
       });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.inviteLinks });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.inviteLinks(walletId),
+      });
     },
     onError: (error) => {
       toast.error(

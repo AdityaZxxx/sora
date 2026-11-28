@@ -49,13 +49,14 @@ const BudgetsSection = ({
   canEdit: boolean;
   wallet: Wallet;
 }) => {
+  const walletId = wallet.id;
   const {
     data: budgets = [],
     isLoading,
     isError,
     refetch,
   } = useQuery({
-    queryKey: queryKeys.budgets,
+    queryKey: queryKeys.budgets(walletId),
     queryFn: () =>
       fetchReadJson<BudgetWithProgress[]>(
         "/api/budgets",

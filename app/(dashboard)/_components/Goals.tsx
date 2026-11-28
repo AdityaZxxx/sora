@@ -29,6 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { type GoalWithProgress } from "@/lib/goals";
@@ -49,9 +50,11 @@ const Goals = ({
   initialGoals?: GoalWithProgress[];
 }) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const { data: goals = [] } = useSuspenseQuery({
-    queryKey: queryKeys.goals,
+    queryKey: queryKeys.goals(walletId),
     initialData: initialGoals,
     queryFn: () =>
       fetchReadJson<GoalWithProgress[]>(

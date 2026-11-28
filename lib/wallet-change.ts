@@ -3,7 +3,7 @@ import type { QueryKey } from "@tanstack/react-query";
 
 import { z } from "zod";
 
-import { queryKeys } from "@/lib/query-keys";
+import { queryKeyPrefixes, queryKeys } from "@/lib/query-keys";
 
 export const WALLET_EVENT_CHANNEL = "sora_wallet_events";
 export const WALLET_EVENTS_ENDPOINT = "/api/events";
@@ -59,77 +59,77 @@ const EFFECTS: Record<WalletChangeResource, WalletChangeEffects> = {
       "history",
     ],
     clientKeys: [
-      queryKeys.transactions.all,
-      queryKeys.overview.all,
-      queryKeys.balances,
-      queryKeys.budgets,
-      queryKeys.goals,
-      queryKeys.insights,
-      queryKeys.sharedSpending,
-      queryKeys.simplifiedDebts,
+      queryKeyPrefixes.transactions,
+      queryKeyPrefixes.overview,
+      queryKeyPrefixes.balances,
+      queryKeyPrefixes.budgets,
+      queryKeyPrefixes.goals,
+      queryKeyPrefixes.insights,
+      queryKeyPrefixes.sharedSpending,
+      queryKeyPrefixes.simplifiedDebts,
     ],
   },
   settlements: {
     serverTags: ["balances", "settlements", "transactions"],
     clientKeys: [
-      queryKeys.balances,
-      queryKeys.settlements,
-      queryKeys.simplifiedDebts,
+      queryKeyPrefixes.balances,
+      queryKeyPrefixes.settlements,
+      queryKeyPrefixes.simplifiedDebts,
     ],
   },
   budgets: {
     serverTags: ["budgets"],
     clientKeys: [
-      queryKeys.budgets,
-      queryKeys.sharedSpending,
-      queryKeys.insights,
+      queryKeyPrefixes.budgets,
+      queryKeyPrefixes.sharedSpending,
+      queryKeyPrefixes.insights,
     ],
   },
   goals: {
     serverTags: ["goals"],
-    clientKeys: [queryKeys.goals, queryKeys.overview.all],
+    clientKeys: [queryKeyPrefixes.goals, queryKeyPrefixes.overview],
   },
   categories: {
     serverTags: ["categories"],
     clientKeys: [
-      queryKeys.categories(),
-      queryKeys.transactions.all,
-      queryKeys.overview.all,
-      queryKeys.recurringItems,
+      queryKeyPrefixes.categories,
+      queryKeyPrefixes.transactions,
+      queryKeyPrefixes.overview,
+      queryKeyPrefixes.recurringItems,
     ],
   },
   recurring: {
     serverTags: ["recurring"],
-    clientKeys: [queryKeys.recurringItems, queryKeys.overview.all],
+    clientKeys: [queryKeyPrefixes.recurringItems, queryKeyPrefixes.overview],
   },
   members: {
     serverTags: ["members", "wallet", "balances"],
     clientKeys: [
-      queryKeys.walletMembers,
-      queryKeys.formerMembers,
+      queryKeyPrefixes.walletMembers,
+      queryKeyPrefixes.formerMembers,
       queryKeys.wallets,
-      queryKeys.balances,
-      queryKeys.simplifiedDebts,
+      queryKeyPrefixes.balances,
+      queryKeyPrefixes.simplifiedDebts,
     ],
   },
   wallet: {
     serverTags: ["wallet"],
-    clientKeys: [queryKeys.wallet, queryKeys.wallets],
+    clientKeys: [queryKeyPrefixes.wallet, queryKeys.wallets],
   },
   notifications: {
     serverTags: ["notifications"],
-    clientKeys: [queryKeys.notifications],
+    clientKeys: [queryKeyPrefixes.notifications],
   },
   invites: {
     serverTags: ["invites"],
-    clientKeys: [queryKeys.inviteLinks],
+    clientKeys: [queryKeyPrefixes.inviteLinks],
   },
 };
 
 const SCOPED_EFFECTS: Record<WalletChangeScope, WalletChangeEffects> = {
   "category-renamed": {
     serverTags: ["categories", "transactions", "budgets", "recurring"],
-    clientKeys: [...EFFECTS.categories.clientKeys, queryKeys.budgets],
+    clientKeys: [...EFFECTS.categories.clientKeys, queryKeyPrefixes.budgets],
   },
   "category-icon-changed": {
     serverTags: [...EFFECTS.categories.serverTags, "transactions", "recurring"],

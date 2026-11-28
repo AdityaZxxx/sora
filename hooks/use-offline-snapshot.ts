@@ -3,10 +3,10 @@
 import type { MemberBalance } from "@/schemas/balances";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { useBalanceStats } from "@/hooks/use-balance-stats";
-import { useWallets } from "@/hooks/use-wallets";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { useSession } from "@/lib/auth-client";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { resolveDateRange } from "@/lib/dates";
@@ -80,7 +80,7 @@ function useOnlineStatus() {
 
 export function useOfflineSnapshot() {
   const isOnline = useOnlineStatus();
-  const { data: wallets } = useWallets();
+  const { data: wallets } = useActiveWallet();
   const { data: session } = useSession();
   const range = useSyncExternalStore(
     subscribeToRange,
@@ -96,7 +96,7 @@ export function useOfflineSnapshot() {
   const { data: balances, isFetching: balancesFetching } = useQuery<
     MemberBalance[]
   >({
-    queryKey: queryKeys.balances,
+    queryKey: queryKeys.balances(walletId ?? ""),
     queryFn: () =>
       fetchReadJson("/api/balances", "Failed to fetch balances", {
         schema: MemberBalancesSchema,
@@ -111,8 +111,6 @@ export function useOfflineSnapshot() {
     { enabled: range !== PENDING_RANGE && walletId !== undefined },
   );
 
-  const activeWallet = useRef<string | undefined>(undefined);
-
   useEffect(() => {
     const marked = document.cookie
       .split("; ")
@@ -122,15 +120,6 @@ export function useOfflineSnapshot() {
     clearOfflineSnapshot();
     document.cookie = `${CLEAR_COOKIE}=; path=/; max-age=0`;
   }, []);
-
-  useEffect(() => {
-    if (!walletId) return;
-    const previous = activeWallet.current;
-    activeWallet.current = walletId;
-    if (previous !== undefined && previous !== walletId) {
-      clearOfflineSnapshot();
-    }
-  }, [walletId]);
 
   useEffect(() => {
     if (session === null && isOnline) {

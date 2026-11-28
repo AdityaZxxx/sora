@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/popover";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useCallerRole } from "@/hooks/use-members";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { categoryPermissionNote } from "@/lib/category-copy";
 import { defaultCategoryIcon, withIconKindDefault } from "@/lib/category-icons";
 import { initialFormActionState } from "@/lib/form-action";
@@ -110,6 +111,8 @@ const CategoryFormDialog = ({
   const idPrefix = isEditing ? "edit-" : "";
   const hydrated = useHydrated();
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const defaultValues = (): CategoryValues => ({
     name: category?.name ?? defaultName ?? "",
@@ -147,9 +150,13 @@ const CategoryFormDialog = ({
     if (isSavedCategory(result.data)) {
       successCallback?.(result.data);
     }
-    void queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.categories(walletId),
+    });
     if (isEditing) {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.budgets });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.budgets(walletId),
+      });
     }
     if (!isEditing) {
       resetDraft();

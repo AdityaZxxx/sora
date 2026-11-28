@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronDown, House, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
@@ -44,7 +44,6 @@ export default function WalletSwitcher({
   variant = "default",
 }: WalletSwitcherProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [, startSwitchTransition] = useTransition();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
@@ -60,7 +59,6 @@ export default function WalletSwitcher({
     mutationFn: switchWallet,
     onSuccess: () => {
       startSwitchTransition(async () => {
-        await queryClient.invalidateQueries();
         router.refresh();
       });
     },
@@ -74,7 +72,6 @@ export default function WalletSwitcher({
   const { mutate: create, isPending: isCreating } = useMutation({
     mutationFn: () => createWallet(name),
     onSuccess: () => {
-      queryClient.invalidateQueries();
       setCreateOpen(false);
       setName("");
       router.push("/");
