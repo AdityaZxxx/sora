@@ -15,19 +15,10 @@ export function transactionFields(coerced: boolean) {
   };
 }
 
-export const CreateTransactionSchema = z.object({
+export const TransactionDraftSchema = z.object({
   ...transactionFields(true),
+  id: z.string().min(1).optional(),
   date: z.date(),
 });
 
-export const UpdateTransactionSchema = CreateTransactionSchema.omit({
-  shares: true,
-  goalId: true,
-  recurringItemId: true,
-}).extend({
-  id: z.string().min(1),
-});
-
-export type UpdateTransactionSchemaType = z.infer<
-  typeof UpdateTransactionSchema
->;
+export type TransactionDraftSchemaType = z.infer<typeof TransactionDraftSchema>;

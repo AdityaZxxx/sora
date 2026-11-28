@@ -6,11 +6,7 @@ import { z } from "zod";
 import { parseDate, todayAtUtcMidnight } from "@/lib/dates";
 import { moneyText } from "@/lib/money";
 import { recordSettlement } from "@/lib/settlements";
-import {
-  createTransaction,
-  deleteTransaction,
-  updateTransaction,
-} from "@/lib/transactions";
+import { deleteTransaction, writeTransaction } from "@/lib/transactions";
 import { DeleteIdSchema } from "@/schemas/delete";
 import { settlementFields } from "@/schemas/settlement";
 import { transactionFields } from "@/schemas/transaction";
@@ -69,7 +65,7 @@ export function registerTransactionWriteTools(
       recurringItemId,
     }) =>
       runTool(context, "write", async () => {
-        const transaction = await createTransaction(context, {
+        const transaction = await writeTransaction(context, {
           amount,
           description,
           date: date ? parseDate(date) : todayAtUtcMidnight(),
@@ -113,17 +109,21 @@ export function registerTransactionWriteTools(
           "Name of a Category in the Wallet.",
         ),
         type: transactionInput.type.describe("Expense or income."),
+        goalId: transactionInput.goalId.describe(
+          "Goal to tag this expense as a contribution to. Omit to clear the tag.",
+        ),
       },
     },
-    async ({ id, amount, description, date, category, type }) =>
+    async ({ id, amount, description, date, category, type, goalId }) =>
       runTool(context, "write", async () => {
-        const transaction = await updateTransaction(context, {
+        const transaction = await writeTransaction(context, {
           id,
           amount,
           description,
           date: parseDate(date),
           category,
           type,
+          goalId,
         });
 
         return {

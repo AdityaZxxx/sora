@@ -85,6 +85,7 @@ interface Props {
     amount?: number;
     type?: TransactionType;
     date?: Date;
+    goalId?: string | null;
   };
   recurringItemId?: string;
   transactionId?: string;
@@ -130,7 +131,7 @@ const CreateTransactionDialog = ({
     amount: initialValues?.amount ?? 0,
     type: dialogType,
     date: initialValues?.date ?? initialDate,
-    goalId: "",
+    goalId: initialValues?.goalId ?? "",
   });
   const [splitMode, setSplitMode] = useState<SplitMode>("equal");
   const [splitAmounts, setSplitAmounts] = useState<Record<string, string>>({});

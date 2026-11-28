@@ -612,6 +612,7 @@ function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
           amount: moneyNumber(transaction.amount),
           type: transaction.type as "income" | "expense",
           date: transaction.date,
+          goalId: transaction.goalId,
         }}
         trigger={
           <button
@@ -650,13 +651,15 @@ function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="flex items-center gap-2"
-              onClick={() => editTriggerRef.current?.click()}
-            >
-              <Pencil className="h-4 w-4 text-muted-foreground" />
-              Edit
-            </DropdownMenuItem>
+            {!transaction.hasShares && (
+              <DropdownMenuItem
+                className="flex items-center gap-2"
+                onClick={() => editTriggerRef.current?.click()}
+              >
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+                Edit
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="flex items-center gap-2"
               onClick={() => {
