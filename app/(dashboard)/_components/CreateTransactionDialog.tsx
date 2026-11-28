@@ -52,14 +52,17 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import { QUERY_STALE_TIME } from "@/lib/constants";
-import { Currencies } from "@/lib/currencies";
 import { fetchReadJson } from "@/lib/fetch-json";
 import {
   formError,
   formSuccess,
   initialFormActionState,
 } from "@/lib/form-action";
-import { dateToUtcDate, getFormatterForCurrency } from "@/lib/helpers";
+import {
+  dateToUtcDate,
+  getFormatterForCurrency,
+  getNumberInputSeparators,
+} from "@/lib/helpers";
 import { moneyNumber, moneyText, toMoney } from "@/lib/money";
 import { applyTransactionOptimistic, queryKeys } from "@/lib/query-keys";
 import { buildShares, type SplitMode } from "@/lib/split-shares";
@@ -139,12 +142,8 @@ const CreateTransactionDialog = ({
     {},
   );
 
-  const currencyOption = Currencies.find((c) => c.value === currency);
-  const numberParts = new Intl.NumberFormat(currencyOption?.locale, {
-    style: "decimal",
-  }).formatToParts(1234.5);
-  const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
-  const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
+  const { group: thousandSeparator, decimal: decimalSeparator } =
+    getNumberInputSeparators(currency);
 
   const goalsQuery = useQuery({
     queryKey: queryKeys.goals(walletId),

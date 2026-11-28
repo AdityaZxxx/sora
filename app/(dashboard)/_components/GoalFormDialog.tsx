@@ -38,8 +38,8 @@ import {
 } from "@/components/ui/popover";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useActiveWallet } from "@/hooks/use-wallets";
-import { Currencies } from "@/lib/currencies";
 import { initialFormActionState } from "@/lib/form-action";
+import { getNumberInputSeparators } from "@/lib/helpers";
 import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
@@ -111,12 +111,8 @@ const GoalFormDialog = ({
     initialFormActionState,
   );
 
-  const currencyOption = Currencies.find((c) => c.value === currency);
-  const numberParts = new Intl.NumberFormat(currencyOption?.locale, {
-    style: "decimal",
-  }).formatToParts(1234.5);
-  const thousandSeparator = numberParts.find((p) => p.type === "group")?.value;
-  const decimalSeparator = numberParts.find((p) => p.type === "decimal")?.value;
+  const { group: thousandSeparator, decimal: decimalSeparator } =
+    getNumberInputSeparators(currency);
   const deadlineValue = values.deadline?.toISOString().slice(0, 10) ?? "";
 
   const resetDraft = () => setValues(goal ? fromGoal(goal) : EMPTY_FORM);
