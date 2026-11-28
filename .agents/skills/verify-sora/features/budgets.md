@@ -41,7 +41,7 @@ Preconditions:
 
 - The manage card cannot create a budget for the `Settlement` category; the seeded UI excludes it. Only an owner or co-owner can create, edit, or delete a budget; a viewer sees them.
 - The progress bar renders for every budget. Percentage text is `Math.round(percent)`, so an over-budget card reads more than 100% even though the bar is clipped.
-- A budget measure always uses the current UTC month; there is no per-budget month visibility switch.
+- A budget card measures the current UTC month, with no per-budget month visibility switch. The hard-limit gate checks the transaction's own UTC month, so a backdated expense is compared with that month.
 - A budget overspend only notifies the other members once per transaction, at the highest threshold crossed; the actor is not the only audience.
 - The hard-cap rejection message reports the exact amounts from the server; do not pin that string for assertions.
 - Utility budget is an example in this recipe; use another category if you reseed.

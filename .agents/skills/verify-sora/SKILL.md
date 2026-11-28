@@ -125,7 +125,7 @@ To switch to the realistic fixture:
 .agents/skills/verify-sora/scripts/control-sora reset --average
 ```
 
-This wipes the database and seeds ~130 transactions across six months, a settled rent balance, a funded Emergency fund, an almost-done Vacation goal, a stalled camera fund, and a mid-month settlement, the same shape of data a real household accumulates. `fixtures.json` is rewritten with its own expected values (a few of which, like the balance, are computed from the actual rows rather than pinned). `.agents/skills/verify-sora/scripts/seed-average.mjs` is the source of truth; `control-sora reset` without `--average` returns to the minimal fixture used for assertions.
+This wipes the database and seeds ~130 transactions across six months, a settled rent balance, a funded Emergency fund, an almost-done Vacation goal, a stalled camera fund, a mid-month settlement, and five recurring bills, the same shape of data a real household accumulates. `fixtures.json` is rewritten with its own expected values (a few of which, like the balance, are computed from the actual rows rather than pinned). `.agents/skills/verify-sora/scripts/seed-average.mjs` is the source of truth; `control-sora reset` without `--average` returns to the minimal fixture used for assertions.
 
 `fixtures.json` in `.scratch/verify-sora/` holds the same numbers in machine-readable form, plus the ids of the household, the members, and the goal.
 
@@ -173,5 +173,6 @@ Run `stop` after every failed attempt too, so a broken iteration does not strand
 | `features/account-settings.md`     | Profile, authentication, appearance and account deletion                   |
 | `features/agent-access.md`         | Agent access, API tokens, and what a token can do                          |
 | `features/validation.md`           | Rejected input at the web form, MCP surface, and the CLI                   |
+| `features/dashboard-extras.md`     | Insights, safe to spend, upcoming bills, notifications, and install prompt |
 
 To add a feature: copy the shape of an existing file, keep the four H2s, and prove the new journey before you commit it.

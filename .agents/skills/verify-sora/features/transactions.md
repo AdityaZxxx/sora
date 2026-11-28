@@ -33,21 +33,19 @@ Preconditions:
 - **Filter by category.** Run `control-sora browser find role button click --name "Category"` (the filter above the table, not the column header), then `control-sora browser find role option click --name "🛒 Groceries"`. One row left; a `Clear filters` entry appears. Run the same with `Type` → `Expense` → `Salary` goes; five remain.
 - **Add a transaction.** Open `$U/`, run `control-sora browser find role button click --name "New expense"`, fill `Description` `Coffee run`, `Amount` `12.50`, pick `Dining Out`, click `Add`. Toast `Transaction added`. A `How this expense is split` control appears for expenses in a multi-member household.
 - **Delete it.** Open `$U/transactions`. Open the row's actions with a snapshot ref for `Open actions` on the `Coffee Run` row, then `control-sora browser find role menuitem click --name "Delete"`, and confirm `Delete transaction`. Toast `Transaction deleted`; 6 rows remain.
-- **Export CSV.** Hook the blob (`control-sora browser eval 'window.__csv=null;const o=URL.createObjectURL.bind(URL);URL.createObjectURL=b=>{b.text().then(t=>{window.__csv=t});return o(b)}'`), click `Export CSV` via a snapshot ref, and eval `window.__csv`. The text starts with `Date,Category,Description,Type,Amount,Currency` and contains one line for every transaction in the date range. Dates use the short display form, for example `"Nov 20, 2026",Groceries,Weekly groceries,Expense,-$320.50,USD`; the description is the raw seed text, not the title-cased UI text.
-- **Date range.** Click the range button to see the picker. Before a preset is picked it shows today's date; after `This Month` it shows the first of the month through today. A range wider than 90 days refuses with a toast.
+- **Export CSV.** Hook the blob (`control-sora browser eval 'window.__csv=null;const o=URL.createObjectURL.bind(URL);URL.createObjectURL=b=>{b.text().then(t=>{window.__csv=t});return o(b)}'`), click `Export CSV` via a snapshot ref, and eval `window.__csv`. The text starts with `Date,Category,Description,Type,Amount,Currency` and contains one line for every transaction in the date range. Dates use the short display form, for example `"Nov 26, 2026",Groceries,Weekly groceries,Expense,-$320.50,USD`; the description is the raw seed text, not the title-cased UI text.
+- **Date range.** The trigger already shows the first of the current UTC month through today on first load. Click the range button to see the picker and its presets. A range wider than 90 days refuses with a toast.
 - **Proof.** Run `control-sora browser snapshot -i` and `control-sora browser screenshot <artifact-dir>/transactions/table.png` before the mutation, and again after the deletion.
 
 ## Gotchas
 
 - The column header buttons (`Category`, `Type`) share their names with the filter buttons above the table. The filter wins on `find role button click --name` because it comes first in the DOM; scope the click with a snapshot ref if the order changes.
-- Every transaction belongs to the active wallet. Split controls appear only when the wallet has more than one member.
+- Every transaction belongs to the active wallet. Split controls appear only on a new expense in a wallet with more than one member; the edit dialog never shows them.
 - The dialog's `Goal (optional)` select appears only on the expense dialog, and only when at least one goal exists.
 - `Delete` is shown on the caller's own rows and on every row for owners and co-owners. Viewers see no row actions.
 - The table does not poll. `POLL_INTERVAL` is 0 and `staleTime` is 30 s; new rows arrive through SSE invalidation of the transactions query key. If a row does not appear, wait briefly or reload rather than waiting a fixed 30 s.
 - Web writes use a typed mutation client with a generated idempotency key, optimistic stats update and rollback, and an IndexedDB queue for offline replay. An online write still surfaces the server error as a toast.
 
-## Editing a transaction
-
-- A member can edit an entry they added; owners and co-owners can edit any entry in the wallet. Viewers see no Edit control.
-- Open the row actions menu on a non-split entry, choose Edit, change the amount or description, and save. The dashboard totals and the history chart follow the new amount.
-- Split expenses are rejected with `Split expenses cannot be edited until share editing is available`. Editing through `update_transaction` with the MCP token obeys the same roles.
+- A member can edit an entry they added; owners and co-owners can edit any entry in the wallet. Viewers see no `Edit` control.
+- Open the row actions menu on a non-split entry, choose `Edit`, change the amount or description, and save. The dashboard totals and the history chart follow the new amount.
+- Split expenses have no `Edit` control in their row actions; the web UI offers only `Delete`. The MCP `update_transaction` tool rejects them with `Split expenses cannot be edited until share editing is available`. Editing through that tool obeys the same roles.
