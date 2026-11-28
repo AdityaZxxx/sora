@@ -9,7 +9,12 @@ import {
   memberWalletsTag,
   revalidateMemberWallets,
 } from "@/lib/cache";
-import { actorFor, assertCallerCanManage, type Caller } from "@/lib/caller";
+import {
+  actorFor,
+  assertCallerCanManage,
+  type Actor,
+  type Caller,
+} from "@/lib/caller";
 import {
   ACTIVE_WALLET_COOKIE,
   DEFAULT_CURRENCY,
@@ -62,13 +67,13 @@ async function resolveWalletMembership(userId: string) {
 
 // seam-parse-exempt: input is the session's user id, never user-controlled.
 export async function createPersonalWallet(
-  userId: string,
+  actor: Actor,
   currency?: string | null,
 ) {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.walletMembership.findFirst({
       where: {
-        userId,
+        userId: actor.actorId,
         leftAt: null,
         isPersonal: true,
       },
@@ -80,16 +85,16 @@ export async function createPersonalWallet(
       },
     });
     if (existing) {
-      return existing;
+      return { membership: existing, created: false };
     }
 
     const wallet = await tx.wallet.create({
       data: { currency: currency ?? null },
     });
-    return await tx.walletMembership.create({
+    const membership = await tx.walletMembership.create({
       data: {
         walletId: wallet.id,
-        userId,
+        userId: actor.actorId,
         role: OWNER_ROLE,
         isPersonal: true,
       },
@@ -97,7 +102,19 @@ export async function createPersonalWallet(
         wallet: true,
       },
     });
+    return { membership, created: true };
   });
+
+  if (result.created) {
+    await publishWalletChange({
+      walletId: result.membership.walletId,
+      actor,
+      resource: "wallet",
+      message: "created a personal wallet",
+    });
+  }
+
+  return result.membership;
 }
 
 export const requireWallet = cache(async () => {
@@ -288,7 +305,7 @@ export async function assertWalletMembership(walletId: string, userId: string) {
   }
 }
 
-export async function createAdditionalWallet(userId: string, name: string) {
+export async function createAdditionalWallet(actor: Actor, name: string) {
   const parsedName = WalletNameSchema.safeParse(name);
   if (!parsedName.success) {
     throw new DomainError(
@@ -297,7 +314,7 @@ export async function createAdditionalWallet(userId: string, name: string) {
   }
 
   const current = await prisma.walletMembership.findFirst({
-    where: { userId, leftAt: null },
+    where: { userId: actor.actorId, leftAt: null },
     include: { wallet: true },
     orderBy: { joinedAt: "asc" },
   });
@@ -312,14 +329,20 @@ export async function createAdditionalWallet(userId: string, name: string) {
     await tx.walletMembership.create({
       data: {
         walletId: wallet.id,
-        userId,
+        userId: actor.actorId,
         role: OWNER_ROLE,
       },
     });
     return wallet;
   });
 
-  revalidateMemberWallets(userId);
+  await publishWalletChange({
+    walletId: created.id,
+    actor,
+    resource: "wallet",
+    message: "created a wallet",
+  });
+  revalidateMemberWallets(actor.actorId);
   return created;
 }
 

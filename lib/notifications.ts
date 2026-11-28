@@ -79,16 +79,23 @@ export async function listNotifications(
 }
 
 // seam-parse-exempt: inputs are session values, never user input.
-export async function markNotificationsRead(walletId: string, userId: string) {
+export async function markNotificationsRead(walletId: string, actor: Actor) {
   await prisma.notification.updateMany({
     where: {
       walletId,
-      userId,
+      userId: actor.actorId,
       readAt: null,
     },
     data: {
       readAt: new Date(),
     },
+  });
+
+  await publishWalletChange({
+    walletId,
+    actor,
+    resource: "notifications",
+    message: "marked notifications as read",
   });
 }
 

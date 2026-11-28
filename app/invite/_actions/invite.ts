@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { type ActionResult, fail } from "@/lib/action-result";
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 import { joinWalletByInviteToken } from "@/lib/invites";
 import { setActiveWalletCookie } from "@/lib/wallet";
@@ -24,11 +23,6 @@ export async function joinWalletByToken(token: string): Promise<ActionResult> {
       session.user.name,
     );
     await setActiveWalletCookie(walletId);
-    revalidateWallet(walletId, [
-      CACHE_RESOURCE.wallet,
-      CACHE_RESOURCE.notifications,
-      CACHE_RESOURCE.invites,
-    ]);
   } catch (cause) {
     if (cause instanceof DomainError) {
       return fail(cause.message);

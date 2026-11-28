@@ -9,7 +9,7 @@ import { getFormatterForCurrency } from "@/lib/helpers";
 import { log } from "@/lib/log";
 import { notify } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { notifyWalletChange } from "@/lib/realtime";
+import { publishWalletChange } from "@/lib/realtime";
 import { RecordSettlementSchema } from "@/schemas/settlement";
 
 export type RecordSettlementInput = {
@@ -144,9 +144,8 @@ async function runSettlement(
   ).format;
   const amountText = formatAmount(amount);
 
-  let revalidateSettlements: (() => void) | undefined;
   const settlement = await prisma.$transaction(async (tx) => {
-    const created = await tx.settlement.create({
+    return await tx.settlement.create({
       data: {
         walletId,
         payerId,
@@ -157,18 +156,14 @@ async function runSettlement(
         addedVia: input.addedVia ?? null,
       },
     });
-
-    revalidateSettlements = await notifyWalletChange({
-      walletId,
-      actor: actorFor(caller),
-      resource: "settlements",
-      message: "recorded a settlement",
-      executor: tx,
-    });
-
-    return created;
   });
-  revalidateSettlements?.();
+
+  await publishWalletChange({
+    walletId,
+    actor: actorFor(caller),
+    resource: "settlements",
+    message: "recorded a settlement",
+  });
 
   log("info", "settlement.recorded", {
     walletId,

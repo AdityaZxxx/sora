@@ -10,13 +10,14 @@ import {
   actorFor,
   assertCallerCanManage,
   assertCallerIsOwner,
+  type Actor,
   type Caller,
 } from "@/lib/caller";
 import { CO_OWNER_ROLE, OWNER_ROLE } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
 import { notifyWalletExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
-import { publishWalletChange } from "@/lib/realtime";
+import { invalidateUserApiTokens, publishWalletChange } from "@/lib/realtime";
 import {
   RemoveMemberSchema,
   SetEmailDigestSchema,
@@ -128,6 +129,7 @@ export async function leaveWallet(caller: Caller) {
     }
   });
 
+  invalidateUserApiTokens(caller.userId);
   await notifyWalletExcept(
     actor,
     caller.walletId,
@@ -147,7 +149,7 @@ export async function leaveWallet(caller: Caller) {
 
 export async function setEmailDigest(
   walletId: string,
-  userId: string,
+  actor: Actor,
   input: SetEmailDigestSchemaType,
 ) {
   const parsed = SetEmailDigestSchema.safeParse(input);
@@ -155,17 +157,26 @@ export async function setEmailDigest(
     throw new DomainError(parsed.error.issues[0]?.message ?? "Bad request");
   }
 
-  return await prisma.walletMembership.update({
+  const updated = await prisma.walletMembership.update({
     where: {
       walletId_userId: {
         walletId,
-        userId,
+        userId: actor.actorId,
       },
     },
     data: {
       emailDigest: parsed.data.emailDigest,
     },
   });
+
+  await publishWalletChange({
+    walletId,
+    actor,
+    resource: "members",
+    message: "changed their email digest",
+  });
+
+  return updated;
 }
 
 export async function removeMember(
@@ -251,6 +262,7 @@ export async function removeMember(
     }
   });
 
+  invalidateUserApiTokens(userId);
   await publishWalletChange({
     walletId: caller.walletId,
     actor: actorFor(caller),

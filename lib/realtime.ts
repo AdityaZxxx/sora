@@ -1,21 +1,20 @@
 import type { Actor } from "@/lib/caller";
-import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { EventEmitter } from "node:events";
 
-import { revalidateWallet } from "@/lib/cache";
+import { revalidateUserApiTokens, revalidateWallet } from "@/lib/cache";
+import { logWarn } from "@/lib/log";
 import prisma, { stripSslMode } from "@/lib/prisma";
 import {
   WALLET_EVENT_CHANNEL,
   walletChangeEffects,
   walletChangeSchema,
   type WalletChange,
+  type WalletChangeEffects,
   type WalletChangeResource,
   type WalletChangeScope,
 } from "@/lib/wallet-change";
-
-type QueryExecutor = Prisma.TransactionClient | PrismaClient;
 
 type PublishInput = {
   walletId: string;
@@ -24,22 +23,30 @@ type PublishInput = {
   message: string;
   recipientId?: string;
   scope?: WalletChangeScope;
-  executor?: QueryExecutor;
 };
 
-export type DeferredRevalidation = () => void;
+function revalidateEffects(walletId: string, effects: WalletChangeEffects) {
+  revalidateWallet(walletId, effects.serverTags);
+}
 
-// A tag invalidated before commit can be repopulated by a read of the old row,
-// so the caller runs the returned revalidation after its transaction resolves.
-export async function notifyWalletChange({
+function runRevalidation(run: () => void) {
+  try {
+    run();
+  } catch (cause) {
+    logWarn("revalidation.failed", {
+      error: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+function buildWalletChange({
   walletId,
   actor,
   resource,
   message,
   recipientId,
   scope,
-  executor = prisma,
-}: PublishInput): Promise<DeferredRevalidation> {
+}: PublishInput) {
   const effects = walletChangeEffects(resource, scope);
   const change = walletChangeSchema.parse({
     walletId,
@@ -51,13 +58,18 @@ export async function notifyWalletChange({
     ...(scope && { scope }),
   });
 
-  await executor.$executeRaw`SELECT pg_notify(${WALLET_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
-  return () => revalidateWallet(walletId, effects.serverTags);
+  return { change, effects, walletId };
 }
 
 export async function publishWalletChange(input: PublishInput) {
-  const revalidate = await notifyWalletChange(input);
-  revalidate();
+  const { change, effects, walletId } = buildWalletChange(input);
+
+  runRevalidation(() => revalidateEffects(walletId, effects));
+  await prisma.$executeRaw`SELECT pg_notify(${WALLET_EVENT_CHANNEL}, ${JSON.stringify(change)})`;
+}
+
+export function invalidateUserApiTokens(userId: string) {
+  runRevalidation(() => revalidateUserApiTokens(userId));
 }
 
 type WalletListener = {

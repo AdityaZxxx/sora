@@ -25,7 +25,10 @@ export async function startWallet(
   }
 
   try {
-    await createPersonalWallet(session.user.id);
+    await createPersonalWallet({
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
   } catch (cause) {
     logError("wallet.setup.failed", {
       userId: session.user.id,

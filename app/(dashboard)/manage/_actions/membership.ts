@@ -9,7 +9,6 @@ import type { WalletMembership } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { type ActionResult, withWalletAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { actorFor } from "@/lib/caller";
 import {
   formText,
@@ -39,11 +38,6 @@ const REMOVE_ERROR = "Unable to remove this member. Try again.";
 export async function leaveWalletAction(): Promise<ActionResult> {
   return withWalletAction(LEAVE_ERROR, async ({ caller }) => {
     await leaveWalletSeam(caller);
-    revalidateWallet(caller.walletId, [
-      CACHE_RESOURCE.members,
-      CACHE_RESOURCE.wallet,
-      CACHE_RESOURCE.balances,
-    ]);
   });
 }
 
@@ -53,11 +47,6 @@ export async function leaveWalletForm(
 ): Promise<FormActionState> {
   const result = await withWalletAction(LEAVE_ERROR, async ({ caller }) => {
     await leaveWalletSeam(caller);
-    revalidateWallet(caller.walletId, [
-      CACHE_RESOURCE.members,
-      CACHE_RESOURCE.wallet,
-      CACHE_RESOURCE.balances,
-    ]);
 
     const nextWalletId = await firstWalletIdForUser(caller.userId);
     if (nextWalletId) {
@@ -92,12 +81,6 @@ export async function removeMemberForm(
           "member_left",
           `${removedName} was removed from the wallet.`,
         );
-        revalidateWallet(caller.walletId, [
-          CACHE_RESOURCE.members,
-          CACHE_RESOURCE.wallet,
-          CACHE_RESOURCE.balances,
-          CACHE_RESOURCE.notifications,
-        ]);
       }),
   });
 }
@@ -117,10 +100,6 @@ export async function setMemberRole(
         "member_role",
         `${caller.actorName} set your role to ${roleLabel(nextRole).toLowerCase()} in this wallet.`,
       );
-      revalidateWallet(caller.walletId, [
-        CACHE_RESOURCE.members,
-        CACHE_RESOURCE.notifications,
-      ]);
     },
   );
 }
@@ -133,10 +112,9 @@ export async function setEmailDigest(
     async ({ caller }) => {
       const updated = await setEmailDigestSeam(
         caller.walletId,
-        caller.userId,
+        actorFor(caller),
         form,
       );
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.members]);
       return updated;
     },
   );

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 
-import { CACHE_RESOURCE, walletTag, revalidateWallet } from "@/lib/cache";
+import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
 import {
   actorFor,
   assertCallerCanManage,
@@ -187,7 +187,6 @@ export async function notifyIfGoalReached(input: {
     "goal_reached",
     `${goal.name} reached its target: ${formatAmount(total.toNumber())} of ${formatAmount(goal.target.toNumber())}.`,
   );
-  revalidateWallet(walletId, [CACHE_RESOURCE.notifications]);
 }
 
 export async function deleteWalletGoal(caller: Caller, id: string) {

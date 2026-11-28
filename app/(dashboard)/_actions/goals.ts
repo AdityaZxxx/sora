@@ -1,7 +1,6 @@
 "use server";
 
 import { withWalletAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   formDate,
   formText,
@@ -40,7 +39,6 @@ export async function createGoalForm(
     run: (input) =>
       withWalletAction(CREATE_ERROR, async ({ caller }) => {
         const created = await createWalletGoal(caller, input);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
         return created;
       }),
   });
@@ -64,7 +62,6 @@ export async function updateGoalForm(
     run: (input) =>
       withWalletAction(UPDATE_ERROR, async ({ caller }) => {
         const updated = await updateWalletGoal(caller, input);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
         return updated;
       }),
   });
@@ -83,7 +80,6 @@ export async function deleteGoalForm(
     run: (input) =>
       withWalletAction(DELETE_ERROR, async ({ caller }) => {
         await deleteWalletGoal(caller, input.id);
-        revalidateWallet(caller.walletId, [CACHE_RESOURCE.goals]);
       }),
   });
 }

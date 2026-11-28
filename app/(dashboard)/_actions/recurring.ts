@@ -7,7 +7,6 @@ import type {
 } from "@/schemas/recurring";
 
 import { withWalletAction } from "@/lib/action-result";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import {
   createRecurringItem,
   deleteRecurringItem,
@@ -20,7 +19,6 @@ export async function CreateRecurringItem(form: CreateRecurringItemType) {
     "Unable to add the bill. Check the name, amount and category, then try again.",
     async ({ caller }) => {
       await createRecurringItem(caller, form);
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -30,7 +28,6 @@ export async function UpdateRecurringItem(form: UpdateRecurringItemType) {
     "Unable to update the bill. Check the name, amount and category, then try again.",
     async ({ caller }) => {
       await updateRecurringItem(caller, form);
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -43,7 +40,6 @@ export async function SetRecurringItemPaused(form: {
     "Unable to update the bill. Check the bill and try again.",
     async ({ caller }) => {
       await setRecurringItemPaused(caller, form.id, form.paused);
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }
@@ -53,7 +49,6 @@ export async function DeleteRecurringItem(form: DeleteIdSchemaType) {
     "Unable to delete the bill. Check the bill and try again.",
     async ({ caller }) => {
       await deleteRecurringItem(caller, form.id);
-      revalidateWallet(caller.walletId, [CACHE_RESOURCE.recurring]);
     },
   );
 }

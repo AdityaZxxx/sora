@@ -6,8 +6,6 @@ import type {
   SetAgentAccessSchemaType,
 } from "@/schemas/api-tokens";
 
-import { revalidateTag } from "next/cache";
-
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import {
   createApiToken as createApiTokenSeam,
@@ -15,7 +13,6 @@ import {
   setAgentAccess as setAgentAccessSeam,
 } from "@/lib/api-token";
 import { getSession } from "@/lib/auth";
-import { CACHE_RESOURCE, revalidateWallet } from "@/lib/cache";
 import { DomainError } from "@/lib/errors";
 
 function actionError(cause: unknown): ActionResult<never> {
@@ -30,7 +27,6 @@ export async function createApiTokenForm(
     return actionError(new DomainError("Sign in to create a token"));
   try {
     const created = await createApiTokenSeam(session.user.id, input);
-    revalidateTag(`user:${session.user.id}:api-tokens`, { expire: 0 });
     return ok(created);
   } catch (cause) {
     return actionError(cause);
@@ -45,7 +41,6 @@ export async function revokeApiTokenForm(
     return actionError(new DomainError("Sign in to revoke a token"));
   try {
     await revokeApiTokenSeam(session.user.id, input);
-    revalidateTag(`user:${session.user.id}:api-tokens`, { expire: 0 });
     return { ok: true };
   } catch (cause) {
     return actionError(cause);
@@ -59,12 +54,10 @@ export async function setAgentAccessForm(
   if (!session)
     return actionError(new DomainError("Sign in to change agent access"));
   try {
-    await setAgentAccessSeam(session.user.id, input);
-    revalidateTag(`user:${session.user.id}:api-tokens`, { expire: 0 });
-    revalidateWallet(input.walletId, [
-      CACHE_RESOURCE.wallet,
-      CACHE_RESOURCE.apiTokens,
-    ]);
+    await setAgentAccessSeam(
+      { actorId: session.user.id, actorName: session.user.name },
+      input,
+    );
     return { ok: true };
   } catch (cause) {
     return actionError(cause);
