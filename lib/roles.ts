@@ -1,7 +1,11 @@
+import type { TokenScope } from "@/lib/types";
+
 import {
   CO_OWNER_ROLE,
   MEMBER_ROLE,
   OWNER_ROLE,
+  READ_ONLY_SCOPE,
+  READ_WRITE_SCOPE,
   VIEWER_ROLE,
 } from "@/lib/constants";
 import { DomainError } from "@/lib/errors";
@@ -38,6 +42,54 @@ export function isOwner(role: MemberRole) {
   return role === OWNER_ROLE;
 }
 
+export function parseTokenScope(scope: string): TokenScope {
+  return scope === READ_WRITE_SCOPE ? READ_WRITE_SCOPE : READ_ONLY_SCOPE;
+}
+
+export function canEditOwnedRecord(
+  role: MemberRole,
+  createdById: string | null,
+  callerId: string | undefined,
+) {
+  return (
+    canWrite(role) &&
+    (canManage(role) || (createdById != null && createdById === callerId))
+  );
+}
+
+export function canRemoveMember(
+  callerRole: MemberRole,
+  targetRole: MemberRole,
+) {
+  return (
+    canManage(callerRole) &&
+    targetRole !== OWNER_ROLE &&
+    (targetRole !== CO_OWNER_ROLE || isOwner(callerRole))
+  );
+}
+
+export function canSetRole(
+  callerRole: MemberRole,
+  targetRole: MemberRole,
+  nextRole: MemberRole,
+) {
+  return (
+    isOwner(callerRole) &&
+    targetRole !== OWNER_ROLE &&
+    (nextRole !== OWNER_ROLE || targetRole === CO_OWNER_ROLE)
+  );
+}
+
+export function effectiveApiTokenAccess(
+  scope: TokenScope,
+  role: MemberRole,
+  agentAccessEnabled: boolean,
+): "read-write" | "read-only" {
+  return scope === READ_WRITE_SCOPE && canWrite(role) && agentAccessEnabled
+    ? "read-write"
+    : "read-only";
+}
+
 const WRITE_MESSAGE = "Viewers cannot make changes in this wallet";
 const MANAGE_MESSAGE =
   "Only an owner or co-owner can change this wallet's settings";
@@ -63,13 +115,12 @@ export function assertOwner(role: MemberRole, message = OWNER_MESSAGE) {
 
 export function assertCanEditEntry(
   role: MemberRole,
-  addedById: string,
+  addedById: string | null,
   callerId: string,
   message = "You can only change entries you added",
 ) {
   assertCanWrite(role);
-  if (canManage(role)) return;
-  if (addedById !== callerId) {
+  if (!canEditOwnedRecord(role, addedById, callerId)) {
     throw new DomainError(message);
   }
 }
