@@ -30,7 +30,7 @@ Preconditions:
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
 - **Open the manage page.** Run `control-sora browser open "$U/manage"`. Assert the cards, in order: `Invite link`, `Your space`, `Members`, `Currency settings`, `Transaction categories`, `Budgets`. Only owners and co-owners can manage the `Invite link` card.
-- **Appearance.** - **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. Past members appear under `Past members` after someone leaves. The owner sees the role combobox `Access for <name>` with Owner, Co-owner, Member and Viewer; other roles see the role as a label.
+- **Members.** Assert both `Avery Quinn` and `Blake Rivera` appear. Past members appear under `Past members` after someone leaves. The owner sees the role combobox `Access for <name>` with Co-owner, Member and Viewer for a plain member; `Owner (transfer)` appears only when the target is already a co-owner. Other roles see the role as a label. Appearance lives on Account Settings, not here.
 - **Rename the space.** Run `control-sora browser find role button click --name "Rename space"`. Fill `Name` with `Lakeview Villa` and submit. The card reads `Lakeview Villa`.
 - **Currency.** The `Currency settings` card shows a combobox (`🇺🇸 United States Dollar`). Picking another currency calls the update action immediately; no separate save step exists.
 - **Digest toggle.** Assert the digest switch reflects the current state; toggling flips and persists.

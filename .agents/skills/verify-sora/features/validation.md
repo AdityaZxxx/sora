@@ -42,9 +42,9 @@ Preconditions:
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
 - **Happy payload.** `control-sora mcp get_overview` → `income` `"5000.00"`, `expenses` `"1900.50"`, `net` `"3099.50"` as fixed-2-decimal strings.
-- **Over the ceiling.** `control-sora mcp add_transaction '{"amount":"1000000000001","category":"Groceries","type":"expense"}'` → `Amount must be at most 1,000,000,000,000`.
-- **More than two decimals.** `control-sora mcp add_transaction '{"amount":"12.501","category":"Groceries","type":"expense"}'` → `Amount must be a decimal amount such as 12.50`.
-- **Boolean as amount.** `control-sora mcp add_transaction '{"amount":true,"category":"Groceries","type":"expense"}'` → `Invalid input: expected string, received boolean at amount`, produced by the SDK before the seam. The web form's `Amount must be a number at amount` belongs to the coerced web path only.
+- **Over the ceiling.** `control-sora mcp add_transaction '{"amount":"1000000000001","category":"Groceries","type":"expense"}'` → `mcp-call: MCP error -32602: Input validation error: Invalid arguments for tool add_transaction: Amount must be at most 1,000,000,000,000 at amount`.
+- **More than two decimals.** `control-sora mcp add_transaction '{"amount":"12.501","category":"Groceries","type":"expense"}'` → the same SDK envelope ending in `Amount must be a decimal amount such as 12.50 at amount`.
+- **Boolean as amount.** `control-sora mcp add_transaction '{"amount":true,"category":"Groceries","type":"expense"}'` → the same SDK envelope ending in `Invalid input: expected string, received boolean at amount`, produced by the SDK before the seam. The web form shows the bare message `Amount must be a number`, with no ` at amount` suffix.
 - **Impossible date.** `control-sora mcp add_transaction '{"amount":"5","date":"2026-02-30","category":"Groceries","type":"expense"}'` → `Invalid date: 2026-02-30. Use the YYYY-MM-DD format.`
 - **Inverted range.** `control-sora mcp list_transactions '{"from":"2026-11-14","to":"2026-11-01"}'` → `The start date is after the end date.`
 - **Range longer than 90 days.** `control-sora mcp list_transactions '{"from":"2026-01-01","to":"2026-12-31"}'` → `The date range is longer than 90 days. Narrow it.`
@@ -55,7 +55,7 @@ Preconditions:
 
 ## Gotchas
 
-- On the MCP path a strict-schema mismatch is caught by the SDK before the seam, so the text varies between tool and seam. On the web path the seam message is what surfaces.
+- On the MCP path a strict-schema mismatch is caught by the SDK before the seam, so the text carries the `mcp-call: MCP error -32602: Input validation error: Invalid arguments for tool <name>:` envelope and an ` at <field>` suffix. Seam errors stay as their plain domain sentence. On the web path field errors come from the form schema, and machine-style seam messages are replaced by a fallback.
 - MCP money input is text, not a JSON number. A numeric amount fails the SDK's expected-string check before any domain rule runs.
 - `2026-02-30` must be tested as having rolled over in `Date.UTC`; the rule is that the parsed parts round-trip exactly.
 - `from` and `to` are inclusive; the 90-day cap counts both ends.

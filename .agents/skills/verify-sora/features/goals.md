@@ -9,7 +9,7 @@ A goal is a named household savings target with an optional deadline. It holds n
 - `goals-delete` an owner or co-owner can delete a goal; transactions tagged with it stay in the ledger with the tag cleared.
 - `goals-progress` the card shows the percentage and the contributed and target amounts.
 - `goals-reached-notify` reaching the target fires a one-shot `goal_reached` notification to all members when a transaction crosses the line.
-- `goal-tag-transaction` a transaction can be tagged with a goal when adding it.
+- `goal-tag-transaction` a transaction can be tagged with a goal when adding or editing it.
 - `goals-list-mcp` list goals with the MCP surface; amounts are fixed-2-decimal strings.
 
 ## How to get to it (user POV)
@@ -23,10 +23,10 @@ A goal is a named household savings target with an optional deadline. It holds n
 Preconditions:
 
 - Sora is healthy at `$U`; `control-sora doctor` passes.
-- The seeded household is in place (`control-sora reset`): one goal `Vacation` (target $2,000, deadline 2027-06-01, contributed $300 via `Vacation fund`).
+- The seeded household is in place (`control-sora reset`): one goal `Vacation` (target $2,000, deadline June 1 of next year, contributed $300 via `Vacation fund`).
 - The browser is signed in as `avery@sora.test` (`control-sora login`).
 
-- **Open the dashboard.** Run `control-sora browser open "$U/"`. The Goals card shows `Vacation`, `by June 1st, 2027`, the progress bar, and the line `15% · $300 of $2,000`. The bar comes before that line.
+- **Open the dashboard.** Run `control-sora browser open "$U/"`. The Goals card shows `Vacation`, `by June 1st` of next year, the progress bar, and the line `15% · $300 of $2,000`. The bar comes before that line.
 - **Create a goal.** Run `control-sora browser find role button click --name "New goal"`; the dialog reads `Add a goal`. Fill `Name` `Bike`, `Target amount` `800`, then `control-sora browser find role button click --name "Add"`. The row reads `0% · $0 of $800`.
 - **Tag a transaction to it.** Run `New expense` and tag `Bike` in `Goal (optional)`; pick `Dining Out`, fill `$50`, click `Add`. The `Bike` row reads `6% · $50 of $800`.
 - **Update the target.** Open the actions for the Bike goal, `Edit goal`; set `Target amount` `800` → `600` and save. The percentage line changes accordingly.
@@ -36,7 +36,7 @@ Preconditions:
 
 ## Gotchas
 
-- The `Goal (optional)` select is only offered on the expense dialog and only when at least one goal exists; income transactions can never be tagged with a goal.
+- The `Goal (optional)` select is only offered on the expense dialog and only when at least one goal exists; the MCP `add_transaction` tool can tag an income transaction with a goal.
 - `goal_reached` fires once, when the transaction takes the goal over the line; later transactions never fire it again.
 - Tagging a transaction does not move any money; it is a label.
 - The progress bar always shows base progress, capped at 100%; an over-target goal reads at 100%.

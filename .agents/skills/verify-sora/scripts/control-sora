@@ -460,11 +460,11 @@ cmd_doctor() {
   local port_owned=0
   if command -v ss >/dev/null 2>&1; then
     local pgid
-    pgid="$(ps -o pgid= -p "$APP_PID" 2>/dev/null | tr -d ' ')"
+    pgid="$(ps -o pgid= -p "$APP_PID" 2>/dev/null | tr -d ' ' || true)"
     while read -r owner_pid; do
       [[ -z "$owner_pid" ]] && continue
       local owner_pgid
-      owner_pgid="$(ps -o pgid= -p "$owner_pid" 2>/dev/null | tr -d ' ')"
+      owner_pgid="$(ps -o pgid= -p "$owner_pid" 2>/dev/null | tr -d ' ' || true)"
       if [[ -n "$pgid" && "$owner_pgid" == "$pgid" ]]; then
         port_owned=1
         break
@@ -607,6 +607,10 @@ cmd_reset() {
     json_set "$ACTIVE_FILE" seedMode "$mode"
     info "Database reset to seeded fixtures ($SEED_VARIANT); sign in again before driving"
   fi
+
+  # The old session cookie points at users the reset just removed. Clear it so
+  # cmd_login cannot mistake the stale cookie for a signed-in browser.
+  AGENT_BROWSER_SESSION="sora-verify-$RUN_ID" agent-browser cookies clear >/dev/null 2>&1 || true
 }
 
 cmd_stop() {
