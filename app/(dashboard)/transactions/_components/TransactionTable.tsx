@@ -74,6 +74,7 @@ import {
 import { fetchReadJson } from "@/lib/fetch-json";
 import { formatDateForDisplay, getFormatterForCurrency } from "@/lib/helpers";
 import { queryKeys } from "@/lib/query-keys";
+import { canEditOwnedRecord } from "@/lib/roles";
 import {
   type GetTransactionsHistoryResponseType,
   type TransactionHistoryRow,
@@ -579,13 +580,16 @@ function AddedByCell({ transaction }: { transaction: TransactionHistoryRow }) {
 function RowActions({ transaction }: { transaction: TransactionHistoryRow }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
-  const { canEdit, canManage } = useCallerRole();
+  const { role, canManage } = useCallerRole();
   const activeWalletQuery = useActiveWallet();
   const currency = activeWalletQuery.active?.currency ?? "USD";
   const { data: session } = useSession();
 
-  const isOwnEntry = transaction.addedById === session?.user.id;
-  if (!canManage && !(canEdit && isOwnEntry)) return null;
+  const canEditEntry =
+    role != null &&
+    session?.user.id != null &&
+    canEditOwnedRecord(role, transaction.addedById, session.user.id);
+  if (!canEditEntry) return null;
 
   return (
     <>

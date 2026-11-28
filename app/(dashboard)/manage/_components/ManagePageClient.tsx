@@ -1,5 +1,4 @@
 "use client";
-import type { MemberRole } from "@/lib/roles";
 import type { TransactionType } from "@/lib/types";
 import type { Category, Wallet } from "@prisma/client";
 
@@ -52,6 +51,7 @@ import { categoryPermissionNote } from "@/lib/category-copy";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
+import { canEditOwnedRecord, type MemberRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { walletLabel } from "@/lib/wallet-label";
 
@@ -166,7 +166,6 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
               <CategoryList
                 type="income"
                 canEdit={canEdit}
-                canManage={canManage}
                 role={role}
                 callerId={callerId}
                 creatorNames={creatorNames}
@@ -175,7 +174,6 @@ const ManagePageClient = ({ wallet }: { wallet: Wallet }) => {
               <CategoryList
                 type="expense"
                 canEdit={canEdit}
-                canManage={canManage}
                 role={role}
                 callerId={callerId}
                 creatorNames={creatorNames}
@@ -202,7 +200,6 @@ const COLLAPSED_CATEGORIES = 6;
 function CategoryList({
   type,
   canEdit,
-  canManage,
   role,
   callerId,
   creatorNames,
@@ -210,7 +207,6 @@ function CategoryList({
 }: {
   type: TransactionType;
   canEdit: boolean;
-  canManage: boolean;
   role?: MemberRole;
   callerId?: string;
   creatorNames: Map<string, string>;
@@ -293,8 +289,7 @@ function CategoryList({
                   <CategoryCard
                     key={category.name}
                     category={category}
-                    canWrite={canEdit}
-                    canManage={canManage}
+                    role={role}
                     permissionNote={permissionNote}
                     callerId={callerId}
                     creatorName={
@@ -373,16 +368,14 @@ function ErrorState({
 
 function CategoryCard({
   category,
-  canWrite,
-  canManage,
+  role,
   permissionNote,
   callerId,
   creatorName,
   walletName,
 }: {
   category: Category;
-  canWrite: boolean;
-  canManage: boolean;
+  role?: MemberRole;
   permissionNote: string;
   callerId?: string;
   creatorName: string | null;
@@ -391,8 +384,7 @@ function CategoryCard({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const canEditCategory =
-    canWrite &&
-    (canManage || (callerId != null && category.createdById === callerId));
+    role != null && canEditOwnedRecord(role, category.createdById, callerId);
 
   return (
     <>

@@ -47,7 +47,7 @@ export function assertCallerCanEditCategory(
 ) {
   assertRoleCanEditEntry(
     caller.role,
-    createdById ?? "",
+    createdById,
     caller.userId,
     "You can only rename or delete categories you added",
   );

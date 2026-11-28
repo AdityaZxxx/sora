@@ -27,10 +27,15 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useWallets } from "@/hooks/use-wallets";
 import { unwrapAction } from "@/lib/action-client";
-import { QUERY_STALE_TIME, READ_WRITE_SCOPE } from "@/lib/constants";
+import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
-import { parseMemberRole, canWrite, canManage } from "@/lib/roles";
+import {
+  canManage,
+  effectiveApiTokenAccess,
+  parseMemberRole,
+  parseTokenScope,
+} from "@/lib/roles";
 
 import {
   createApiTokenForm,
@@ -252,13 +257,11 @@ export default function AgentAccessSection() {
                     : token.wallets
                         .map((entry) => {
                           const role = roleByWallet.get(entry.wallet.id);
-                          const effective =
-                            token.scope === READ_WRITE_SCOPE &&
-                            role &&
-                            canWrite(role) &&
-                            entry.wallet.agentAccessEnabled
-                              ? "read-write"
-                              : "read-only";
+                          const effective = effectiveApiTokenAccess(
+                            parseTokenScope(token.scope),
+                            role ? parseMemberRole(role) : "viewer",
+                            entry.wallet.agentAccessEnabled ?? false,
+                          );
                           return `${entry.wallet.name ?? "Personal wallet"}: ${effective}`;
                         })
                         .join(", ")}

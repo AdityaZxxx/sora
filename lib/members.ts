@@ -18,6 +18,7 @@ import { DomainError } from "@/lib/errors";
 import { notifyWalletExcept } from "@/lib/notifications";
 import prisma from "@/lib/prisma";
 import { invalidateUserApiTokens, publishWalletChange } from "@/lib/realtime";
+import { canRemoveMember, canSetRole, parseMemberRole } from "@/lib/roles";
 import {
   RemoveMemberSchema,
   SetEmailDigestSchema,
@@ -220,11 +221,12 @@ export async function removeMember(
       "Settle this member's balance in the wallet before removing them",
     );
   }
-  if (removed.role === OWNER_ROLE) {
-    throw new DomainError("The owner cannot be removed by another member");
-  }
-  if (removed.role === CO_OWNER_ROLE && caller.role !== OWNER_ROLE) {
-    throw new DomainError("Only the owner can remove a co-owner");
+  if (!canRemoveMember(caller.role, parseMemberRole(removed.role))) {
+    throw new DomainError(
+      parseMemberRole(removed.role) === OWNER_ROLE
+        ? "The owner cannot be removed by another member"
+        : "Only the owner can remove a co-owner",
+    );
   }
 
   await prisma.$transaction(async (tx) => {
@@ -304,11 +306,12 @@ export async function setMemberRole(
   if (!target) {
     throw new DomainError("Member not found");
   }
-  if (target.role === OWNER_ROLE) {
-    throw new DomainError("The owner's role cannot be changed");
-  }
-  if (nextRole === OWNER_ROLE && target.role !== CO_OWNER_ROLE) {
-    throw new DomainError("Only a co-owner can become the owner");
+  if (!canSetRole(caller.role, parseMemberRole(target.role), nextRole)) {
+    throw new DomainError(
+      parseMemberRole(target.role) === OWNER_ROLE
+        ? "The owner's role cannot be changed"
+        : "Only a co-owner can become the owner",
+    );
   }
 
   await prisma.$transaction(async (tx) => {

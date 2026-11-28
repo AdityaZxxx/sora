@@ -53,7 +53,13 @@ import {
 } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
-import { MEMBER_ROLES, parseMemberRole, roleLabel } from "@/lib/roles";
+import {
+  canRemoveMember,
+  canSetRole,
+  MEMBER_ROLES,
+  parseMemberRole,
+  roleLabel,
+} from "@/lib/roles";
 
 import {
   leaveWalletAction,
@@ -83,7 +89,7 @@ const MembersSection = () => {
     staleTime: QUERY_STALE_TIME,
   });
 
-  const { role: callerRole, canManage, isOwner } = useCallerRole();
+  const { role: callerRole } = useCallerRole();
   const [transferTarget, setTransferTarget] = useState<{
     userId: string;
     name: string;
@@ -246,7 +252,12 @@ const MembersSection = () => {
                       </div>
                     ) : (
                       <div className="flex shrink-0 items-center gap-2">
-                        {isOwner ? (
+                        {callerRole != null &&
+                        canSetRole(
+                          callerRole,
+                          parseMemberRole(member.role),
+                          MEMBER_ROLE,
+                        ) ? (
                           <Select
                             value={member.role}
                             onValueChange={(role) => {
@@ -259,8 +270,19 @@ const MembersSection = () => {
                               ) {
                                 return;
                               }
+                              const nextRole = parseMemberRole(role);
                               if (
-                                role === OWNER_ROLE &&
+                                !callerRole ||
+                                !canSetRole(
+                                  callerRole,
+                                  parseMemberRole(member.role),
+                                  nextRole,
+                                )
+                              ) {
+                                return;
+                              }
+                              if (
+                                nextRole === OWNER_ROLE &&
                                 member.role === CO_OWNER_ROLE
                               ) {
                                 setTransferTarget({
@@ -271,7 +293,7 @@ const MembersSection = () => {
                               }
                               changeRole({
                                 userId: member.user.id,
-                                role: parseMemberRole(role),
+                                role: nextRole,
                               });
                             }}
                             items={{
@@ -309,9 +331,11 @@ const MembersSection = () => {
                             {roleLabel(parseMemberRole(member.role))}
                           </Badge>
                         )}
-                        {canManage &&
-                          member.role !== OWNER_ROLE &&
-                          (member.role !== CO_OWNER_ROLE || isOwner) && (
+                        {callerRole != null &&
+                          canRemoveMember(
+                            callerRole,
+                            parseMemberRole(member.role),
+                          ) && (
                             <Tooltip>
                               <RemoveMemberDialog
                                 member={member}
