@@ -4,12 +4,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { getMemberBalances } from "@/lib/balances";
-import { getBudgetsWithProgress } from "@/lib/budgets";
+import { getBudgetsWithProgress, getSafeToSpend } from "@/lib/budgets";
 import { getCategories } from "@/lib/categories";
 import { resolveDateRange } from "@/lib/dates";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { listMembers } from "@/lib/members";
-import { moneyText } from "@/lib/money";
+import { moneyText, toMoney } from "@/lib/money";
 import { listSettlements } from "@/lib/settlements";
 import {
   getBalanceStats,
@@ -114,12 +114,11 @@ export function registerReadTools(server: McpServer, context: McpContext) {
             memberId: balance.userId,
             memberName: balance.name,
             balance: moneyText(balance.balance),
-            status:
-              balance.balance === 0
-                ? "settled"
-                : balance.balance > 0
-                  ? "you_owe"
-                  : "they_owe_you",
+            status: toMoney(balance.balance).isZero()
+              ? "settled"
+              : toMoney(balance.balance).gt(0)
+                ? "you_owe"
+                : "they_owe_you",
           })),
         };
       }),
@@ -135,9 +134,13 @@ export function registerReadTools(server: McpServer, context: McpContext) {
     },
     async () =>
       runTool(context, "read", async () => {
-        const budgets = await getBudgetsWithProgress(context.walletId);
+        const [budgets, safeToSpend] = await Promise.all([
+          getBudgetsWithProgress(context.walletId),
+          getSafeToSpend(context.walletId),
+        ]);
 
         return {
+          safeToSpend: moneyText(safeToSpend),
           budgets: budgets.map((budget) => ({
             id: budget.id,
             category: budget.category,

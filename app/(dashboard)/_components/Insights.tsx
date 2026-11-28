@@ -20,6 +20,7 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -52,10 +53,8 @@ const previousMonthLabel = (previous?: { year: number; month: number }) =>
 
 const EMPTY_MONTHS: GetInsightsResponseType = [];
 
-const rateFor = (bucket?: { income: number; expense: number }) =>
-  bucket && bucket.income > 0
-    ? (bucket.income - bucket.expense) / bucket.income
-    : undefined;
+const rateFor = (bucket?: { income: string; savingsRate: number }) =>
+  bucket && toMoney(bucket.income).gt(0) ? bucket.savingsRate : undefined;
 
 const Insights = ({ currency, memberCount }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
@@ -76,7 +75,7 @@ const Insights = ({ currency, memberCount }: Props) => {
   const months = queryMonths ?? EMPTY_MONTHS;
 
   const hasAnyData = months.some(
-    (bucket) => bucket.income > 0 || bucket.expense > 0,
+    (bucket) => toMoney(bucket.income).gt(0) || toMoney(bucket.expense).gt(0),
   );
 
   if (!hasAnyData) {

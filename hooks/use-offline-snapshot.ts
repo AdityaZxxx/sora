@@ -14,7 +14,7 @@ import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
 import { MemberBalancesSchema } from "@/schemas/balances";
 
-const SNAPSHOT_SCHEMA = 1;
+const SNAPSHOT_SCHEMA = 2;
 const KEY_PREFIX = "sora:offline:snapshot:";
 const ACTIVE_KEY = "sora:offline:active";
 const CLEAR_COOKIE = "sora_clear_offline";
@@ -30,8 +30,8 @@ type OfflineSnapshot = {
   walletId: string;
   savedAt: number;
   currency: string;
-  stats: { income: number; expense: number; net: number };
-  balances: { name: string; balance: number }[];
+  stats: { income: string; expense: string; net: string };
+  balances: { name: string; balance: string }[];
 };
 
 function storeValue(key: string, value: string) {

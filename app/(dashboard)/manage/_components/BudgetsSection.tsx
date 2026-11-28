@@ -36,6 +36,7 @@ import { type BudgetWithProgress } from "@/lib/budgets";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
@@ -213,9 +214,14 @@ function BudgetCard({
           )}
         />
         <p className="text-xs text-muted-foreground">
-          {format(budget.spent)} of {format(budget.amount)} spent ·{" "}
-          {format(Math.max(budget.remaining, 0))} remaining ·{" "}
-          {Math.round(budget.percent)}%
+          {format(moneyNumber(budget.spent))} of{" "}
+          {format(moneyNumber(budget.amount))} spent ·{" "}
+          {format(
+            moneyNumber(
+              toMoney(budget.remaining).gt(0) ? budget.remaining : "0",
+            ),
+          )}{" "}
+          remaining · {Math.round(budget.percent)}%
         </p>
       </div>
       {canEdit && (

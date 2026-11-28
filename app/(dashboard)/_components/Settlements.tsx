@@ -17,6 +17,7 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { DEFAULT_CURRENCY, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 
 export default function Settlements({ currency }: { currency: string | null }) {
@@ -76,7 +77,7 @@ export default function Settlements({ currency }: { currency: string | null }) {
                 </div>
                 {settlement.isParty && settlement.amount !== null && (
                   <span className="shrink-0 text-sm font-semibold tabular-nums">
-                    {formatter.format(settlement.amount)}
+                    {formatter.format(moneyNumber(settlement.amount))}
                   </span>
                 )}
               </div>

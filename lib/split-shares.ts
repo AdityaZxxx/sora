@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { sumMoney, toMoney, zeroMoney, type Money } from "@/lib/money";
 
-export type ShareDraft = { userId: string; amount: number };
+export type ShareDraft = { userId: string; amount: string };
 
 export type SplitMember = { user: { id: string } };
 
@@ -40,7 +40,7 @@ export function buildShares(
     const share = mode === "percent" ? raw.times(total).div(100) : raw;
     return {
       userId: member.user.id,
-      amount: share.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP).toNumber(),
+      amount: share.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP).toFixed(2),
     };
   });
 
@@ -48,18 +48,25 @@ export function buildShares(
     sumMoney(rounded.map((share) => toMoney(share.amount))),
   );
   if (!remainder.isZero() && rounded.length > 0) {
-    const largest = rounded.reduce((a, b) => (b.amount > a.amount ? b : a));
-    largest.amount = toMoney(largest.amount).plus(remainder).toNumber();
+    const largest = rounded.reduce((a, b) =>
+      toMoney(b.amount).gt(toMoney(a.amount)) ? b : a,
+    );
+    largest.amount = toMoney(largest.amount).plus(remainder).toFixed(2);
   }
 
-  const shares = rounded.filter((share) => share.amount > 0);
+  const shares = rounded.filter((share) => toMoney(share.amount).gt(0));
   return { shares, matchesAmount: sharesTotal(shares).eq(total) };
 }
 
-export function sharesTotal(shares: ShareDraft[]): Money {
+type ShareAmount = { userId: string; amount: number | string };
+
+export function sharesTotal(shares: readonly ShareAmount[]): Money {
   return sumMoney(shares.map((share) => toMoney(share.amount)));
 }
 
-export function sharesMatchExpense(shares: ShareDraft[], amount: number) {
+export function sharesMatchExpense(
+  shares: readonly ShareAmount[],
+  amount: number,
+) {
   return shares.length === 0 || sharesTotal(shares).eq(amount);
 }

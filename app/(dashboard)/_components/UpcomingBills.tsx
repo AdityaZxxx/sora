@@ -61,6 +61,7 @@ import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 import { type RecurringItemRow } from "@/lib/recurring";
 
@@ -242,7 +243,7 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
                           : "text-sm font-medium text-expense-foreground tabular-nums"
                       }
                     >
-                      {formatter.format(item.amount)}
+                      {formatter.format(moneyNumber(item.amount))}
                     </span>
                     {canEdit && (
                       <span className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -255,7 +256,7 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
                           initialValues={{
                             description: item.name,
                             category: item.category,
-                            amount: item.amount,
+                            amount: moneyNumber(item.amount),
                             type: item.type as TransactionType,
                           }}
                           trigger={
@@ -266,14 +267,24 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
                         />
                         <UpcomingBillActions
                           item={item}
-                          onEdit={() => setEditItem(item)}
+                          onEdit={() =>
+                            setEditItem({
+                              ...item,
+                              amount: moneyNumber(item.amount),
+                            })
+                          }
                           onPause={() =>
                             pauseMutation.mutate({
                               id: item.id,
                               paused: !item.paused,
                             })
                           }
-                          onDelete={() => setDeleteTarget(item)}
+                          onDelete={() =>
+                            setDeleteTarget({
+                              ...item,
+                              amount: moneyNumber(item.amount),
+                            })
+                          }
                         />
                       </span>
                     )}
@@ -359,7 +370,7 @@ const UpcomingBillActions = ({
   onPause,
   onDelete,
 }: {
-  item: RecurringItemDraft;
+  item: RecurringItemRow;
   onEdit: () => void;
   onPause: () => void;
   onDelete: () => void;

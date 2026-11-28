@@ -3,7 +3,7 @@ import { z } from "zod";
 export const MemberBalanceSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  balance: z.number(),
+  balance: z.string(),
 });
 
 export const MemberBalancesSchema = z.array(MemberBalanceSchema);
@@ -15,7 +15,7 @@ export const SimplifiedTransferSchema = z.object({
   fromName: z.string(),
   toUserId: z.string(),
   toName: z.string(),
-  amount: z.number(),
+  amount: z.string(),
 });
 
 export const SimplifiedTransfersSchema = z.array(SimplifiedTransferSchema);

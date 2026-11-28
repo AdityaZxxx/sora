@@ -18,6 +18,7 @@ import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
+import { moneyNumber } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 
 import BudgetDialog from "../manage/_components/BudgetDialog";
@@ -42,10 +43,16 @@ const SafeToSpend = ({ currency }: Props) => {
     refetchOnWindowFocus: true,
   });
 
-  const remaining = budgets.reduce(
-    (sum, budget) => sum + Math.max(0, budget.remaining),
-    0,
-  );
+  const { data: safeToSpend = "0" } = useSuspenseQuery<string>({
+    queryKey: queryKeys.safeToSpend(walletId),
+    queryFn: () =>
+      fetchReadJson<string>(
+        "/api/stats/safe-to-spend",
+        "Unable to load the safe to spend amount. Refresh the page and try again.",
+      ),
+    staleTime: QUERY_STALE_TIME,
+    refetchOnWindowFocus: true,
+  });
 
   return (
     <Card className="h-full transition-all hover:shadow-md">
@@ -81,7 +88,7 @@ const SafeToSpend = ({ currency }: Props) => {
               </div>
               <div>
                 <AnimatedNumber
-                  value={remaining}
+                  value={moneyNumber(safeToSpend)}
                   {...currencyFlow}
                   className="text-3xl font-bold tabular-nums"
                 />

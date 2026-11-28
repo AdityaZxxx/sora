@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { parseDate, todayAtUtcMidnight } from "@/lib/dates";
+import { moneyText } from "@/lib/money";
 import { recordSettlement } from "@/lib/settlements";
 import {
   createTransaction,
@@ -84,7 +85,7 @@ export function registerTransactionWriteTools(
           id: transaction.id,
           date: transaction.date.toISOString(),
           description: transaction.description,
-          amount: transaction.amount.toNumber(),
+          amount: moneyText(transaction.amount),
           type: transaction.type,
           category: transaction.category,
         };
@@ -129,7 +130,7 @@ export function registerTransactionWriteTools(
           id: transaction.id,
           date: transaction.date.toISOString(),
           description: transaction.description,
-          amount: transaction.amount.toNumber(),
+          amount: moneyText(transaction.amount),
           type: transaction.type,
           category: transaction.category,
         };
@@ -186,7 +187,7 @@ export function registerTransactionWriteTools(
         return {
           id: settlement.id,
           date: settlement.date.toISOString(),
-          amount: settlement.amount.toNumber(),
+          amount: moneyText(settlement.amount),
           payerId: settlement.payerId,
           receiverId: settlement.receiverId,
         };

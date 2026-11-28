@@ -34,6 +34,7 @@ import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { type GoalWithProgress } from "@/lib/goals";
 import { getFormatterForCurrency } from "@/lib/helpers";
+import { moneyNumber, toMoney } from "@/lib/money";
 import { queryKeys } from "@/lib/query-keys";
 
 import CreateGoalDialog from "./CreateGoalDialog";
@@ -96,10 +97,13 @@ const Goals = ({
           <div className="space-y-2">
             {goals.map((goal) => {
               const progress = Math.min(
-                (goal.contributed / goal.target) * 100,
+                toMoney(goal.contributed)
+                  .div(goal.target)
+                  .times(100)
+                  .toNumber(),
                 100,
               );
-              const reached = goal.contributed >= goal.target;
+              const reached = toMoney(goal.contributed).gte(goal.target);
               return (
                 <div key={goal.id} className="space-y-2 rounded-lg border p-4">
                   <div className="flex items-center justify-between gap-2">
@@ -129,8 +133,8 @@ const Goals = ({
                       {Math.floor(progress)}%
                     </span>
                     {" · "}
-                    {formatter.format(goal.contributed)} of{" "}
-                    {formatter.format(goal.target)}
+                    {formatter.format(moneyNumber(goal.contributed))} of{" "}
+                    {formatter.format(moneyNumber(goal.target))}
                   </p>
                 </div>
               );
