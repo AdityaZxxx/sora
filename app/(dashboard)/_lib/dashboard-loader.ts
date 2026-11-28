@@ -1,91 +1,27 @@
 import type { DashboardContext } from "./dashboard-context";
+import type { DehydratedState } from "@tanstack/react-query";
 
-import {
-  dehydrate,
-  QueryClient,
-  type DehydratedState,
-} from "@tanstack/react-query";
 import { cacheLife } from "next/cache";
 
-import { getMemberBalances, getSimplifiedTransfers } from "@/lib/balances";
-import { getBudgetsWithProgress, getSharedSpending } from "@/lib/budgets";
-import { getGoalsWithProgress } from "@/lib/goals";
-import { getHistoryData } from "@/lib/history";
-import { getMonthlyRollup } from "@/lib/insights";
-import { queryKeys } from "@/lib/query-keys";
-import { listRecurringItems } from "@/lib/recurring";
+import {
+  blockingKeys,
+  hydrationStateFor,
+  loadBlockingSeededReads,
+  type BlockingDataset,
+} from "@/lib/seeded-reads";
 
-export type DashboardPayload = DashboardContext & {
-  insights: Awaited<ReturnType<typeof getMonthlyRollup>>;
-  budgets: Awaited<ReturnType<typeof getBudgetsWithProgress>>;
-  recurringItems: Awaited<ReturnType<typeof listRecurringItems>>;
-  sharedSpending: Awaited<ReturnType<typeof getSharedSpending>>;
-  balances: Awaited<ReturnType<typeof getMemberBalances>>;
-  simplifiedDebts: Awaited<ReturnType<typeof getSimplifiedTransfers>>;
-  goals: Awaited<ReturnType<typeof getGoalsWithProgress>>;
-  historyData: Awaited<ReturnType<typeof getHistoryData>>;
-};
+export type DashboardPayload = DashboardContext & BlockingDataset;
 
 export async function loadDashboard(
   context: DashboardContext,
 ): Promise<DashboardPayload> {
-  const { walletId, userId, historyView } = context;
-
-  const [
-    insights,
-    budgets,
-    recurringItems,
-    sharedSpending,
-    balances,
-    simplifiedDebts,
-    goals,
-    historyData,
-  ] = await Promise.all([
-    getMonthlyRollup(walletId),
-    getBudgetsWithProgress(walletId),
-    listRecurringItems(walletId),
-    getSharedSpending(walletId),
-    getMemberBalances(walletId, userId),
-    getSimplifiedTransfers(walletId),
-    getGoalsWithProgress(walletId),
-    getHistoryData(walletId, historyView.timeframe, historyView.period),
-  ]);
-
-  return {
-    ...context,
-    insights,
-    budgets,
-    recurringItems,
-    sharedSpending,
-    balances,
-    simplifiedDebts,
-    goals,
-    historyData,
-  };
+  return { ...context, ...(await loadBlockingSeededReads(context)) };
 }
 
-export function dashboardHydrationState(
+export async function dashboardHydrationState(
   payload: DashboardPayload,
-): DehydratedState {
-  const queryClient = new QueryClient();
-
-  queryClient.setQueryData(queryKeys.insights, payload.insights);
-  queryClient.setQueryData(queryKeys.budgets, payload.budgets);
-  queryClient.setQueryData(queryKeys.recurringItems, payload.recurringItems);
-  queryClient.setQueryData(queryKeys.sharedSpending, payload.sharedSpending);
-  queryClient.setQueryData(queryKeys.balances, payload.balances);
-  queryClient.setQueryData(queryKeys.simplifiedDebts, payload.simplifiedDebts);
-  queryClient.setQueryData(queryKeys.goals, payload.goals);
-  queryClient.setQueryData(
-    queryKeys.overview.history(
-      payload.walletId,
-      payload.historyView.timeframe,
-      payload.historyView.period,
-    ),
-    payload.historyData,
-  );
-
-  return dehydrate(queryClient);
+): Promise<DehydratedState> {
+  return hydrationStateFor(blockingKeys, payload, payload);
 }
 
 export async function loadDashboardState(context: DashboardContext) {
@@ -93,5 +29,5 @@ export async function loadDashboardState(context: DashboardContext) {
   cacheLife({ stale: 300 });
 
   const payload = await loadDashboard(context);
-  return { payload, state: dashboardHydrationState(payload) };
+  return { payload, state: await dashboardHydrationState(payload) };
 }

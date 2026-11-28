@@ -1,10 +1,5 @@
 "use client";
 
-import type {
-  GetBalanceStatsResponseType,
-  GetCategoriesStatsResponseType,
-} from "@/lib/transactions";
-
 import { differenceInDays } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,25 +14,12 @@ interface Props {
   walletId: string;
   currency: string | null;
   initialDateRange: { from: Date; to: Date };
-  initialStats: GetBalanceStatsResponseType;
-  initialCategories: GetCategoriesStatsResponseType;
 }
 
-const OverviewClient = ({
-  walletId,
-  currency,
-  initialDateRange,
-  initialStats,
-  initialCategories,
-}: Props) => {
+const OverviewClient = ({ walletId, currency, initialDateRange }: Props) => {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(
     () => initialDateRange,
   );
-  // `initialData` seeds a new key as fresh. Passing it for a changed range
-  // would seed that key with the initial range's figures and skip the refetch.
-  const isInitialRange =
-    dateRange.from.getTime() === initialDateRange.from.getTime() &&
-    dateRange.to.getTime() === initialDateRange.to.getTime();
 
   return (
     <section className="section flex flex-col gap-6">
@@ -68,7 +50,6 @@ const OverviewClient = ({
           currency={currency}
           from={dateRange.from}
           to={dateRange.to}
-          initialData={isInitialRange ? initialStats : undefined}
         />
 
         <CategoriesStats
@@ -76,7 +57,6 @@ const OverviewClient = ({
           currency={currency}
           from={dateRange.from}
           to={dateRange.to}
-          initialData={isInitialRange ? initialCategories : undefined}
         />
       </div>
     </section>

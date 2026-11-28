@@ -3,12 +3,11 @@ import { type Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { getBudgetsWithProgress } from "@/lib/budgets";
-import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import { getCategories } from "@/lib/categories";
-import { seedQuery, seededHydrationState } from "@/lib/hydration";
-import { listInviteLinks } from "@/lib/invites";
-import { queryKeys } from "@/lib/query-keys";
+import {
+  hydrationStateFor,
+  seedContextFor,
+  seededReads,
+} from "@/lib/seeded-reads";
 import { requireWallet } from "@/lib/wallet";
 
 import ManagePageClient from "./_components/ManagePageClient";
@@ -41,27 +40,24 @@ const SeededManage = async () => {
     notFound();
   }
 
-  const walletId = result.wallet.id;
+  const ctx = seedContextFor(result.wallet.id, result.session.user.id);
   const [incomeCategories, expenseCategories, budgets, inviteLinks] =
     await Promise.all([
-      getCategories(walletId, "income"),
-      getCategories(walletId, "expense"),
-      getBudgetsWithProgress(walletId),
-      listInviteLinks(walletId),
+      seededReads.incomeCategories.read(ctx),
+      seededReads.expenseCategories.read(ctx),
+      seededReads.manageBudgets.read(ctx),
+      seededReads.inviteLinks.read(ctx),
     ]);
 
-  const state = await seededHydrationState(
-    [
-      seedQuery(queryKeys.categories("income"), incomeCategories),
-      seedQuery(queryKeys.categories("expense"), expenseCategories),
-      seedQuery(queryKeys.budgets, budgets),
-      seedQuery(queryKeys.inviteLinks, inviteLinks),
-    ],
-    [
-      walletTag(walletId, CACHE_RESOURCE.categories),
-      walletTag(walletId, CACHE_RESOURCE.budgets),
-      walletTag(walletId, CACHE_RESOURCE.invites),
-    ],
+  const state = await hydrationStateFor(
+    ["incomeCategories", "expenseCategories", "manageBudgets", "inviteLinks"],
+    ctx,
+    {
+      incomeCategories,
+      expenseCategories,
+      manageBudgets: budgets,
+      inviteLinks,
+    },
   );
 
   return (
