@@ -9,17 +9,13 @@ import {
   type FormActionState,
 } from "@/lib/form-action";
 import {
-  createTransaction,
-  updateTransaction,
-  type CreateTransactionInput,
+  writeTransaction,
+  type TransactionWriteInput,
 } from "@/lib/transactions";
-import {
-  CreateTransactionSchema,
-  UpdateTransactionSchema,
-} from "@/schemas/transaction";
+import { TransactionDraftSchema } from "@/schemas/transaction";
 
 export type CreateTransactionActionInput = Omit<
-  CreateTransactionInput,
+  TransactionWriteInput,
   "addedVia"
 >;
 
@@ -28,7 +24,7 @@ const USER_FACING_ERROR =
 
 export async function CreateTransaction(form: CreateTransactionActionInput) {
   return withWalletAction(USER_FACING_ERROR, async ({ caller }) => {
-    await createTransaction(caller, {
+    await writeTransaction(caller, {
       amount: form.amount,
       category: form.category,
       description: form.description,
@@ -72,12 +68,12 @@ export async function createTransactionForm(
   return submitFormAction({
     formData,
     fields: transactionFields,
-    schema: CreateTransactionSchema,
+    schema: TransactionDraftSchema,
     fallback: USER_FACING_ERROR,
     success: "Transaction added",
     run: (input) =>
       withWalletAction(USER_FACING_ERROR, async ({ caller }) => {
-        await createTransaction(caller, {
+        await writeTransaction(caller, {
           ...input,
           idempotencyKey:
             formOptionalText(formData, "idempotencyKey") ??
@@ -104,18 +100,14 @@ export async function updateTransactionForm(
   return submitFormAction({
     formData,
     fields: updateFields,
-    schema: UpdateTransactionSchema,
+    schema: TransactionDraftSchema,
     fallback: UPDATE_ERROR,
     success: "Transaction updated",
     run: (input) =>
       withWalletAction(UPDATE_ERROR, async ({ caller }) => {
-        await updateTransaction(caller, {
-          id: input.id,
-          amount: input.amount,
-          category: input.category,
-          description: input.description,
-          date: input.date,
-          type: input.type,
+        await writeTransaction(caller, {
+          ...input,
+          goalId: input.goalId || undefined,
         });
       }),
   });

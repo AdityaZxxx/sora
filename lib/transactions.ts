@@ -1,7 +1,7 @@
 import type { TransactionType } from "@/lib/types";
 import type { z } from "zod";
 
-import { Prisma } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { after } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -32,11 +32,7 @@ import {
   type PostCommitEffect,
 } from "@/lib/transaction-post-commit";
 import { DeleteIdSchema } from "@/schemas/delete";
-import {
-  CreateTransactionSchema,
-  UpdateTransactionSchema,
-  type UpdateTransactionSchemaType,
-} from "@/schemas/transaction";
+import { TransactionDraftSchema } from "@/schemas/transaction";
 
 type TransactionCursor = { date: string; id: string };
 
@@ -130,8 +126,14 @@ export async function getTransactionsHistory(
       categoryIcon: true,
       categoryIconKind: true,
       categoryIconColor: true,
+      goalId: true,
       addedById: true,
       addedVia: true,
+      _count: {
+        select: {
+          shares: true,
+        },
+      },
       addedBy: {
         select: {
           name: true,
@@ -145,10 +147,11 @@ export async function getTransactionsHistory(
   const last = page.at(-1);
 
   return {
-    transactions: page.map(({ addedBy, amount, ...transaction }) => ({
+    transactions: page.map(({ addedBy, amount, _count, ...transaction }) => ({
       ...transaction,
       amount: moneyText(amount),
       addedByName: addedBy.name,
+      hasShares: _count.shares > 0,
     })),
     nextCursor: hasMore && last ? encodeCursor(last.date, last.id) : null,
   };
@@ -260,9 +263,7 @@ export type GetCategoriesStatsResponseType = Awaited<
   ReturnType<typeof getCategoriesStats>
 >;
 
-export type CreateTransactionInput = z.output<
-  typeof CreateTransactionSchema
-> & {
+export type TransactionWriteInput = z.output<typeof TransactionDraftSchema> & {
   addedVia?: "agent" | null;
   idempotencyKey?: string;
 };
@@ -275,9 +276,21 @@ const afterPublisher: EffectPublisher = (effect) => {
   after(effect);
 };
 
+export type TransactionRepo = Pick<
+  PrismaClient,
+  | "transaction"
+  | "transactionShare"
+  | "wallet"
+  | "goal"
+  | "walletMembership"
+  | "recurringItem"
+  | "$transaction"
+>;
+
 type CreateTransactionDeps = {
   clock: Clock;
   publisher: EffectPublisher;
+  repo: TransactionRepo;
 };
 
 type StoredTransaction = NonNullable<
@@ -328,19 +341,30 @@ async function resolveIdempotentWrite(
   return { id: randomUUID() };
 }
 
-export async function createTransaction(
+export async function writeTransaction(
   caller: Caller,
-  input: CreateTransactionInput,
+  input: TransactionWriteInput,
 ) {
-  return createTransactionWithDeps(caller, input, {
-    clock: systemClock,
-    publisher: afterPublisher,
-  });
+  return writeTransactionWithDeps(caller, input, prisma);
+}
+
+export async function writeTransactionWithDeps(
+  caller: Caller,
+  input: TransactionWriteInput,
+  repo: TransactionRepo,
+) {
+  return input.id
+    ? updateTransactionWithDeps(caller, input, repo)
+    : createTransactionWithDeps(caller, input, {
+        clock: systemClock,
+        publisher: afterPublisher,
+        repo,
+      });
 }
 
 async function createTransactionWithDeps(
   caller: Caller,
-  input: CreateTransactionInput,
+  input: TransactionWriteInput,
   deps: CreateTransactionDeps,
 ) {
   assertCallerCanWrite(caller);
@@ -355,7 +379,7 @@ async function createTransactionWithDeps(
     input.type,
   );
 
-  const parsedBody = CreateTransactionSchema.safeParse({
+  const parsedBody = TransactionDraftSchema.safeParse({
     ...input,
     category: categoryRow.name,
   });
@@ -373,7 +397,7 @@ async function createTransactionWithDeps(
   const shareInput = parsedBody.data.shares ?? [];
 
   const [wallet, goal, memberships, recurringItem] = await Promise.all([
-    prisma.wallet.findUnique({
+    deps.repo.wallet.findUnique({
       where: {
         id: walletId,
       },
@@ -382,14 +406,14 @@ async function createTransactionWithDeps(
       },
     }),
     goalId
-      ? prisma.goal.findFirst({
+      ? deps.repo.goal.findFirst({
           where: {
             id: goalId,
             walletId,
           },
         })
       : null,
-    prisma.walletMembership.findMany({
+    deps.repo.walletMembership.findMany({
       where: {
         walletId,
         leftAt: null,
@@ -399,7 +423,7 @@ async function createTransactionWithDeps(
       },
     }),
     recurringItemId
-      ? prisma.recurringItem.findFirst({
+      ? deps.repo.recurringItem.findFirst({
           where: {
             id: recurringItemId,
             walletId,
@@ -462,7 +486,7 @@ async function createTransactionWithDeps(
   };
 
   const attemptWrite = async (writeKey: string | undefined) =>
-    prisma.$transaction(async (tx) => {
+    deps.repo.$transaction(async (tx) => {
       const resolved = await resolveIdempotentWrite(
         tx,
         walletId,
@@ -520,7 +544,7 @@ async function createTransactionWithDeps(
       cause instanceof Prisma.PrismaClientKnownRequestError &&
       cause.code === "P2002"
     ) {
-      const existing = await prisma.transaction.findFirst({
+      const existing = await deps.repo.transaction.findFirst({
         where: { id: key, walletId },
       });
       result =
@@ -612,13 +636,12 @@ export async function deleteTransaction(caller: Caller, id: string) {
   });
 }
 
-export type UpdateTransactionInput = UpdateTransactionSchemaType;
-
 // seam-parse-exempt: the id comes from the caller's own scoped row, which is
 // re-read and permission checked before any write.
-export async function updateTransaction(
+async function updateTransactionWithDeps(
   caller: Caller,
-  input: UpdateTransactionInput,
+  input: TransactionWriteInput,
+  repo: TransactionRepo,
 ) {
   const { walletId } = caller;
   const parsedId = DeleteIdSchema.safeParse({ id: input.id });
@@ -627,7 +650,7 @@ export async function updateTransaction(
   }
   const id = parsedId.data.id;
 
-  const existing = await prisma.transaction.findUnique({
+  const existing = await repo.transaction.findUnique({
     where: { walletId, id },
   });
   if (!existing) {
@@ -635,7 +658,7 @@ export async function updateTransaction(
   }
   assertCallerCanEditEntry(caller, existing.addedById);
 
-  const shareCount = await prisma.transactionShare.count({
+  const shareCount = await repo.transactionShare.count({
     where: { transactionId: id, transaction: { walletId } },
   });
   if (shareCount > 0) {
@@ -649,7 +672,7 @@ export async function updateTransaction(
     input.category,
     input.type,
   );
-  const parsed = UpdateTransactionSchema.safeParse({
+  const parsed = TransactionDraftSchema.safeParse({
     ...input,
     category: categoryRow.name,
   });
@@ -660,8 +683,18 @@ export async function updateTransaction(
   }
 
   const { amount, date, description, type } = parsed.data;
+  const goalId = parsed.data.goalId || undefined;
+  const goal = goalId
+    ? await repo.goal.findFirst({
+        where: { id: goalId, walletId },
+        select: { id: true, name: true, target: true },
+      })
+    : null;
+  if (goalId && !goal) {
+    throw new DomainError("Goal not found");
+  }
   const moneyAmount = toMoney(amount);
-  const wallet = await prisma.wallet.findUnique({
+  const wallet = await repo.wallet.findUnique({
     where: { id: walletId },
     select: { currency: true },
   });
@@ -684,7 +717,7 @@ export async function updateTransaction(
     existing.type !== type ||
     existing.date.getTime() !== date.getTime();
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await repo.$transaction(async (tx) => {
     if (moneyChanged) {
       await decrementRollups(tx, {
         walletId,
@@ -708,6 +741,7 @@ export async function updateTransaction(
         description: description || "",
         type,
         category: categoryRow.name,
+        goalId: goal?.id ?? null,
         ...categoryIconSnapshot(categoryRow),
       },
     });
