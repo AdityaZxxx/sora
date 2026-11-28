@@ -89,7 +89,7 @@ export async function createPersonalWallet(
     }
 
     const wallet = await tx.wallet.create({
-      data: { currency: currency ?? null },
+      data: { currency: currency ?? DEFAULT_CURRENCY },
     });
     const membership = await tx.walletMembership.create({
       data: {
