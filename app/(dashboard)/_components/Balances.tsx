@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -27,9 +28,11 @@ interface Props {
 
 const Balances = ({ currency, canEdit = true, initialBalances }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const { data: balances = [] } = useSuspenseQuery<MemberBalance[]>({
-    queryKey: queryKeys.balances,
+    queryKey: queryKeys.balances(walletId),
     initialData: initialBalances,
     queryFn: () =>
       fetchReadJson("/api/balances", "Failed to fetch balances", {

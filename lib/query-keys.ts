@@ -5,23 +5,23 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 export const queryKeys = {
   apiTokens: ["apiTokens"] satisfies QueryKey,
-  balances: ["balances"] satisfies QueryKey,
-  settlements: ["settlements"] satisfies QueryKey,
-  budgets: ["budgets"] satisfies QueryKey,
-  categories: (type?: string | null): QueryKey =>
-    type ? ["categories", type] : ["categories"],
-  goals: ["goals"] satisfies QueryKey,
-  wallet: ["wallet"] satisfies QueryKey,
-  walletMembers: ["walletMembers"] satisfies QueryKey,
-  formerMembers: ["formerMembers"] satisfies QueryKey,
+  balances: (walletId: string): QueryKey => ["balances", walletId],
+  settlements: (walletId: string): QueryKey => ["settlements", walletId],
+  budgets: (walletId: string): QueryKey => ["budgets", walletId],
+  categories: (walletId: string, type?: string | null): QueryKey =>
+    type ? ["categories", walletId, type] : ["categories", walletId],
+  goals: (walletId: string): QueryKey => ["goals", walletId],
+  wallet: (walletId: string): QueryKey => ["wallet", walletId],
+  walletMembers: (walletId: string): QueryKey => ["walletMembers", walletId],
+  formerMembers: (walletId: string): QueryKey => ["formerMembers", walletId],
   wallets: ["wallets"] satisfies QueryKey,
-  insights: ["insights"] satisfies QueryKey,
-  inviteLinks: ["inviteLinks"] satisfies QueryKey,
-  notifications: ["notifications"] satisfies QueryKey,
+  insights: (walletId: string): QueryKey => ["insights", walletId],
+  inviteLinks: (walletId: string): QueryKey => ["inviteLinks", walletId],
+  notifications: (walletId: string): QueryKey => ["notifications", walletId],
   overview: {
     all: ["overview"] satisfies QueryKey,
     statsAll: ["overview", "stats"] satisfies QueryKey,
-    stats: (walletId: string | undefined, from: Date, to: Date): QueryKey => [
+    stats: (walletId: string, from: Date, to: Date): QueryKey => [
       "overview",
       "stats",
       walletId,
@@ -42,19 +42,40 @@ export const queryKeys = {
       period: Period,
     ): QueryKey => ["overview", "history", walletId, timeframe, period],
   },
+  recurringItems: (walletId: string): QueryKey => ["recurringItems", walletId],
+  sharedSpending: (walletId: string): QueryKey => ["shared-spending", walletId],
+  simplifiedDebts: (walletId: string): QueryKey => [
+    "simplified-debts",
+    walletId,
+  ],
+  transactions: {
+    all: ["transactions"] satisfies QueryKey,
+    history: (
+      walletId: string,
+      from: string,
+      to: string,
+      pageSize: number,
+    ): QueryKey => ["transactions", "history", walletId, from, to, pageSize],
+  },
+};
+
+export const queryKeyPrefixes = {
+  balances: ["balances"] satisfies QueryKey,
+  settlements: ["settlements"] satisfies QueryKey,
+  budgets: ["budgets"] satisfies QueryKey,
+  categories: ["categories"] satisfies QueryKey,
+  goals: ["goals"] satisfies QueryKey,
+  wallet: ["wallet"] satisfies QueryKey,
+  walletMembers: ["walletMembers"] satisfies QueryKey,
+  formerMembers: ["formerMembers"] satisfies QueryKey,
+  insights: ["insights"] satisfies QueryKey,
+  inviteLinks: ["inviteLinks"] satisfies QueryKey,
+  notifications: ["notifications"] satisfies QueryKey,
   recurringItems: ["recurringItems"] satisfies QueryKey,
   sharedSpending: ["shared-spending"] satisfies QueryKey,
   simplifiedDebts: ["simplified-debts"] satisfies QueryKey,
-  transactions: {
-    all: ["transactions"] satisfies QueryKey,
-    history: (from: string, to: string, pageSize: number): QueryKey => [
-      "transactions",
-      "history",
-      from,
-      to,
-      pageSize,
-    ],
-  },
+  transactions: ["transactions"] satisfies QueryKey,
+  overview: ["overview"] satisfies QueryKey,
 };
 
 type TransactionOptimisticInput = {
@@ -108,9 +129,11 @@ export async function applyTransactionOptimistic(
   return {
     invalidate: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.overview.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.goals });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.recurringItems,
+        queryKey: queryKeyPrefixes.goals,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeyPrefixes.recurringItems,
       });
     },
     rollback: () => {

@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useCallerRole } from "@/hooks/use-members";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { queryKeys } from "@/lib/query-keys";
@@ -45,6 +46,8 @@ const CategoryPicker = ({
   ...ariaProps
 }: Props) => {
   const { canEdit } = useCallerRole();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue ?? "");
   const [search, setSearch] = useState("");
@@ -57,7 +60,7 @@ const CategoryPicker = ({
   };
 
   const categoriesQuery = useQuery({
-    queryKey: queryKeys.categories(type),
+    queryKey: queryKeys.categories(walletId, type),
     queryFn: () =>
       fetchReadJson<Category[]>(
         "/api/categories",

@@ -2,6 +2,7 @@ import type { listFormerMembers, listMembers } from "@/lib/members";
 
 import { useQuery } from "@tanstack/react-query";
 
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { useSession } from "@/lib/auth-client";
 import { POLL_INTERVAL, QUERY_STALE_TIME } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -15,8 +16,10 @@ import {
 } from "@/lib/roles";
 
 export function useMembers() {
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   return useQuery({
-    queryKey: queryKeys.walletMembers,
+    queryKey: queryKeys.walletMembers(walletId),
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",
@@ -29,8 +32,10 @@ export function useMembers() {
 }
 
 export function useFormerMembers() {
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   return useQuery({
-    queryKey: queryKeys.formerMembers,
+    queryKey: queryKeys.formerMembers(walletId),
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listFormerMembers>>>(
         "/api/former-members",

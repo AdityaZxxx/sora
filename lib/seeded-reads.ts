@@ -42,43 +42,43 @@ type SeededRead<Data> = {
 const dashboardReads = {
   insights: {
     read: (ctx) => getMonthlyRollup(ctx.walletId),
-    queryKey: () => queryKeys.insights,
+    queryKey: (ctx) => queryKeys.insights(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.insights)],
     blocking: true,
   },
   budgets: {
     read: (ctx) => getBudgetsWithProgress(ctx.walletId),
-    queryKey: () => queryKeys.budgets,
+    queryKey: (ctx) => queryKeys.budgets(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.budgets)],
     blocking: true,
   },
   recurringItems: {
     read: (ctx) => listRecurringItems(ctx.walletId),
-    queryKey: () => queryKeys.recurringItems,
+    queryKey: (ctx) => queryKeys.recurringItems(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.recurring)],
     blocking: true,
   },
   sharedSpending: {
     read: (ctx) => getSharedSpending(ctx.walletId),
-    queryKey: () => queryKeys.sharedSpending,
+    queryKey: (ctx) => queryKeys.sharedSpending(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.budgets)],
     blocking: true,
   },
   balances: {
     read: (ctx) => getMemberBalances(ctx.walletId, ctx.userId),
-    queryKey: () => queryKeys.balances,
+    queryKey: (ctx) => queryKeys.balances(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.balances)],
     blocking: true,
   },
   simplifiedDebts: {
     read: (ctx) => getSimplifiedTransfers(ctx.walletId),
-    queryKey: () => queryKeys.simplifiedDebts,
+    queryKey: (ctx) => queryKeys.simplifiedDebts(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.balances)],
     blocking: true,
   },
   goals: {
     read: (ctx) => getGoalsWithProgress(ctx.walletId),
-    queryKey: () => queryKeys.goals,
+    queryKey: (ctx) => queryKeys.goals(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.goals)],
     blocking: true,
   },
@@ -139,13 +139,13 @@ const shellReads = {
   },
   notifications: {
     read: (ctx) => listNotifications(ctx.walletId, ctx.userId),
-    queryKey: () => queryKeys.notifications,
+    queryKey: (ctx) => queryKeys.notifications(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.notifications)],
     blocking: false,
   },
   walletMembers: {
     read: (ctx) => listMembers(ctx.walletId),
-    queryKey: () => queryKeys.walletMembers,
+    queryKey: (ctx) => queryKeys.walletMembers(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.members)],
     blocking: false,
   },
@@ -154,25 +154,25 @@ const shellReads = {
 const manageReads = {
   incomeCategories: {
     read: (ctx) => getCategories(ctx.walletId, "income"),
-    queryKey: () => queryKeys.categories("income"),
+    queryKey: (ctx) => queryKeys.categories(ctx.walletId, "income"),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.categories)],
     blocking: false,
   },
   expenseCategories: {
     read: (ctx) => getCategories(ctx.walletId, "expense"),
-    queryKey: () => queryKeys.categories("expense"),
+    queryKey: (ctx) => queryKeys.categories(ctx.walletId, "expense"),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.categories)],
     blocking: false,
   },
   manageBudgets: {
     read: (ctx) => getBudgetsWithProgress(ctx.walletId),
-    queryKey: () => queryKeys.budgets,
+    queryKey: (ctx) => queryKeys.budgets(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.budgets)],
     blocking: false,
   },
   inviteLinks: {
     read: (ctx) => listInviteLinks(ctx.walletId),
-    queryKey: () => queryKeys.inviteLinks,
+    queryKey: (ctx) => queryKeys.inviteLinks(ctx.walletId),
     tags: (ctx) => [walletTag(ctx.walletId, CACHE_RESOURCE.invites)],
     blocking: false,
   },
@@ -193,6 +193,7 @@ const transactionsReads = {
     }),
     queryKey: (ctx) =>
       queryKeys.transactions.history(
+        ctx.walletId,
         utcDateValue(ctx.dateRange.from),
         utcDateValue(ctx.dateRange.to),
         TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,

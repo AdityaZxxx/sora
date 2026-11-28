@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getNumberFlowCurrencyProps } from "@/lib/helpers";
@@ -27,9 +28,11 @@ interface Props {
 
 const SafeToSpend = ({ currency }: Props) => {
   const currencyFlow = getNumberFlowCurrencyProps(currency ?? DEFAULT_CURRENCY);
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const { data: budgets = [] } = useSuspenseQuery({
-    queryKey: queryKeys.budgets,
+    queryKey: queryKeys.budgets(walletId),
     queryFn: () =>
       fetchReadJson<BudgetWithProgress[]>(
         "/api/budgets",

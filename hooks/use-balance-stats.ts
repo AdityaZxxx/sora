@@ -21,7 +21,7 @@ export function useBalanceStats(
   { enabled = true, initialData }: UseBalanceStatsOptions = {},
 ) {
   return useQuery<GetBalanceStatsResponseType>({
-    queryKey: queryKeys.overview.stats(walletId, from, to),
+    queryKey: queryKeys.overview.stats(walletId ?? "", from, to),
     initialData,
     queryFn: async () => {
       try {

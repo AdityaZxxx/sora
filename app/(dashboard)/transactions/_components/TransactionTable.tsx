@@ -243,6 +243,8 @@ const buildColumns = (formatAmount: (value: number) => string) =>
   ]);
 
 const TransactionTable = ({ from, to, currency }: Props) => {
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -253,7 +255,12 @@ const TransactionTable = ({ from, to, currency }: Props) => {
   const columns = buildColumns(formatAmount);
 
   const history = useInfiniteQuery({
-    queryKey: queryKeys.transactions.history(from, to, pagination.pageSize),
+    queryKey: queryKeys.transactions.history(
+      walletId,
+      from,
+      to,
+      pagination.pageSize,
+    ),
     queryFn: ({ pageParam }) =>
       fetchHistoryPage(from, to, pageParam ?? null, pagination.pageSize),
     initialPageParam: null as string | null,

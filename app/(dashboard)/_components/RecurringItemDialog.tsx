@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -112,6 +113,8 @@ export default function RecurringItemDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const [name, setName] = useState(item?.name ?? "");
   const [amount, setAmount] = useState(item?.amount ?? 0);
@@ -170,7 +173,9 @@ export default function RecurringItemDialog({
     toast.success(isEdit ? "Bill updated" : "Bill added", {
       id: "recurring-item",
     });
-    queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.recurringItems(walletId),
+    });
     handleOpenChange(false);
   }
 

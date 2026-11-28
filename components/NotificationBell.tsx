@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { POLL_INTERVAL, UNUSUAL_SPENDING_TYPE } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -33,12 +34,14 @@ import { cn } from "@/lib/utils";
 
 const NotificationBell = () => {
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const hydrated = useHydrated();
   const seenIdsRef = useRef<Set<string> | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
   const { data } = useQuery({
-    queryKey: queryKeys.notifications,
+    queryKey: queryKeys.notifications(walletId),
     queryFn: () =>
       fetchReadJson<Notification[]>(
         "/api/notifications",
@@ -83,13 +86,15 @@ const NotificationBell = () => {
       return unwrapAction(await markAllRead());
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.notifications });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications(walletId),
+      });
       const previous = queryClient.getQueryData<Notification[]>(
-        queryKeys.notifications,
+        queryKeys.notifications(walletId),
       );
       const readAt = new Date();
       queryClient.setQueryData<Notification[]>(
-        queryKeys.notifications,
+        queryKeys.notifications(walletId),
         (current) =>
           current?.map((notification) => ({
             ...notification,
@@ -100,7 +105,10 @@ const NotificationBell = () => {
     },
     onError: (error, _variables, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.notifications, context.previous);
+        queryClient.setQueryData(
+          queryKeys.notifications(walletId),
+          context.previous,
+        );
       }
       toast.error(
         actionErrorMessage(
@@ -113,7 +121,9 @@ const NotificationBell = () => {
       );
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications(walletId),
+      });
     },
   });
 

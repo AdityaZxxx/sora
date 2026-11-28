@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCallerRole, useFormerMembers } from "@/hooks/use-members";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { useSession } from "@/lib/auth-client";
 import {
@@ -73,6 +74,8 @@ type Members = Awaited<ReturnType<typeof listMembers>>;
 
 const MembersSection = () => {
   const { data: session } = useSession();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -80,7 +83,7 @@ const MembersSection = () => {
   const formerMembersQuery = useFormerMembers();
 
   const { data: members = [], isLoading } = useQuery({
-    queryKey: queryKeys.walletMembers,
+    queryKey: queryKeys.walletMembers(walletId),
     queryFn: () =>
       fetchReadJson<Awaited<ReturnType<typeof listMembers>>>(
         "/api/members",
@@ -102,23 +105,28 @@ const MembersSection = () => {
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.walletMembers,
+        queryKey: queryKeys.walletMembers(walletId),
       });
       const previous = queryClient.getQueryData<Members>(
-        queryKeys.walletMembers,
+        queryKeys.walletMembers(walletId),
       );
-      queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
-        current?.map((member) =>
-          member.user.id === session?.user.id
-            ? { ...member, emailDigest: input.emailDigest }
-            : member,
-        ),
+      queryClient.setQueryData<Members>(
+        queryKeys.walletMembers(walletId),
+        (current) =>
+          current?.map((member) =>
+            member.user.id === session?.user.id
+              ? { ...member, emailDigest: input.emailDigest }
+              : member,
+          ),
       );
       return { previous };
     },
     onError: (error, _input, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.walletMembers, context.previous);
+        queryClient.setQueryData(
+          queryKeys.walletMembers(walletId),
+          context.previous,
+        );
       }
       toast.error(
         actionErrorMessage(
@@ -132,7 +140,7 @@ const MembersSection = () => {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.walletMembers,
+        queryKey: queryKeys.walletMembers(walletId),
       });
     },
   });
@@ -152,27 +160,35 @@ const MembersSection = () => {
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.walletMembers,
+        queryKey: queryKeys.walletMembers(walletId),
       });
       const previous = queryClient.getQueryData<Members>(
-        queryKeys.walletMembers,
+        queryKeys.walletMembers(walletId),
       );
-      queryClient.setQueryData<Members>(queryKeys.walletMembers, (current) =>
-        current?.map((member) => {
-          if (member.userId === input.userId) {
-            return { ...member, role: input.role };
-          }
-          if (input.role === OWNER_ROLE && member.userId === session?.user.id) {
-            return { ...member, role: CO_OWNER_ROLE };
-          }
-          return member;
-        }),
+      queryClient.setQueryData<Members>(
+        queryKeys.walletMembers(walletId),
+        (current) =>
+          current?.map((member) => {
+            if (member.userId === input.userId) {
+              return { ...member, role: input.role };
+            }
+            if (
+              input.role === OWNER_ROLE &&
+              member.userId === session?.user.id
+            ) {
+              return { ...member, role: CO_OWNER_ROLE };
+            }
+            return member;
+          }),
       );
       return { previous };
     },
     onError: (error, _input, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.walletMembers, context.previous);
+        queryClient.setQueryData(
+          queryKeys.walletMembers(walletId),
+          context.previous,
+        );
       }
       toast.error(
         actionErrorMessage(
@@ -186,7 +202,7 @@ const MembersSection = () => {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.walletMembers,
+        queryKey: queryKeys.walletMembers(walletId),
       });
     },
   });

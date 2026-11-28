@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { type GoalWithProgress } from "@/lib/goals";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -21,6 +22,8 @@ const DeleteGoalDialog = ({
   onOpenChange,
 }: Props) => {
   const goalIdentifier = `delete-goal-${goal.id}`;
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   return (
     <ConfirmDialog
       trigger={trigger}
@@ -41,7 +44,7 @@ const DeleteGoalDialog = ({
       toastId={goalIdentifier}
       input={{ id: goal.id }}
       formAction={deleteGoalForm}
-      queryKeys={[queryKeys.goals]}
+      queryKeys={[queryKeys.goals(walletId)]}
     />
   );
 };

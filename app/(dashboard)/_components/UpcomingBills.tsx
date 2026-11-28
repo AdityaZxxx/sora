@@ -56,6 +56,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { actionErrorMessage, unwrapAction } from "@/lib/action-client";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
@@ -81,6 +82,8 @@ interface Props {
 
 const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
   const queryClient = useQueryClient();
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
   const [showAll, setShowAll] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RecurringItemDraft | null>(
@@ -89,7 +92,7 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
   const [editItem, setEditItem] = useState<RecurringItemDraft | null>(null);
 
   const { data: items = [] } = useSuspenseQuery({
-    queryKey: queryKeys.recurringItems,
+    queryKey: queryKeys.recurringItems(walletId),
     queryFn: () =>
       fetchReadJson<RecurringItemRow[]>(
         "/api/recurring-items",
@@ -104,12 +107,14 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
       return unwrapAction(await SetRecurringItemPaused(input));
     },
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.recurringItems });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.recurringItems(walletId),
+      });
       const previous = queryClient.getQueryData<RecurringItemRow[]>(
-        queryKeys.recurringItems,
+        queryKeys.recurringItems(walletId),
       );
       queryClient.setQueryData<RecurringItemRow[]>(
-        queryKeys.recurringItems,
+        queryKeys.recurringItems(walletId),
         (current) =>
           current?.map((item) =>
             item.id === input.id ? { ...item, paused: input.paused } : item,
@@ -119,7 +124,10 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
     },
     onError: (error, _input, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(queryKeys.recurringItems, context.previous);
+        queryClient.setQueryData(
+          queryKeys.recurringItems(walletId),
+          context.previous,
+        );
       }
       toast.error(
         actionErrorMessage(
@@ -131,7 +139,7 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.recurringItems,
+        queryKey: queryKeys.recurringItems(walletId),
       });
     },
   });
@@ -143,7 +151,9 @@ const UpcomingBills = ({ currency, canEdit, memberCount }: Props) => {
     onSuccess: () => {
       toast.success("Bill deleted", { id: "delete-recurring-item" });
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.recurringItems });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recurringItems(walletId),
+      });
     },
     onError: (error) => {
       toast.error(

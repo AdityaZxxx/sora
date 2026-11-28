@@ -4,6 +4,7 @@ import { ArrowDownRight, ArrowUpRight, Users } from "lucide-react";
 
 import AnimatedNumber from "@/components/AnimatedNumber";
 import { Card } from "@/components/ui/card";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import {
@@ -20,8 +21,10 @@ interface Props {
 }
 
 const SharedSpendingCard = ({ currency }: Props) => {
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
   const { data: spending } = useSuspenseQuery<GetSharedSpendingResponseType>({
-    queryKey: queryKeys.sharedSpending,
+    queryKey: queryKeys.sharedSpending(walletId),
     queryFn: () =>
       fetchReadJson<GetSharedSpendingResponseType>(
         "/api/stats/shared-spending",

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import EmptyState from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveWallet } from "@/hooks/use-wallets";
 import { QUERY_STALE_TIME, DEFAULT_CURRENCY } from "@/lib/constants";
 import { fetchReadJson } from "@/lib/fetch-json";
 import { getFormatterForCurrency } from "@/lib/helpers";
@@ -58,9 +59,11 @@ const rateFor = (bucket?: { income: number; expense: number }) =>
 
 const Insights = ({ currency, memberCount }: Props) => {
   const formatter = getFormatterForCurrency(currency ?? DEFAULT_CURRENCY);
+  const { data: wallets } = useActiveWallet();
+  const walletId = wallets?.active.id ?? "";
 
   const { data: queryMonths } = useSuspenseQuery<GetInsightsResponseType>({
-    queryKey: queryKeys.insights,
+    queryKey: queryKeys.insights(walletId),
     queryFn: () =>
       fetchReadJson<GetInsightsResponseType>(
         "/api/insights",
