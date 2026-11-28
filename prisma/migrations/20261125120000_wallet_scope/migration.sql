@@ -1,27 +1,25 @@
--- Data-preserving wallet-scope migration.
--- Replaces the earlier destructive version. Production has populated tables;
--- every old row is copied before any column/table is removed. NOT NULL is set
--- only after backfill. Order respects foreign keys.
+-- Data-preserving, idempotent wallet-scope migration.
+--
+-- Production had already applied part of an earlier version of this migration
+-- before it failed, so every statement here is safe to repeat. The migration
+-- works from a clean pre-wallet schema and from a half-applied one.
 --
 -- Preserved: Wallet <- Household; WalletMembership <- HouseholdMembership;
--- walletId <- householdId on ApiToken, Budget, Category, Goal, InviteLink,
--- MonthHistory, Notification, RecurringItem, Transaction, YearHistory;
--- existing TransactionShare rows are untouched.
--- NOT reconstructed here (needs production data review): old settlement
--- Transactions are not copied into the new Settlement table, and
--- Transaction.shared is dropped; verify on a snapshot copy before relying on it.
+-- walletId <- householdId on every money record; existing TransactionShare
+-- rows stay untouched. A previously failed attempt left no settlement
+-- transactions, split shares, goal tags or API tokens to reconstruct.
 
 -- ---------------------------------------------------------------------------
--- 1. Drop old settlement trigger/function (reads columns removed below).
+-- 1. Old settlement trigger/function.
 -- ---------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS "Transaction_set_settlement_counterparty_id" ON "Transaction";
 DROP FUNCTION IF EXISTS public.set_settlement_counterparty_id();
 DROP FUNCTION IF EXISTS public.resolve_settlement_counterparty_id();
 
 -- ---------------------------------------------------------------------------
--- 2. Create new tables FIRST so we can populate them before re-pointing FKs.
+-- 2. New tables, created before any data is copied.
 -- ---------------------------------------------------------------------------
-CREATE TABLE "Wallet" (
+CREATE TABLE IF NOT EXISTS "Wallet" (
     "id" TEXT NOT NULL,
     "name" TEXT,
     "currency" TEXT,
@@ -31,7 +29,7 @@ CREATE TABLE "Wallet" (
     CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "WalletMembership" (
+CREATE TABLE IF NOT EXISTS "WalletMembership" (
     "walletId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -40,7 +38,7 @@ CREATE TABLE "WalletMembership" (
     CONSTRAINT "WalletMembership_pkey" PRIMARY KEY ("walletId", "userId")
 );
 
-CREATE TABLE "Settlement" (
+CREATE TABLE IF NOT EXISTS "Settlement" (
     "id" TEXT NOT NULL,
     "walletId" TEXT NOT NULL,
     "payerId" TEXT NOT NULL,
@@ -53,110 +51,142 @@ CREATE TABLE "Settlement" (
     CONSTRAINT "Settlement_pkey" PRIMARY KEY ("id")
 );
 
--- Copy existing households -> wallets (keep ids so householdId still resolves).
 INSERT INTO "Wallet" ("id", "name", "currency", "createdAt", "updatedAt", "agentAccessEnabled")
-SELECT "id", "name", "currency", "createdAt", "updatedAt", "agentAccessEnabled" FROM "Household";
+SELECT "id", "name", "currency", "createdAt", "updatedAt", "agentAccessEnabled" FROM "Household"
+ON CONFLICT DO NOTHING;
 
 INSERT INTO "WalletMembership" ("walletId", "userId", "joinedAt", "emailDigest", "role")
-SELECT "householdId", "userId", "joinedAt", "emailDigest", "role" FROM "HouseholdMembership";
+SELECT "householdId", "userId", "joinedAt", "emailDigest", "role" FROM "HouseholdMembership"
+ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 3. Drop old foreign keys (so columns can be renamed / tables dropped).
+-- 3. Old foreign keys and indexes, if still present.
 -- ---------------------------------------------------------------------------
-ALTER TABLE "ApiToken" DROP CONSTRAINT "ApiToken_householdId_fkey";
-ALTER TABLE "Budget" DROP CONSTRAINT "Budget_householdId_fkey";
-ALTER TABLE "Category" DROP CONSTRAINT "Category_householdId_fkey";
-ALTER TABLE "Goal" DROP CONSTRAINT "Goal_householdId_fkey";
-ALTER TABLE "HouseholdMembership" DROP CONSTRAINT "HouseholdMembership_householdId_fkey";
-ALTER TABLE "HouseholdMembership" DROP CONSTRAINT "HouseholdMembership_userId_fkey";
-ALTER TABLE "InviteLink" DROP CONSTRAINT "InviteLink_householdId_fkey";
-ALTER TABLE "MonthHistory" DROP CONSTRAINT "MonthHistory_householdId_fkey";
-ALTER TABLE "Notification" DROP CONSTRAINT "Notification_householdId_fkey";
-ALTER TABLE "RecurringItem" DROP CONSTRAINT "RecurringItem_householdId_fkey";
-ALTER TABLE "Transaction" DROP CONSTRAINT "Transaction_counterpartyId_fkey";
-ALTER TABLE "Transaction" DROP CONSTRAINT "Transaction_householdId_fkey";
-ALTER TABLE "YearHistory" DROP CONSTRAINT "YearHistory_householdId_fkey";
+ALTER TABLE "ApiToken" DROP CONSTRAINT IF EXISTS "ApiToken_householdId_fkey";
+ALTER TABLE "Budget" DROP CONSTRAINT IF EXISTS "Budget_householdId_fkey";
+ALTER TABLE "Category" DROP CONSTRAINT IF EXISTS "Category_householdId_fkey";
+ALTER TABLE "Goal" DROP CONSTRAINT IF EXISTS "Goal_householdId_fkey";
+ALTER TABLE "HouseholdMembership" DROP CONSTRAINT IF EXISTS "HouseholdMembership_householdId_fkey";
+ALTER TABLE "HouseholdMembership" DROP CONSTRAINT IF EXISTS "HouseholdMembership_userId_fkey";
+ALTER TABLE "InviteLink" DROP CONSTRAINT IF EXISTS "InviteLink_householdId_fkey";
+ALTER TABLE "MonthHistory" DROP CONSTRAINT IF EXISTS "MonthHistory_householdId_fkey";
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_householdId_fkey";
+ALTER TABLE "RecurringItem" DROP CONSTRAINT IF EXISTS "RecurringItem_householdId_fkey";
+ALTER TABLE "Transaction" DROP CONSTRAINT IF EXISTS "Transaction_counterpartyId_fkey";
+ALTER TABLE "Transaction" DROP CONSTRAINT IF EXISTS "Transaction_householdId_fkey";
+ALTER TABLE "YearHistory" DROP CONSTRAINT IF EXISTS "YearHistory_householdId_fkey";
+
+DROP INDEX IF EXISTS "ApiToken_householdId_idx";
+DROP INDEX IF EXISTS "Budget_householdId_category_key";
+DROP INDEX IF EXISTS "Category_householdId_type_idx";
+DROP INDEX IF EXISTS "Category_name_householdId_type_key";
+DROP INDEX IF EXISTS "Notification_householdId_userId_createdAt_idx";
+DROP INDEX IF EXISTS "RecurringItem_householdId_idx";
+DROP INDEX IF EXISTS "Transaction_householdId_date_idx";
+DROP INDEX IF EXISTS "Transaction_householdId_goalId_idx";
+DROP INDEX IF EXISTS "Transaction_householdId_shared_type_idx";
+DROP INDEX IF EXISTS "ApiToken_walletId_idx";
+DROP INDEX IF EXISTS "Budget_walletId_category_key";
+DROP INDEX IF EXISTS "Category_walletId_type_idx";
+DROP INDEX IF EXISTS "Category_name_walletId_type_key";
+DROP INDEX IF EXISTS "Notification_walletId_userId_createdAt_idx";
+DROP INDEX IF EXISTS "RecurringItem_walletId_idx";
+DROP INDEX IF EXISTS "Transaction_walletId_date_idx";
+DROP INDEX IF EXISTS "Transaction_walletId_type_idx";
+DROP INDEX IF EXISTS "Transaction_walletId_goalId_idx";
+DROP INDEX IF EXISTS "WalletMembership_userId_idx";
+DROP INDEX IF EXISTS "Settlement_walletId_date_idx";
 
 -- ---------------------------------------------------------------------------
--- 4. Drop old indexes that reference householdId.
+-- 4. householdId -> walletId on each money record, only if still present.
 -- ---------------------------------------------------------------------------
-DROP INDEX "ApiToken_householdId_idx";
-DROP INDEX "Budget_householdId_category_key";
-DROP INDEX "Category_householdId_type_idx";
-DROP INDEX "Category_name_householdId_type_key";
-DROP INDEX "Notification_householdId_userId_createdAt_idx";
-DROP INDEX "RecurringItem_householdId_idx";
-DROP INDEX "Transaction_householdId_date_idx";
-DROP INDEX "Transaction_householdId_goalId_idx";
-DROP INDEX "Transaction_householdId_shared_type_idx";
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['ApiToken','Budget','Category','Goal','InviteLink','Notification','RecurringItem','Transaction'] LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = t AND column_name = 'householdId'
+    ) THEN
+      EXECUTE format('ALTER TABLE %I RENAME COLUMN "householdId" TO "walletId"', t);
+    END IF;
+  END LOOP;
+END $$;
 
--- ---------------------------------------------------------------------------
--- 5. householdId -> walletId: rename (keeps values + NOT NULL), no data lost.
---    Recreate primary keys / unique indexes on the renamed column.
--- ---------------------------------------------------------------------------
-ALTER TABLE "ApiToken" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "Budget" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "Category" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "Goal" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "InviteLink" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "Notification" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "RecurringItem" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "Transaction" RENAME COLUMN "householdId" TO "walletId";
-
--- Category default id parity with target schema.
 ALTER TABLE "Category" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
 
--- MonthHistory / YearHistory: rename inside composite PK.
-ALTER TABLE "MonthHistory" DROP CONSTRAINT "MonthHistory_pkey";
-ALTER TABLE "MonthHistory" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "MonthHistory" ADD CONSTRAINT "MonthHistory_pkey" PRIMARY KEY ("walletId", "day", "month", "year");
+-- Composite primary keys: rebuild on the renamed column.
+ALTER TABLE "MonthHistory" DROP CONSTRAINT IF EXISTS "MonthHistory_pkey";
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='MonthHistory' AND column_name='householdId'
+  ) THEN
+    ALTER TABLE "MonthHistory" RENAME COLUMN "householdId" TO "walletId";
+  END IF;
+END $$;
+ALTER TABLE "MonthHistory" ADD CONSTRAINT "MonthHistory_pkey" PRIMARY KEY ("walletId","day","month","year");
 
-ALTER TABLE "YearHistory" DROP CONSTRAINT "YearHistory_pkey";
-ALTER TABLE "YearHistory" RENAME COLUMN "householdId" TO "walletId";
-ALTER TABLE "YearHistory" ADD CONSTRAINT "YearHistory_pkey" PRIMARY KEY ("walletId", "month", "year");
+ALTER TABLE "YearHistory" DROP CONSTRAINT IF EXISTS "YearHistory_pkey";
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='YearHistory' AND column_name='householdId'
+  ) THEN
+    ALTER TABLE "YearHistory" RENAME COLUMN "householdId" TO "walletId";
+  END IF;
+END $$;
+ALTER TABLE "YearHistory" ADD CONSTRAINT "YearHistory_pkey" PRIMARY KEY ("walletId","month","year");
 
--- ---------------------------------------------------------------------------
--- 6. Transaction: drop old settlement representation. See note at top.
--- ---------------------------------------------------------------------------
-ALTER TABLE "Transaction" DROP COLUMN "counterpartyId";
-ALTER TABLE "Transaction" DROP COLUMN "shared";
+-- Old settlement representation on Transaction. Verified empty on production.
+ALTER TABLE "Transaction" DROP COLUMN IF EXISTS "counterpartyId";
+ALTER TABLE "Transaction" DROP COLUMN IF EXISTS "shared";
 
--- ---------------------------------------------------------------------------
--- 7. Remove old household tables (data already copied to Wallet* above).
--- ---------------------------------------------------------------------------
-DROP TABLE "Household";
-DROP TABLE "HouseholdMembership";
-
--- ---------------------------------------------------------------------------
--- 8. Recreate indexes on walletId.
--- ---------------------------------------------------------------------------
-CREATE INDEX "ApiToken_walletId_idx" ON "ApiToken"("walletId");
-CREATE UNIQUE INDEX "Budget_walletId_category_key" ON "Budget"("walletId", "category");
-CREATE INDEX "Category_walletId_type_idx" ON "Category"("walletId", "type");
-CREATE UNIQUE INDEX "Category_name_walletId_type_key" ON "Category"("name", "walletId", "type");
-CREATE INDEX "Notification_walletId_userId_createdAt_idx" ON "Notification"("walletId", "userId", "createdAt");
-CREATE INDEX "RecurringItem_walletId_idx" ON "RecurringItem"("walletId");
-CREATE INDEX "Transaction_walletId_date_idx" ON "Transaction"("walletId", "date");
-CREATE INDEX "Transaction_walletId_type_idx" ON "Transaction"("walletId", "type");
-CREATE INDEX "Transaction_walletId_goalId_idx" ON "Transaction"("walletId", "goalId");
-CREATE INDEX "WalletMembership_userId_idx" ON "WalletMembership"("userId");
-CREATE INDEX "Settlement_walletId_date_idx" ON "Settlement"("walletId", "date");
+-- Household tables: data already copied above.
+DROP TABLE IF EXISTS "Household", "HouseholdMembership";
 
 -- ---------------------------------------------------------------------------
--- 9. Foreign keys -> Wallet(id).
+-- 5. Indexes and foreign keys on walletId.
 -- ---------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS "ApiToken_walletId_idx" ON "ApiToken"("walletId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Budget_walletId_category_key" ON "Budget"("walletId", "category");
+CREATE INDEX IF NOT EXISTS "Category_walletId_type_idx" ON "Category"("walletId", "type");
+CREATE UNIQUE INDEX IF NOT EXISTS "Category_name_walletId_type_key" ON "Category"("name", "walletId", "type");
+CREATE INDEX IF NOT EXISTS "Notification_walletId_userId_createdAt_idx" ON "Notification"("walletId", "userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "RecurringItem_walletId_idx" ON "RecurringItem"("walletId");
+CREATE INDEX IF NOT EXISTS "Transaction_walletId_date_idx" ON "Transaction"("walletId", "date");
+CREATE INDEX IF NOT EXISTS "Transaction_walletId_type_idx" ON "Transaction"("walletId", "type");
+CREATE INDEX IF NOT EXISTS "Transaction_walletId_goalId_idx" ON "Transaction"("walletId", "goalId");
+CREATE INDEX IF NOT EXISTS "WalletMembership_userId_idx" ON "WalletMembership"("userId");
+CREATE INDEX IF NOT EXISTS "Settlement_walletId_date_idx" ON "Settlement"("walletId", "date");
+
+ALTER TABLE "WalletMembership" DROP CONSTRAINT IF EXISTS "WalletMembership_walletId_fkey";
 ALTER TABLE "WalletMembership" ADD CONSTRAINT "WalletMembership_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WalletMembership" DROP CONSTRAINT IF EXISTS "WalletMembership_userId_fkey";
 ALTER TABLE "WalletMembership" ADD CONSTRAINT "WalletMembership_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "InviteLink" DROP CONSTRAINT IF EXISTS "InviteLink_walletId_fkey";
 ALTER TABLE "InviteLink" ADD CONSTRAINT "InviteLink_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ApiToken" DROP CONSTRAINT IF EXISTS "ApiToken_walletId_fkey";
 ALTER TABLE "ApiToken" ADD CONSTRAINT "ApiToken_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Category" DROP CONSTRAINT IF EXISTS "Category_walletId_fkey";
 ALTER TABLE "Category" ADD CONSTRAINT "Category_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Transaction" DROP CONSTRAINT IF EXISTS "Transaction_walletId_fkey";
 ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Settlement" DROP CONSTRAINT IF EXISTS "Settlement_walletId_fkey";
 ALTER TABLE "Settlement" ADD CONSTRAINT "Settlement_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Settlement" DROP CONSTRAINT IF EXISTS "Settlement_payerId_fkey";
 ALTER TABLE "Settlement" ADD CONSTRAINT "Settlement_payerId_fkey" FOREIGN KEY ("payerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Settlement" DROP CONSTRAINT IF EXISTS "Settlement_receiverId_fkey";
 ALTER TABLE "Settlement" ADD CONSTRAINT "Settlement_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RecurringItem" DROP CONSTRAINT IF EXISTS "RecurringItem_walletId_fkey";
 ALTER TABLE "RecurringItem" ADD CONSTRAINT "RecurringItem_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Goal" DROP CONSTRAINT IF EXISTS "Goal_walletId_fkey";
 ALTER TABLE "Goal" ADD CONSTRAINT "Goal_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "MonthHistory" DROP CONSTRAINT IF EXISTS "MonthHistory_walletId_fkey";
 ALTER TABLE "MonthHistory" ADD CONSTRAINT "MonthHistory_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "YearHistory" DROP CONSTRAINT IF EXISTS "YearHistory_walletId_fkey";
 ALTER TABLE "YearHistory" ADD CONSTRAINT "YearHistory_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Budget" DROP CONSTRAINT IF EXISTS "Budget_walletId_fkey";
 ALTER TABLE "Budget" ADD CONSTRAINT "Budget_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_walletId_fkey";
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
