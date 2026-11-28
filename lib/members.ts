@@ -107,7 +107,7 @@ export async function leaveWallet(caller: Caller) {
 
     await tx.apiToken.updateMany({
       where: {
-        walletId: caller.walletId,
+        wallets: { some: { walletId: caller.walletId } },
         userId: caller.userId,
         revokedAt: null,
       },
@@ -241,7 +241,7 @@ export async function removeMember(
 
     await tx.apiToken.updateMany({
       where: {
-        walletId: caller.walletId,
+        wallets: { some: { walletId: caller.walletId } },
         userId,
         revokedAt: null,
       },
