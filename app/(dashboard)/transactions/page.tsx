@@ -3,15 +3,13 @@ import { type Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { CACHE_RESOURCE, walletTag } from "@/lib/cache";
-import {
-  DEFAULT_CURRENCY,
-  TRANSACTION_HISTORY_INITIAL_PAGE_SIZE,
-} from "@/lib/constants";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { resolveDateRange, utcDateValue } from "@/lib/dates";
-import { seedQuery, seededHydrationState } from "@/lib/hydration";
-import { queryKeys } from "@/lib/query-keys";
-import { getTransactionsHistory } from "@/lib/transactions";
+import {
+  hydrationStateFor,
+  seedContextFor,
+  seededReads,
+} from "@/lib/seeded-reads";
 import { requireWallet } from "@/lib/wallet";
 
 import TransactionsClient from "./_components/TransactionsClient";
@@ -55,30 +53,21 @@ const SeededTransactions = async () => {
     notFound();
   }
 
-  const walletId = result.wallet.id;
   const dateRange = resolveDateRange();
   const values = {
     from: utcDateValue(dateRange.from),
     to: utcDateValue(dateRange.to),
   };
-  const pageSize = TRANSACTION_HISTORY_INITIAL_PAGE_SIZE;
-  const page = await getTransactionsHistory(
-    walletId,
-    dateRange.from,
-    dateRange.to,
-    { limit: pageSize },
+  const ctx = seedContextFor(
+    result.wallet.id,
+    result.session.user.id,
+    dateRange,
   );
+  const transactionsHistory = await seededReads.transactionsHistory.read(ctx);
 
-  const state = await seededHydrationState(
-    [
-      seedQuery(
-        queryKeys.transactions.history(values.from, values.to, pageSize),
-        { pages: [page], pageParams: [null] },
-        true,
-      ),
-    ],
-    [walletTag(walletId, CACHE_RESOURCE.transactions)],
-  );
+  const state = await hydrationStateFor(["transactionsHistory"], ctx, {
+    transactionsHistory,
+  });
 
   return (
     <HydrationBoundary state={state}>

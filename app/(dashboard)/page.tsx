@@ -77,6 +77,7 @@ const DashboardPage = async () => {
       <Suspense fallback={<OverviewSkeleton />}>
         <Overview
           walletId={context.walletId}
+          userId={context.userId}
           currency={context.currency}
           initialDateRange={context.dateRange}
         />
